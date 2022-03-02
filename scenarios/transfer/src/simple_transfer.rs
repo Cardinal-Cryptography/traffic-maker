@@ -14,6 +14,7 @@ pub struct SimpleTransferScenario {
     sender: Account,
     receiver: Account,
     interval: Duration,
+    transfer_value: u128,
     connection: Connection,
 }
 
@@ -22,12 +23,15 @@ impl SimpleTransferScenario {
         let sender = new_account_from_seed("//SimpleTransferSender");
         let receiver = new_account_from_seed("//SimpleTransferReceiver");
 
-        top_up(connection, &sender, 100_000_000_000);
+        let transfer_value = 1_000_000_000;
+
+        top_up(connection, &sender, transfer_value * 1_000);
 
         SimpleTransferScenario {
             sender,
             receiver,
             interval,
+            transfer_value,
             connection: connection.clone(),
         }
     }
@@ -41,10 +45,15 @@ impl Scenario for SimpleTransferScenario {
 
     async fn play(&mut self) -> bool {
         let receiver_balance_before = get_free_balance(&self.receiver, &self.connection);
-        transfer(&self.connection, &self.sender, &self.receiver, 1);
+        transfer(
+            &self.connection,
+            &self.sender,
+            &self.receiver,
+            self.transfer_value,
+        );
         let receiver_balance_after = get_free_balance(&self.receiver, &self.connection);
 
-        receiver_balance_after == receiver_balance_before + 1
+        receiver_balance_after == receiver_balance_before + self.transfer_value
     }
 
     fn ident(&self) -> &str {

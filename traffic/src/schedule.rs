@@ -5,15 +5,35 @@ use futures::{
 
 use crate::scenario::Scenario;
 
-pub async fn run_schedule(scenarios: Vec<impl Scenario>) {
+pub async fn run_schedule<S: Scenario>(scenarios: Vec<S>) {
     let (report_ready, mut receive_ready) = mpsc::unbounded();
 
     for scenario in scenarios {
-        tokio::spawn(schedule_scenario(scenario, report_ready.clone()));
+        // tokio::spawn(schedule_scenario(scenario, report_ready.clone()));
+        let report_ready = report_ready.clone();
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(scenario.interval());
+
+            interval.tick().await;
+            if scenario.immediate() {
+                report_ready
+                    .clone()
+                    .unbounded_send(scenario.clone())
+                    .expect("Should be able to report readiness");
+            }
+
+            loop {
+                interval.tick().await;
+                report_ready
+                    .clone()
+                    .unbounded_send(scenario.clone())
+                    .expect("Should be able to report readiness");
+            }
+        });
     }
 
     loop {
-        let mut scenario = receive_ready
+        let mut scenario: S = receive_ready
             .next()
             .await
             .expect("There should be at least one scenario scheduled");

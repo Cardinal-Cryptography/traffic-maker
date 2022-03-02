@@ -4,7 +4,7 @@ use substrate_api_client::GenericAddress;
 use crate::{send_extrinsic, Account, Connection};
 
 /// Wrapper for the extrinsic `Balances::transfer`.
-pub fn transfer(connection: &Connection, from: &Account, to: &Account, amount: u64) {
+pub fn transfer(connection: &Connection, from: &Account, to: &Account, amount: u128) {
     let connection = connection.clone().set_signer(from.keypair.clone());
 
     send_extrinsic!(

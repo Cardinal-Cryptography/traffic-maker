@@ -26,16 +26,19 @@ fn get_cornucopia() -> Account {
 
 /// Workaround for `set_balance` extrinsic. `amount` tokens are transferred
 /// from //Cornucopia to `account`.
-pub fn top_up(connection: &Connection, account: &Account, amount: u64) {
+pub fn top_up(connection: &Connection, account: &Account, amount: u128) {
     let cornucopia = get_cornucopia();
     transfer(connection, &cornucopia, account, amount);
 }
 
 /// Returns free balance of `account`.
 pub fn get_free_balance(account: &Account, connection: &Connection) -> Balance {
-    connection
+    match connection
         .get_account_data(&account.address)
         .expect("Should be able to access account data")
-        .expect("Account data should be present")
-        .free
+    {
+        Some(account_data) => account_data.free,
+        // Account may have not been initialized yet or liquidated due to the lack of funds.
+        None => 0,
+    }
 }
