@@ -1,6 +1,8 @@
 [workspace]
 
 members = [
+    "bin",
     "traffic",
-    "chain-support"
+    "chain-support",
+    "scenarios/transfer"
 ]
