@@ -8,7 +8,7 @@ use chain_support::{
 use traffic::Scenario;
 
 /// Keeps two accounts: `sender` and `receiver`. Once in the `interval`,
-/// `sender` sends `1` unit to `receiver`.
+/// `sender` sends `transfer_value` units to `receiver`.
 #[derive(Clone)]
 pub struct SimpleTransferScenario {
     sender: Account,

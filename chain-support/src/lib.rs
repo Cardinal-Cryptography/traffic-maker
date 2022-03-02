@@ -16,6 +16,8 @@ pub struct Account {
     pub address: AccountId32,
 }
 
+/// Creates a connection to the provided ws address. In case of failure, retries in a loop
+/// every 1 second.
 pub fn create_connection(address: &str) -> Connection {
     let client = WsRpcClient::new(address);
     match Api::<Pair, _>::new(client) {
@@ -28,6 +30,8 @@ pub fn create_connection(address: &str) -> Connection {
     }
 }
 
+/// Utility macro for creating and sending an extrinsic. Waits for finalizing the block containing
+/// provided extrinsic.
 #[macro_export]
 macro_rules! send_extrinsic {
 	($connection: expr,

@@ -17,6 +17,7 @@ async fn main() {
     let config: Config = Config::parse();
     let connection = create_connection(&config.node);
 
+    // TODO: read from some config bots to launch together with parameters
     let scenarios = vec![SimpleTransferScenario::new(
         &connection,
         Duration::from_secs(5),
