@@ -4,3 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+chain-support = { path = "../chain-support" }
+scenario-transfer = { path = "../scenarios/transfer" }
+traffic = { path = "../traffic" }

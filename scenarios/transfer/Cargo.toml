@@ -1,6 +1,10 @@
 [package]
-name = "transfer"
+name = "scenario-transfer"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+traffic = { path = "../../traffic" }
+chain-support = { path = "../../chain-support" }
+
+async-trait = "0.1"

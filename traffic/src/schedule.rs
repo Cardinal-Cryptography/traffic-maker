@@ -13,7 +13,7 @@ pub async fn run_schedule(scenarios: Vec<impl Scenario>) {
     }
 
     loop {
-        let scenario = receive_ready
+        let mut scenario = receive_ready
             .next()
             .await
             .expect("There should be at least one scenario scheduled");
