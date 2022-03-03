@@ -18,6 +18,8 @@ The default address is `ws://127.0.0.1:9944`, so for that you do not need to spe
 Currently, there is only one scenario available - `SimpleTransferScenario`, running every 5 seconds.
 More scenarios and easy configuration are coming soon.
 
+**Note:** To avoid accessing sudo, the code assumes that there is an account with seed `//Cornucopia` (public key: `5Cyo51qgfmVMva6R98KCiFQvPSjSEwWjKWLZnmBEDDC6eHkL`) with _a lot_ of balance.
+
 ## Development
 
 ### Project structure
