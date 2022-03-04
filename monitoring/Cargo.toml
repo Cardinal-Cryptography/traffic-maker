@@ -1,0 +1,12 @@
+[package]
+name = "traffic-maker-monitoring"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+iced_web = "0.4"
+iced = { version = "0.3", features = ["tokio"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+wasm-bindgen = "0.2.69"
+reqwest = { version = "0.11", features = ["json"] }

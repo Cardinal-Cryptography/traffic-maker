@@ -6,3 +6,7 @@ members = [
     "chain-support",
     "scenarios/transfer"
 ]
+
+exclude = [
+    "monitoring",
+]
