@@ -42,14 +42,14 @@ impl Scenario {
                 Duration::from_millis(500000),
                 Some(Status::Failure),
             ),
+            Scenario::new(
+                "ActuallyNoTransfer".to_string(),
+                0,
+                0,
+                Duration::from_millis(500000000),
+                None,
+            ),
         ])
-        // let url = String::from("https://jsonplaceholder.typicode.com/posts/");
-        // reqwest::get(&url)
-        //     .await
-        //     .map_err(|_| String::new())?
-        //     .json()
-        //     .await
-        //     .map_err(|_| String::new())
     }
 
     fn new(

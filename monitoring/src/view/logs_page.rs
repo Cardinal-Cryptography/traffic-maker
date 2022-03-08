@@ -1,41 +1,52 @@
-use crate::{data::Logs, message::Message};
-use iced::{button, Align, Button, Column, Element, Text};
+use crate::{data::Logs, message::Message, view::logs::LogsView};
+use iced::{button, scrollable, Alignment, Button, Column, Element, Length, Scrollable, Text};
 
-pub fn view_logs_page(_scenario_ident: String, _logs: Option<Logs>) -> Element<Message> {
-    let home_button = Button::new(&mut button::State::new(), Text::new("Overview"))
-        .on_press(Message::GoToOverview);
+pub struct LogsPage {
+    scenario: String,
+    log_view: Option<LogsView>,
 
-    Column::new()
-        .max_width(800)
-        .spacing(10)
-        .padding(10)
-        .align_items(Align::Center)
-        .push(home_button)
-        .into()
+    home_button_state: button::State,
+    scroll_state: scrollable::State,
 }
 
-// match self.route {
-//     Route::List => {
-//         let posts: Element<_> = match self.posts {
-//             None => Column::new()
-//                 .push(Text::new("loading...".to_owned()).size(15))
-//                 .into(),
-//             Some(ref mut p) => App::render_posts(p),
-//         };
-//         col.push(Text::new("Home".to_owned()).size(20))
-//             .push(posts)
-//             .into()
-//     }
-//     Route::Detail(id) => {
-//         let post: Element<_> = match self.post {
-//             None => Column::new()
-//                 .push(Text::new("loading...".to_owned()).size(15))
-//                 .into(),
-//             Some(ref mut p) => p.view(),
-//         };
-//
-//         col.push(Text::new(format!("Post: {}", id)).size(20))
-//             .push(post)
-//             .into()
-//     }
-// }
+impl LogsPage {
+    pub fn new(scenario: String, logs: Option<Logs>) -> Self {
+        LogsPage {
+            scenario,
+            log_view: logs.map(LogsView::new),
+            home_button_state: button::State::new(),
+            scroll_state: scrollable::State::new(),
+        }
+    }
+
+    pub fn view(&mut self) -> Element<Message> {
+        let home_button = Button::new(
+            &mut self.home_button_state,
+            Text::new(" Go back to overview ").size(25),
+        )
+        .on_press(Message::GoToOverview);
+
+        let title = Text::new(&self.scenario).size(30);
+
+        let content = Column::new()
+            .spacing(50)
+            .padding(40)
+            .push(home_button)
+            .push(title)
+            .push(Self::content(&self.log_view));
+
+        Scrollable::new(&mut self.scroll_state)
+            .align_items(Alignment::Center)
+            .width(Length::Fill)
+            .padding(40)
+            .push(content)
+            .into()
+    }
+
+    fn content(logs_view: &Option<LogsView>) -> Element<Message> {
+        match logs_view {
+            None => Text::new("No logs available").into(),
+            Some(ref logs_view) => logs_view.view(),
+        }
+    }
+}

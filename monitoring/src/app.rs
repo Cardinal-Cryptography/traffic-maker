@@ -1,14 +1,12 @@
-use iced::{
-    button, executor, Align, Application, Button, Clipboard, Column, Command, Element, Text,
-};
+use iced::{executor, Application, Command, Element};
 
 use crate::{
     data::{Logs, Scenario},
     message::Message,
-    view::{view_logs_page, view_overview_page},
+    view::{LogsPage, OverviewPage},
 };
 
-/// Dashboards
+/// Available dashboards.
 #[derive(Clone, Debug)]
 enum Route {
     /// See all the launched scenarios with their current status.
@@ -18,7 +16,7 @@ enum Route {
 }
 
 /// Core struct connecting state, view and update (Elm architecture).
-struct App {
+pub struct App {
     /// Currently chosen route.
     current_route: Route,
 
@@ -26,6 +24,16 @@ struct App {
     scenarios: Option<Vec<Scenario>>,
     /// Fetched logs for a particular scenario.
     logs: Option<Logs>,
+
+    /// Overview page view.
+    ///
+    /// When creating views, iced often operates on object references: e.g. to display a list
+    /// of scenario views, we need to keep every single view somewhere. Thus, the `App` object
+    /// has to keep (perhaps indirectly) these views. However, for enhanced encapsulation, we store
+    /// an `OverviewPage` object, which allows for better separation.
+    overview_page: Option<OverviewPage>,
+    /// Particular scenario logs page view.
+    logs_page: Option<LogsPage>,
 }
 
 impl Application for App {
@@ -39,6 +47,8 @@ impl Application for App {
                 current_route: Route::Overview,
                 scenarios: None,
                 logs: None,
+                overview_page: None,
+                logs_page: None,
             },
             Command::perform(Scenario::fetch_all(), Message::FetchedScenarios),
         )
@@ -48,7 +58,7 @@ impl Application for App {
         String::from("Traffic maker: monitoring")
     }
 
-    fn update(&mut self, message: Message, _c: &mut Clipboard) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::GoToOverview => {
                 self.current_route = Route::Overview;
@@ -56,7 +66,7 @@ impl Application for App {
             }
             Message::GoToLogs(scenario) => {
                 self.current_route = Route::Logs(scenario.clone());
-                Command::perform(Logs::fetch(scenario), Message::FetchedLogs())
+                Command::perform(Logs::fetch(scenario), Message::FetchedLogs)
             }
             Message::FetchedScenarios(result) => {
                 self.scenarios = result.ok();
@@ -71,8 +81,14 @@ impl Application for App {
 
     fn view(&mut self) -> Element<Message> {
         match self.current_route {
-            Route::Overview => view_overview_page(self.scenarios.clone()),
-            Route::Logs(ref scenario) => view_logs_page(scenario.clone(), self.logs.clone()),
+            Route::Overview => {
+                self.overview_page = Some(OverviewPage::new(self.scenarios.clone()));
+                self.overview_page.as_mut().unwrap().view()
+            }
+            Route::Logs(ref scenario) => {
+                self.logs_page = Some(LogsPage::new(scenario.clone(), self.logs.clone()));
+                self.logs_page.as_mut().unwrap().view()
+            }
         }
     }
 }
