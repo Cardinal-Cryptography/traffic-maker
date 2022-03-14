@@ -6,8 +6,8 @@ use std::{
 use log::warn;
 use serde::Serialize;
 
-use traffic::{EventListener, Scenario};
 use crate::data_export::DataExporter;
+use traffic::{EventListener, Scenario};
 
 /// Result of a single scenario run.
 #[derive(Debug, Clone, Serialize)]
@@ -63,6 +63,9 @@ impl ScenarioLogs {
     }
 }
 
+/// A single struct realizing two important concepts: data exposure (`DataExporter` trait)
+/// and event registration (`EventListener` trait). It is the way in which the scheduler
+/// communicates with the outer world.
 #[derive(Clone)]
 pub struct Stats {
     details: HashMap<String, ScenarioDetails>,
