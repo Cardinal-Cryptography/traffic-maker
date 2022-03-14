@@ -1,6 +1,13 @@
 use iced::{scrollable, Alignment, Column, Container, Element, Length, Scrollable, Text};
 
-use crate::{data::Scenario, message::Message, view::scenario::ScenarioView};
+use crate::{
+    data::Scenario,
+    message::Message,
+    view::{
+        scenario::ScenarioView,
+        style::{FontSize, Spacing},
+    },
+};
 
 pub struct OverviewPage {
     scenario_views: Vec<ScenarioView>,
@@ -33,7 +40,7 @@ impl OverviewPage {
             Scrollable::new(&mut self.scroll_state)
                 .align_items(Alignment::Center)
                 .width(Length::Fill)
-                .padding(40)
+                .padding(Spacing::Big as u16)
                 .push(Container::new(scenario_list).width(Length::Fill).center_x())
                 .into()
         }
@@ -41,7 +48,7 @@ impl OverviewPage {
 
     fn no_scenarios<'a>() -> Element<'a, Message> {
         Column::new()
-            .push(Text::new("No scenarios available"))
+            .push(Text::new("No scenarios available").size(FontSize::H2 as u16))
             .align_items(Alignment::Center)
             .into()
     }
@@ -49,9 +56,10 @@ impl OverviewPage {
     fn scenario_list(scenario_views: &mut Vec<ScenarioView>) -> Element<Message> {
         scenario_views
             .iter_mut()
-            .fold(Column::new().spacing(20), |col, view| {
-                col.push(view.view_in_list())
-            })
+            .fold(
+                Column::new().spacing(Spacing::Normal as u16),
+                |col, view| col.push(view.view_in_list()),
+            )
             .into()
     }
 }
