@@ -1,4 +1,7 @@
-use std::time::Duration;
+use std::{
+    sync::atomic::{AtomicU32, Ordering},
+    time::Duration,
+};
 
 use serde::Deserialize;
 
@@ -27,11 +30,14 @@ pub struct Scenario {
 
 impl Scenario {
     pub async fn fetch_all() -> Result<Vec<Scenario>, String> {
+        static COUNTER: AtomicU32 = AtomicU32::new(0);
+        COUNTER.fetch_add(1, Ordering::Relaxed);
+
         Ok(vec![
             Scenario::new(
                 "SimpleTransfer".to_string(),
-                10,
-                2,
+                COUNTER.load(Ordering::Relaxed) + 10,
+                COUNTER.load(Ordering::Relaxed) + 2,
                 Duration::from_secs(5),
                 Some(Status::Success),
             ),
