@@ -5,7 +5,7 @@ use crate::{
     message::Message,
     view::{
         scenario::ScenarioView,
-        style::{FontSize, Spacing},
+        style::{AlephTheme, FontSize, Spacing},
     },
 };
 
@@ -36,13 +36,12 @@ impl OverviewPage {
             Self::no_scenarios()
         } else {
             let scenario_list = Self::scenario_list(&mut self.scenario_views);
-
-            Scrollable::new(&mut self.scroll_state)
-                .align_items(Alignment::Center)
+            let content = Container::new(scenario_list)
                 .width(Length::Fill)
-                .padding(Spacing::BIG)
-                .push(Container::new(scenario_list).width(Length::Fill).center_x())
-                .into()
+                .height(Length::Fill)
+                .center_x()
+                .style(AlephTheme);
+            content.into()
         }
     }
 

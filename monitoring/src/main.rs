@@ -1,5 +1,6 @@
-use crate::app::App;
 use iced::{Application, Result, Settings};
+
+use crate::app::App;
 
 mod app;
 mod data;

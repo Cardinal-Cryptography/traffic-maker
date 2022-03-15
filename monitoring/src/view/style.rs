@@ -1,8 +1,18 @@
-use iced::{Color, Length};
+use iced::{button, container, container::Style, Color as IcedColor, Length};
 
-pub const RED: Color = Color::from_rgb(153f32 / 255.0, 0f32 / 255.0, 0f32 / 255.0);
-pub const GREEN: Color = Color::from_rgb(0f32 / 255.0, 153f32 / 255.0, 0f32 / 255.0);
-pub const GRAY: Color = Color::from_rgb(192f32 / 255.0, 192f32 / 255.0, 192f32 / 255.0);
+pub struct Color;
+
+impl Color {
+    pub const RED: IcedColor = Self::convert(153, 0, 0);
+    pub const GREEN: IcedColor = Self::convert(0, 153, 0);
+    pub const GRAY: IcedColor = Self::convert(192, 192, 192);
+
+    pub const BACKGROUND: IcedColor = Self::convert(54, 57, 63);
+
+    const fn convert(r: u8, g: u8, b: u8) -> IcedColor {
+        IcedColor::from_rgb(r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0)
+    }
+}
 
 pub struct FontSize;
 impl FontSize {
@@ -21,3 +31,35 @@ impl Spacing {
 
 pub const FULL_SCREEN_TEXT_WIDTH: Length = Length::Units(600);
 pub const WIDE_COLUMN_WIDTH: Length = Length::Units(300);
+
+pub struct AlephTheme;
+
+impl container::StyleSheet for AlephTheme {
+    fn style(&self) -> Style {
+        container::Style {
+            // background: BACKGROUND.into(),
+            background: BACKGROUND.into(),
+            text_color: Color::WHITE.into(),
+            ..container::Style::default()
+        }
+    }
+}
+
+// impl button::StyleSheet for AlephTheme {
+//     fn active(&self) -> button::Style {
+//         todo!()
+//     }
+//
+//     fn hovered(&self) -> button::Style {
+//         todo!()
+//     }
+//
+//     fn pressed(&self) -> button::Style {
+//         todo!()
+//     }
+//
+//     fn disabled(&self) -> button::Style {
+//         todo!()
+//     }
+// }
+// 00CCAB

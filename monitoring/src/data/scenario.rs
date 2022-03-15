@@ -55,6 +55,48 @@ impl Scenario {
                 Duration::from_millis(500000000),
                 None,
             ),
+            Scenario::new(
+                "SimpleTransfer".to_string(),
+                COUNTER.load(Ordering::Relaxed) + 10,
+                COUNTER.load(Ordering::Relaxed) + 2,
+                Duration::from_secs(5),
+                Some(Status::Success),
+            ),
+            Scenario::new(
+                "ComplexTransfer".to_string(),
+                4,
+                1,
+                Duration::from_millis(500000),
+                Some(Status::Failure),
+            ),
+            Scenario::new(
+                "ActuallyNoTransfer".to_string(),
+                0,
+                0,
+                Duration::from_millis(500000000),
+                None,
+            ),
+            Scenario::new(
+                "SimpleTransfer".to_string(),
+                COUNTER.load(Ordering::Relaxed) + 10,
+                COUNTER.load(Ordering::Relaxed) + 2,
+                Duration::from_secs(5),
+                Some(Status::Success),
+            ),
+            Scenario::new(
+                "ComplexTransfer".to_string(),
+                4,
+                1,
+                Duration::from_millis(500000),
+                Some(Status::Failure),
+            ),
+            Scenario::new(
+                "ActuallyNoTransfer".to_string(),
+                0,
+                0,
+                Duration::from_millis(500000000),
+                None,
+            ),
         ])
     }
 
