@@ -1,4 +1,4 @@
-use iced::{executor, window, window::Mode, Application, Color, Command, Element, Length};
+use iced::{executor, Application, Command, Element};
 
 use crate::{
     data::{Logs, Scenario},
@@ -90,9 +90,5 @@ impl Application for App {
                 self.logs_page.as_mut().unwrap().view()
             }
         }
-    }
-
-    fn background_color(&self) -> Color {
-        Color::from_rgb8(0x36, 0x39, 0x3F)
     }
 }
