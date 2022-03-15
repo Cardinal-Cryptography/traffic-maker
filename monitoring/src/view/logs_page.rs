@@ -30,15 +30,15 @@ impl LogsPage {
     pub fn view(&mut self) -> Element<Message> {
         let home_button = Button::new(
             &mut self.home_button_state,
-            Text::new(" Go back to overview ").size(FontSize::H3 as u16),
+            Text::new(" Go back to overview ").size(FontSize::H3),
         )
         .on_press(Message::GoToOverview);
 
-        let title = Text::new(&self.scenario).size(FontSize::H1 as u16);
+        let title = Text::new(&self.scenario).size(FontSize::H1);
 
         let content = Column::new()
-            .spacing(Spacing::Big as u16)
-            .padding(Spacing::Big as u16)
+            .spacing(Spacing::BIG)
+            .padding(Spacing::BIG)
             .push(home_button)
             .push(title)
             .push(Self::content(&self.log_view));
@@ -46,16 +46,14 @@ impl LogsPage {
         Scrollable::new(&mut self.scroll_state)
             .align_items(Alignment::Center)
             .width(Length::Fill)
-            .padding(Spacing::Big as u16)
+            .padding(Spacing::BIG)
             .push(content)
             .into()
     }
 
     fn content(logs_view: &Option<LogsView>) -> Element<Message> {
         match logs_view {
-            None => Text::new("No logs available")
-                .size(FontSize::H2 as u16)
-                .into(),
+            None => Text::new("No logs available").size(FontSize::H2).into(),
             Some(ref logs_view) => logs_view.view(),
         }
     }

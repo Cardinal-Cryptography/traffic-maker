@@ -40,7 +40,7 @@ impl OverviewPage {
             Scrollable::new(&mut self.scroll_state)
                 .align_items(Alignment::Center)
                 .width(Length::Fill)
-                .padding(Spacing::Big as u16)
+                .padding(Spacing::BIG)
                 .push(Container::new(scenario_list).width(Length::Fill).center_x())
                 .into()
         }
@@ -48,7 +48,7 @@ impl OverviewPage {
 
     fn no_scenarios<'a>() -> Element<'a, Message> {
         Column::new()
-            .push(Text::new("No scenarios available").size(FontSize::H2 as u16))
+            .push(Text::new("No scenarios available").size(FontSize::H2))
             .align_items(Alignment::Center)
             .into()
     }
@@ -56,10 +56,9 @@ impl OverviewPage {
     fn scenario_list(scenario_views: &mut Vec<ScenarioView>) -> Element<Message> {
         scenario_views
             .iter_mut()
-            .fold(
-                Column::new().spacing(Spacing::Normal as u16),
-                |col, view| col.push(view.view_in_list()),
-            )
+            .fold(Column::new().spacing(Spacing::NORMAL), |col, view| {
+                col.push(view.view_in_list())
+            })
             .into()
     }
 }

@@ -25,10 +25,10 @@ impl ScenarioView {
 
     pub fn view_in_list(&mut self) -> Element<Message> {
         let ident = Text::new(self.scenario.ident.clone())
-            .size(FontSize::H2 as u16)
+            .size(FontSize::H2)
             .width(WIDE_COLUMN_WIDTH);
         let title = Row::new()
-            .spacing(Spacing::Normal as u16)
+            .spacing(Spacing::NORMAL)
             .width(Length::Shrink)
             .push(ident)
             .push(Self::status_icon(self.scenario.last_status.clone()));
@@ -37,27 +37,27 @@ impl ScenarioView {
             "failures: {}/{}",
             self.scenario.failures, self.scenario.runs
         ))
-        .size(FontSize::Content as u16);
+        .size(FontSize::CONTENT);
         let interval = Text::new(format!(
             "scheduled every {:?}s",
             self.scenario.interval.as_secs()
         ))
-        .size(FontSize::Content as u16);
+        .size(FontSize::CONTENT);
 
         let info_view = Column::new()
-            .spacing(Spacing::Small as u16)
+            .spacing(Spacing::SMALL)
             .push(title)
             .push(fails)
             .push(interval);
 
         let logs_button = Button::new(
             &mut self.logs_button,
-            Text::new(" See logs ").size(FontSize::Content as u16),
+            Text::new(" See logs ").size(FontSize::CONTENT),
         )
         .on_press(Message::GoToLogs(self.scenario.ident.clone()));
 
         Row::new()
-            .padding(Spacing::Small as u16)
+            .padding(Spacing::SMALL)
             .align_items(Alignment::Center)
             .push(info_view)
             .push(logs_button)
@@ -72,7 +72,7 @@ impl ScenarioView {
             Some(Status::Success) => Text::new("Status: okay").color(GREEN),
             Some(Status::Failure) => Text::new("Status: not okay").color(RED),
         }
-        .size(FontSize::H3 as u16)
+        .size(FontSize::H3)
         .vertical_alignment(Vertical::Center)
         .horizontal_alignment(Horizontal::Left)
         .width(WIDE_COLUMN_WIDTH)

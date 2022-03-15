@@ -19,16 +19,13 @@ impl LogsView {
         self.logs
             .content
             .iter()
-            .fold(
-                Column::new().spacing(Spacing::Normal as u16),
-                |col, logline| {
-                    col.push(
-                        Text::new(logline.clone())
-                            .size(FontSize::Content as u16)
-                            .width(FULL_SCREEN_TEXT_WIDTH),
-                    )
-                },
-            )
+            .fold(Column::new().spacing(Spacing::NORMAL), |col, logline| {
+                col.push(
+                    Text::new(logline.clone())
+                        .size(FontSize::CONTENT)
+                        .width(FULL_SCREEN_TEXT_WIDTH),
+                )
+            })
             .into()
     }
 }
