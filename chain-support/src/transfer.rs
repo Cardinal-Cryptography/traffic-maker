@@ -1,8 +1,8 @@
-use aleph_client::send_xt;
+use aleph_client::{send_xt, Connection};
 use sp_core::Pair;
 use substrate_api_client::{compose_extrinsic, GenericAddress, XtStatus::Finalized};
 
-use crate::{Account, Connection};
+use crate::Account;
 
 /// Wrapper for the extrinsic `Balances::transfer`.
 pub fn transfer(connection: &Connection, from: &Account, to: &Account, amount: u128) {
