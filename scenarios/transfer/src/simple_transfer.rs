@@ -59,8 +59,4 @@ impl Scenario for SimpleTransferScenario {
     fn ident(&self) -> &str {
         "SimpleTransfer"
     }
-
-    fn immediate(&self) -> bool {
-        true
-    }
 }

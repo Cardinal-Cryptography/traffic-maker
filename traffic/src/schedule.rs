@@ -27,7 +27,6 @@ pub async fn run_schedule(scenarios: Vec<impl Scenario>) {
 }
 
 /// After every period of `scenario.interval()` reports readiness through the channel.
-/// Additionally, if `scenario.immediate() == true`, reports its readiness immediately.
 async fn schedule_scenario<S: Scenario>(
     scenario: S,
     report_ready: UnboundedSender<S>,
@@ -35,12 +34,6 @@ async fn schedule_scenario<S: Scenario>(
     let mut interval = tokio::time::interval(scenario.interval());
 
     interval.tick().await;
-    if scenario.immediate() {
-        report_ready
-            .unbounded_send(scenario.clone())
-            .expect("Should be able to report readiness");
-    }
-
     loop {
         interval.tick().await;
         report_ready
