@@ -11,7 +11,4 @@ pub trait Scenario: Clone + Send + Sync + 'static {
 
     /// String identifier for this particular scenario.
     fn ident(&self) -> &str;
-
-    /// Whether the first run should occur immediately or after `interval()`.
-    fn immediate(&self) -> bool;
 }
