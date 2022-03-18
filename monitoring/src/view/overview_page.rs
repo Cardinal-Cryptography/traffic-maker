@@ -32,9 +32,10 @@ impl OverviewPage {
     }
 
     pub fn view(&mut self) -> Element<Message> {
-        let scenario_list = match self.scenario_views.is_empty() {
-            true => Self::no_scenarios(),
-            false => Self::scenario_list(&mut self.scenario_views),
+        let scenario_list = if self.scenario_views.is_empty() {
+            Self::no_scenarios()
+        } else {
+            Self::scenario_list(&mut self.scenario_views)
         };
         let scenario_list = Scrollable::new(&mut self.scroll_state)
             .push(scenario_list)

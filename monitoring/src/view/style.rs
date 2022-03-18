@@ -12,10 +12,10 @@ impl Color {
     pub const RED: IcedColor = convert!(153, 0, 0);
     pub const GREEN: IcedColor = convert!(0, 153, 0);
     pub const GRAY: IcedColor = convert!(192, 192, 192);
-    pub const LIGHT_GRAY: IcedColor = convert!(230, 230, 230);
+    pub const ANTHRACITE: IcedColor = convert!(17, 27, 36);
 
-    pub const BACKGROUND: IcedColor = convert!(54, 57, 63);
-    pub const PRIMARY: IcedColor = convert!(0, 204, 171);
+    pub const BACKGROUND: IcedColor = convert!(54, 57, 60);
+    pub const PRIMARY: IcedColor = convert!(0, 234, 199);
 }
 
 pub struct FontSize;
@@ -52,7 +52,7 @@ impl button::StyleSheet for AlephTheme {
     fn active(&self) -> button::Style {
         button::Style {
             background: Color::PRIMARY.into(),
-            text_color: Color::LIGHT_GRAY,
+            text_color: Color::ANTHRACITE,
             border_radius: 5f32,
             shadow_offset: Vector::new(1.0, 1.0),
             ..button::Style::default()
