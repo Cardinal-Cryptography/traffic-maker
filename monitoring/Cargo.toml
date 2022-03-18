@@ -1,0 +1,10 @@
+[package]
+name = "traffic-maker-monitoring"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+iced = { git = "https://github.com/iced-rs/iced", rev = "a53fa91e0ddf374bbeb66d5e831b79127ed47a9d", features = ["svg", "image"] }
+
+reqwest = { version = "0.11", features = ["json"] }
+serde = { version = "1.0", features = ["derive"] }
