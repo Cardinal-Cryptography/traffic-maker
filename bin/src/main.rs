@@ -23,7 +23,7 @@ async fn run_backend<EL: 'static + EventListener>(address: &str, event_listener:
     // TODO: read from some config scenarios to launch together with parameters
     let scenarios = vec![SimpleTransferScenario::new(
         &connection,
-        Duration::from_secs(5),
+        Duration::from_secs(15),
     )];
 
     run_schedule(scenarios, event_listener).await;
@@ -39,7 +39,6 @@ async fn serve_logs<DE: DataExporter>(data: web::Data<Arc<Mutex<DE>>>) -> impl R
 
 #[actix_web::main]
 async fn main() -> Result<()> {
-    std::env::set_var("RUST_LOG", "actix_web=trace");
     env_logger::init();
     let config: Config = Config::parse();
 

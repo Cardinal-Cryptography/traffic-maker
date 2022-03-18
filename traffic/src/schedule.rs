@@ -11,6 +11,7 @@ use crate::scenario::Scenario;
 pub trait EventListener: Send + Clone {
     fn register_scenario<S: Scenario>(&mut self, scenario: &S);
     fn report_success(&mut self, scenario_ident: String);
+    fn report_launch(&mut self, scenario_ident: String);
     fn report_failure(&mut self, scenario_ident: String);
     fn report_logs(&mut self, scenario_ident: String, logs: Vec<String>);
 }
@@ -22,6 +23,10 @@ impl<EL: EventListener> EventListener for Arc<Mutex<EL>> {
 
     fn report_success(&mut self, scenario_ident: String) {
         self.lock().unwrap().report_success(scenario_ident)
+    }
+
+    fn report_launch(&mut self, scenario_ident: String) {
+        self.lock().unwrap().report_launch(scenario_ident)
     }
 
     fn report_failure(&mut self, scenario_ident: String) {
@@ -56,6 +61,7 @@ pub async fn run_schedule<EL: 'static + EventListener>(
         let mut event_listener = event_listener.clone();
         tokio::spawn(async move {
             let id = scenario.ident().to_string();
+            event_listener.report_launch(id.clone());
             match scenario.play().await {
                 true => event_listener.report_success(id),
                 false => event_listener.report_failure(id),

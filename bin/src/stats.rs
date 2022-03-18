@@ -6,14 +6,21 @@ use std::{
 use log::warn;
 use serde::Serialize;
 
-use crate::data_export::DataExporter;
 use traffic::{EventListener, Scenario};
 
-/// Result of a single scenario run.
-#[derive(Debug, Clone, Serialize)]
+use crate::data_export::DataExporter;
+
+/// Current status of the scheduled scenario.
+#[derive(Debug, Clone, Copy, Serialize)]
 pub enum Status {
+    /// Scenario is scheduled for its first run.
+    NotLaunchedYet,
+    /// Last run was successful. The scenario is scheduled.
     Success,
+    /// Last run failed. The scenario is scheduled.
     Failure,
+    /// The scenario is running now.
+    Running,
 }
 
 /// The struct representing a running bot.
@@ -28,8 +35,8 @@ struct ScenarioDetails {
     failures: u32,
     /// How often the scenario is run. Corresponds to `fn interval(&self)` from `Scenario` trait.
     interval: Duration,
-    /// Most recent status.
-    last_status: Option<Status>,
+    /// Scenario status.
+    last_status: Status,
 }
 
 impl ScenarioDetails {
@@ -39,7 +46,7 @@ impl ScenarioDetails {
             runs: 0,
             failures: 0,
             interval: scenario.interval(),
-            last_status: None,
+            last_status: Status::NotLaunchedYet,
         }
     }
 }
@@ -79,6 +86,33 @@ impl Stats {
             logs: HashMap::new(),
         }
     }
+
+    fn update_storage<V, A: FnOnce(&mut V)>(
+        storage: &mut HashMap<String, V>,
+        scenario_ident: String,
+        update_action: A,
+    ) {
+        match storage.entry(scenario_ident.clone()) {
+            Entry::Vacant(_) => {
+                warn!(target: "stats", "Scenario {} has not been registered yet", scenario_ident)
+            }
+            Entry::Occupied(ref mut entry) => update_action(entry.get_mut()),
+        }
+    }
+
+    fn update_status(&mut self, scenario_ident: String, status: Status) {
+        Self::update_storage(&mut self.details, scenario_ident, |details| {
+            match status {
+                Status::Running | Status::NotLaunchedYet => {}
+                Status::Success => details.runs += 1,
+                Status::Failure => {
+                    details.runs += 1;
+                    details.failures += 1;
+                }
+            }
+            details.last_status = status;
+        })
+    }
 }
 
 impl DataExporter for Stats {
@@ -107,43 +141,22 @@ impl EventListener for Stats {
     }
 
     fn report_success(&mut self, scenario_ident: String) {
-        match self.details.entry(scenario_ident.clone()) {
-            Entry::Vacant(_) => {
-                warn!(target: "stats", "Scenario {} has not been registered yet", scenario_ident)
-            }
-            Entry::Occupied(ref mut entry) => {
-                let mut details = entry.get_mut();
-                details.runs += 1;
-                details.last_status = Some(Status::Success);
-            }
-        }
+        self.update_status(scenario_ident, Status::Success)
+    }
+
+    fn report_launch(&mut self, scenario_ident: String) {
+        self.update_status(scenario_ident, Status::Running)
     }
 
     fn report_failure(&mut self, scenario_ident: String) {
-        match self.details.entry(scenario_ident.clone()) {
-            Entry::Vacant(_) => {
-                warn!(target: "stats", "Scenario {} has not been registered yet", scenario_ident)
-            }
-            Entry::Occupied(ref mut entry) => {
-                let mut details = entry.get_mut();
-                details.runs += 1;
-                details.failures += 1;
-                details.last_status = Some(Status::Failure);
-            }
-        }
+        self.update_status(scenario_ident, Status::Failure)
     }
 
     fn report_logs(&mut self, scenario_ident: String, logs: Vec<String>) {
-        match self.logs.entry(scenario_ident.clone()) {
-            Entry::Vacant(_) => {
-                warn!(target: "stats", "Scenario {} has not been registered yet", scenario_ident)
-            }
-            Entry::Occupied(ref mut entry) => {
-                let all_logs = entry.get_mut();
-                let mut logs = logs;
-                // TODO: make `content` a bounded container
-                all_logs.content.append(&mut logs);
-            }
-        }
+        Self::update_storage(&mut self.logs, scenario_ident, |all_logs| {
+            let mut logs = logs;
+            // TODO: make `content` a bounded container
+            all_logs.content.append(&mut logs);
+        });
     }
 }
