@@ -4,6 +4,6 @@ addr = "127.0.0.1"
 # The port to serve on.
 port = 8081
 # Open a browser tab once the initial build is complete.
-open = true
+open = false
 # Disable auto-reload of the web app.
 no_autoreload = false
