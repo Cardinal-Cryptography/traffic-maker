@@ -1,11 +1,13 @@
-use iced::{button, scrollable, Alignment, Button, Column, Element, Length, Scrollable, Text};
+use iced::{
+    button, scrollable, Alignment, Button, Column, Container, Element, Length, Scrollable, Text,
+};
 
 use crate::{
     data::Logs,
     message::Message,
     view::{
         logs::LogsView,
-        style::{FontSize, Spacing},
+        style::{AlephTheme, Color, FontSize, Spacing},
     },
 };
 
@@ -32,9 +34,12 @@ impl LogsPage {
             &mut self.home_button_state,
             Text::new(" Go back to overview ").size(FontSize::H3),
         )
-        .on_press(Message::GoToOverview);
+        .on_press(Message::GoToOverview)
+        .style(AlephTheme);
 
-        let title = Text::new(&self.scenario).size(FontSize::H1);
+        let title = Text::new(&self.scenario)
+            .size(FontSize::H1)
+            .color(Color::PRIMARY);
 
         let content = Column::new()
             .spacing(Spacing::BIG)
@@ -43,11 +48,17 @@ impl LogsPage {
             .push(title)
             .push(Self::content(&self.log_view));
 
-        Scrollable::new(&mut self.scroll_state)
+        let content = Scrollable::new(&mut self.scroll_state)
             .align_items(Alignment::Center)
             .width(Length::Fill)
             .padding(Spacing::BIG)
-            .push(content)
+            .push(content);
+
+        Container::new(content)
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .center_x()
+            .style(AlephTheme)
             .into()
     }
 
