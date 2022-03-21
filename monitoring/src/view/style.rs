@@ -1,8 +1,22 @@
-use iced::{Color, Length};
+use iced::{button, container, container::Style, Color as IcedColor, Length, Vector};
 
-pub const RED: Color = Color::from_rgb(153f32 / 255.0, 0f32 / 255.0, 0f32 / 255.0);
-pub const GREEN: Color = Color::from_rgb(0f32 / 255.0, 153f32 / 255.0, 0f32 / 255.0);
-pub const GRAY: Color = Color::from_rgb(192f32 / 255.0, 192f32 / 255.0, 192f32 / 255.0);
+macro_rules! convert {
+    ($r: expr, $g: expr, $b: expr) => {
+        IcedColor::from_rgb($r as f32 / 255.0, $g as f32 / 255.0, $b as f32 / 255.0)
+    };
+}
+
+pub struct Color;
+impl Color {
+    pub const WHITE: IcedColor = convert!(255, 255, 255);
+    pub const RED: IcedColor = convert!(153, 0, 0);
+    pub const GREEN: IcedColor = convert!(0, 153, 0);
+    pub const GRAY: IcedColor = convert!(192, 192, 192);
+    pub const ANTHRACITE: IcedColor = convert!(17, 27, 36);
+
+    pub const BACKGROUND: IcedColor = convert!(54, 57, 60);
+    pub const PRIMARY: IcedColor = convert!(0, 234, 199);
+}
 
 pub struct FontSize;
 impl FontSize {
@@ -20,4 +34,28 @@ impl Spacing {
 }
 
 pub const FULL_SCREEN_TEXT_WIDTH: Length = Length::Units(600);
-pub const WIDE_COLUMN_WIDTH: Length = Length::Units(300);
+pub const WIDE_COLUMN_WIDTH: Length = Length::Units(400);
+
+pub struct AlephTheme;
+
+impl container::StyleSheet for AlephTheme {
+    fn style(&self) -> Style {
+        container::Style {
+            background: Color::BACKGROUND.into(),
+            text_color: Color::WHITE.into(),
+            ..container::Style::default()
+        }
+    }
+}
+
+impl button::StyleSheet for AlephTheme {
+    fn active(&self) -> button::Style {
+        button::Style {
+            background: Color::PRIMARY.into(),
+            text_color: Color::ANTHRACITE,
+            border_radius: 5f32,
+            shadow_offset: Vector::new(1.0, 1.0),
+            ..button::Style::default()
+        }
+    }
+}

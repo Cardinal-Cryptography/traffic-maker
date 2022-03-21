@@ -6,7 +6,7 @@ use iced::{
 use crate::{
     data::{Scenario, Status},
     message::Message,
-    view::style::{FontSize, Spacing, GRAY, GREEN, RED, WIDE_COLUMN_WIDTH},
+    view::style::{AlephTheme, Color, FontSize, Spacing, WIDE_COLUMN_WIDTH},
 };
 
 #[derive(Clone)]
@@ -26,6 +26,7 @@ impl ScenarioView {
     pub fn view_in_list(&mut self) -> Element<Message> {
         let ident = Text::new(self.scenario.ident.clone())
             .size(FontSize::H2)
+            .color(Color::PRIMARY)
             .width(WIDE_COLUMN_WIDTH);
         let title = Row::new()
             .spacing(Spacing::NORMAL)
@@ -54,7 +55,8 @@ impl ScenarioView {
             &mut self.logs_button,
             Text::new(" See logs ").size(FontSize::CONTENT),
         )
-        .on_press(Message::GoToLogs(self.scenario.ident.clone()));
+        .on_press(Message::GoToLogs(self.scenario.ident.clone()))
+        .style(AlephTheme);
 
         Row::new()
             .padding(Spacing::SMALL)
@@ -68,9 +70,9 @@ impl ScenarioView {
     // to work with static data like icons or images. Pathetic.
     fn status_icon<'a>(status: Option<Status>) -> Element<'a, Message> {
         match status {
-            None => Text::new("Status: unknown").color(GRAY),
-            Some(Status::Success) => Text::new("Status: okay").color(GREEN),
-            Some(Status::Failure) => Text::new("Status: not okay").color(RED),
+            None => Text::new("Status: unknown").color(Color::GRAY),
+            Some(Status::Success) => Text::new("Status: okay").color(Color::GREEN),
+            Some(Status::Failure) => Text::new("Status: not okay").color(Color::RED),
         }
         .size(FontSize::H3)
         .vertical_alignment(Vertical::Center)
