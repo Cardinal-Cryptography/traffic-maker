@@ -20,7 +20,7 @@ pub fn new_account_from_seed(seed: &str) -> Account {
 /// Returns the account that is supposed to have 'unlimited' balances. Kinda faucet.
 ///
 /// Thanks to this we can set balances at will without using `sudo` account.
-fn get_cornucopia() -> Account {
+pub fn get_cornucopia() -> Account {
     new_account_from_seed("//Cornucopia")
 }
 
