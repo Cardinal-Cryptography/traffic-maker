@@ -17,13 +17,15 @@ mod config;
 mod data_export;
 mod stats;
 
+const EXAMPLE_SCENARIO_INTERVAL: Duration = Duration::from_secs(15);
+
 async fn run_backend<EL: 'static + EventListener>(address: &str, event_listener: EL) {
     let connection = create_connection(address);
 
     // TODO: read from some config scenarios to launch together with parameters
     let scenarios = vec![SimpleTransferScenario::new(
         &connection,
-        Duration::from_secs(15),
+        EXAMPLE_SCENARIO_INTERVAL,
     )];
 
     run_schedule(scenarios, event_listener).await;
