@@ -1,4 +1,6 @@
-pub use aleph_client::{create_connection, send_xt, Connection};
+pub use aleph_client::{
+    create_connection, from as parse_to_protocol, send_xt, Connection, Protocol,
+};
 use sp_core::{crypto::AccountId32, sr25519::Pair};
 
 pub mod account;
