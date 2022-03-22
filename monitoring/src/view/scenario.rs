@@ -68,11 +68,12 @@ impl ScenarioView {
 
     // Currently, we have to return lame text, because the combo trunk+iced is not able
     // to work with static data like icons or images. Pathetic.
-    fn status_icon<'a>(status: Option<Status>) -> Element<'a, Message> {
+    fn status_icon<'a>(status: Status) -> Element<'a, Message> {
         match status {
-            None => Text::new("Status: unknown").color(Color::GRAY),
-            Some(Status::Success) => Text::new("Status: okay").color(Color::GREEN),
-            Some(Status::Failure) => Text::new("Status: not okay").color(Color::RED),
+            Status::Success => Text::new("Status: okay").color(Color::GREEN),
+            Status::Failure => Text::new("Status: not okay").color(Color::RED),
+            Status::NotLaunchedYet => Text::new("Status: not launched yet").color(Color::GRAY),
+            Status::Running => Text::new("Status: running").color(Color::GRAY),
         }
         .size(FontSize::H3)
         .vertical_alignment(Vertical::Center)

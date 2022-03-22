@@ -1,33 +1,27 @@
 use serde::Deserialize;
+use std::collections::HashMap;
 
-/// The struct representing a collection of logs for a single bot.
+/// A desarizable counterpart for a corresponding struct from `bin/stats.rs`.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Logs {
-    /// Unique identifier of the scenario. Corresponds to `fn ident(&self)` from `Scenario` trait.
     pub scenario_ident: String,
-    /// List of the recent log lines.
     pub content: Vec<String>,
 }
 
 impl Logs {
-    pub async fn fetch(_scenario_ident: String) -> Result<Logs, String> {
-        Ok(Logs::new(
-            "SimpleTransfer".to_string(),
-            vec![
-                "log-line1".to_string(),
-                "Reeeaaallly looooong line from the logs for the chosen scenario. The title of \
-                this scenario is presented above. And there are two log lines more."
-                    .to_string(),
-                "log-line3".to_string(),
-            ],
-        ))
+    pub async fn fetch(_scenario_ident: String, base_url: String) -> Result<Logs, String> {
+        Self::_fetch(base_url).await.map_err(|e| format!("{:?}", e))
     }
 
-    fn new(scenario_ident: String, content: Vec<String>) -> Self {
-        Logs {
-            scenario_ident,
-            content,
-        }
+    async fn _fetch(base_url: String) -> reqwest::Result<Logs> {
+        Ok(reqwest::get(format!("{}/logs", base_url))
+            .await?
+            .json::<HashMap<String, Logs>>()
+            .await?
+            .values()
+            .cloned()
+            .collect())
+        .map(|v: Vec<Logs>| v[0].clone())
     }
 }

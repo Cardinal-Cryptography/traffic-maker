@@ -81,7 +81,10 @@ impl Application for App {
             }
             Message::GoToLogs(scenario) => {
                 self.current_route = Route::Logs(scenario.clone());
-                Command::perform(Logs::fetch(scenario), Message::FetchedLogs)
+                Command::perform(
+                    Logs::fetch(scenario, self.stats_base_url.clone()),
+                    Message::FetchedLogs,
+                )
             }
             Message::FetchedScenarios(result) => {
                 self.scenarios = result.ok();
