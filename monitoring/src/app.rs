@@ -20,6 +20,9 @@ pub struct App {
     /// Currently chosen route.
     current_route: Route,
 
+    /// Base URL where stats from backend are exposed. Don't forget about protocol prefix
+    /// (like `http://`), even if using localhost.
+    stats_base_url: String,
     /// Fetched scenarios.
     scenarios: Option<Vec<Scenario>>,
     /// Fetched logs for a particular scenario.
@@ -36,21 +39,30 @@ pub struct App {
     logs_page: Option<LogsPage>,
 }
 
+#[derive(Clone, Debug, Default)]
+pub struct Flags {
+    pub stats_base_url: String,
+}
+
 impl Application for App {
     type Executor = executor::Default;
     type Message = Message;
-    type Flags = ();
+    type Flags = Flags;
 
-    fn new(_flags: ()) -> (App, Command<Message>) {
+    fn new(flags: Flags) -> (App, Command<Message>) {
         (
             App {
                 current_route: Route::Overview,
+                stats_base_url: flags.stats_base_url.clone(),
                 scenarios: None,
                 logs: None,
                 overview_page: None,
                 logs_page: None,
             },
-            Command::perform(Scenario::fetch_all(), Message::FetchedScenarios),
+            Command::perform(
+                Scenario::fetch_all(flags.stats_base_url),
+                Message::FetchedScenarios,
+            ),
         )
     }
 
@@ -62,7 +74,10 @@ impl Application for App {
         match message {
             Message::GoToOverview => {
                 self.current_route = Route::Overview;
-                Command::perform(Scenario::fetch_all(), Message::FetchedScenarios)
+                Command::perform(
+                    Scenario::fetch_all(self.stats_base_url.clone()),
+                    Message::FetchedScenarios,
+                )
             }
             Message::GoToLogs(scenario) => {
                 self.current_route = Route::Logs(scenario.clone());

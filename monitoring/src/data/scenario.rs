@@ -1,3 +1,4 @@
+use reqwest::Response;
 use std::{
     sync::atomic::{AtomicU32, Ordering},
     time::Duration,
@@ -29,33 +30,18 @@ pub struct Scenario {
 }
 
 impl Scenario {
-    pub async fn fetch_all() -> Result<Vec<Scenario>, String> {
-        static COUNTER: AtomicU32 = AtomicU32::new(0);
-        COUNTER.fetch_add(1, Ordering::Relaxed);
+    pub async fn fetch_all(base_url: String) -> Result<Vec<Scenario>, String> {
+        let url = format!("{}/details", base_url);
+        let x = reqwest::get(url.clone()).await;
+        let y = if x.is_ok() { 1 } else { 2 };
 
-        Ok(vec![
-            Scenario::new(
-                "SimpleTransfer".to_string(),
-                COUNTER.load(Ordering::Relaxed) + 10,
-                COUNTER.load(Ordering::Relaxed) + 2,
-                Duration::from_secs(5),
-                Some(Status::Success),
-            ),
-            Scenario::new(
-                "ComplexTransfer".to_string(),
-                4,
-                1,
-                Duration::from_millis(500000),
-                Some(Status::Failure),
-            ),
-            Scenario::new(
-                "ActuallyNoTransfer".to_string(),
-                0,
-                0,
-                Duration::from_millis(500000000),
-                None,
-            ),
-        ])
+        Ok(vec![Scenario::new(
+            format!("Scenario from {}", url),
+            y,
+            y,
+            Duration::from_secs(5),
+            Some(Status::Success),
+        )])
     }
 
     fn new(
