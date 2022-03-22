@@ -6,9 +6,9 @@ use std::{
 use log::warn;
 use serde::Serialize;
 
-use traffic::{EventListener, Scenario};
+use traffic::{EventListener, Ident, Scenario};
 
-use crate::data_export::{DataExporter, Ident};
+use crate::data_export::DataExporter;
 
 /// Current status of the scheduled scenario.
 #[derive(Debug, Clone, Copy, Serialize)]
@@ -28,7 +28,7 @@ pub enum Status {
 #[serde(rename_all = "camelCase")]
 struct ScenarioDetails {
     /// Unique identifier of the scenario. Corresponds to `fn ident(&self)` from `Scenario` trait.
-    ident: String,
+    ident: Ident,
     /// How many times the scenario has been already run.
     runs: u32,
     /// How many times the scenario has failed.
@@ -42,7 +42,7 @@ struct ScenarioDetails {
 impl ScenarioDetails {
     pub fn new<S: Scenario>(scenario: S) -> Self {
         ScenarioDetails {
-            ident: scenario.ident().to_string(),
+            ident: scenario.ident(),
             runs: 0,
             failures: 0,
             interval: scenario.interval(),
@@ -56,13 +56,13 @@ impl ScenarioDetails {
 #[serde(rename_all = "camelCase")]
 struct ScenarioLogs {
     /// Unique identifier of the scenario. Corresponds to `fn ident(&self)` from `Scenario` trait.
-    scenario_ident: String,
+    scenario_ident: Ident,
     /// List of the recent log lines.
     content: Vec<String>,
 }
 
 impl ScenarioLogs {
-    pub fn new(scenario_ident: String) -> Self {
+    pub fn new(scenario_ident: Ident) -> Self {
         ScenarioLogs {
             scenario_ident,
             content: Vec::new(),
@@ -75,8 +75,8 @@ impl ScenarioLogs {
 /// communicates with the outer world.
 #[derive(Clone)]
 pub struct Stats {
-    details: HashMap<String, ScenarioDetails>,
-    logs: HashMap<String, ScenarioLogs>,
+    details: HashMap<Ident, ScenarioDetails>,
+    logs: HashMap<Ident, ScenarioLogs>,
 }
 
 impl Stats {
@@ -88,19 +88,19 @@ impl Stats {
     }
 
     fn update_storage<V, A: FnOnce(&mut V)>(
-        storage: &mut HashMap<String, V>,
-        scenario_ident: String,
+        storage: &mut HashMap<Ident, V>,
+        scenario_ident: Ident,
         update_action: A,
     ) {
         match storage.entry(scenario_ident.clone()) {
             Entry::Vacant(_) => {
-                warn!(target: "stats", "Scenario {} has not been registered yet", scenario_ident)
+                warn!(target: "stats", "Scenario {:?} has not been registered yet", scenario_ident)
             }
             Entry::Occupied(ref mut entry) => update_action(entry.get_mut()),
         }
     }
 
-    fn update_status(&mut self, scenario_ident: String, status: Status) {
+    fn update_status(&mut self, scenario_ident: Ident, status: Status) {
         Self::update_storage(&mut self.details, scenario_ident, |details| {
             match status {
                 Status::Running | Status::NotLaunchedYet => {}
@@ -121,7 +121,7 @@ impl DataExporter for Stats {
     }
 
     fn export_logs(&self, scenario_ident: Ident) -> String {
-        if let Some(logs) = self.logs.get(scenario_ident.0.as_str()) {
+        if let Some(logs) = self.logs.get(&scenario_ident) {
             serde_json::to_string(logs).expect("Logs should be serializable")
         } else {
             "".to_string()
@@ -131,32 +131,32 @@ impl DataExporter for Stats {
 
 impl EventListener for Stats {
     fn register_scenario<S: Scenario>(&mut self, scenario: &S) {
-        let id = scenario.ident().to_string();
+        let id = scenario.ident();
         let already_registered = self
             .details
             .insert(id.clone(), ScenarioDetails::new(scenario.clone()))
             .is_some();
 
         if already_registered {
-            warn!(target: "stats", "Scenario {} has already been registered", id);
+            warn!(target: "stats", "Scenario {:?} has already been registered", id);
         } else {
             self.logs.insert(id.clone(), ScenarioLogs::new(id));
         }
     }
 
-    fn report_success(&mut self, scenario_ident: String) {
+    fn report_success(&mut self, scenario_ident: Ident) {
         self.update_status(scenario_ident, Status::Success)
     }
 
-    fn report_launch(&mut self, scenario_ident: String) {
+    fn report_launch(&mut self, scenario_ident: Ident) {
         self.update_status(scenario_ident, Status::Running)
     }
 
-    fn report_failure(&mut self, scenario_ident: String) {
+    fn report_failure(&mut self, scenario_ident: Ident) {
         self.update_status(scenario_ident, Status::Failure)
     }
 
-    fn report_logs(&mut self, scenario_ident: String, logs: Vec<String>) {
+    fn report_logs(&mut self, scenario_ident: Ident, logs: Vec<String>) {
         Self::update_storage(&mut self.logs, scenario_ident, |all_logs| {
             let mut logs = logs;
             // TODO: make `content` a bounded container

@@ -1,3 +1,4 @@
+use log::info;
 use std::time::Duration;
 
 use chain_support::{
@@ -5,7 +6,9 @@ use chain_support::{
     transfer::transfer,
     Account, Connection,
 };
-use traffic::Scenario;
+use traffic::{Ident, Scenario};
+
+const IDENT: &str = "SimpleTransfer";
 
 /// Keeps two accounts: `sender` and `receiver`. Once in the `interval`,
 /// `sender` sends `transfer_value` units to `receiver`.
@@ -44,6 +47,7 @@ impl Scenario for SimpleTransferScenario {
     }
 
     async fn play(&mut self) -> bool {
+        info!(target: IDENT, "Ready to go");
         let receiver_balance_before = get_free_balance(&self.receiver, &self.connection);
         transfer(
             &self.connection,
@@ -52,11 +56,12 @@ impl Scenario for SimpleTransferScenario {
             self.transfer_value,
         );
         let receiver_balance_after = get_free_balance(&self.receiver, &self.connection);
+        info!(target: IDENT, "Almost done");
 
         receiver_balance_after == receiver_balance_before + self.transfer_value
     }
 
-    fn ident(&self) -> &str {
-        "SimpleTransfer"
+    fn ident(&self) -> Ident {
+        Ident(IDENT.to_string())
     }
 }

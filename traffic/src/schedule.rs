@@ -4,16 +4,17 @@ use futures::{
     channel::{mpsc, mpsc::UnboundedSender},
     StreamExt,
 };
+use log::LevelFilter;
 
-use crate::scenario::Scenario;
+use crate::{logger::Logger, scenario::Scenario, Ident};
 
 /// Abstraction for registering events (hook for stats).
 pub trait EventListener: Send + Clone {
     fn register_scenario<S: Scenario>(&mut self, scenario: &S);
-    fn report_success(&mut self, scenario_ident: String);
-    fn report_launch(&mut self, scenario_ident: String);
-    fn report_failure(&mut self, scenario_ident: String);
-    fn report_logs(&mut self, scenario_ident: String, logs: Vec<String>);
+    fn report_success(&mut self, scenario_ident: Ident);
+    fn report_launch(&mut self, scenario_ident: Ident);
+    fn report_failure(&mut self, scenario_ident: Ident);
+    fn report_logs(&mut self, scenario_ident: Ident, logs: Vec<String>);
 }
 
 impl<EL: EventListener> EventListener for Arc<Mutex<EL>> {
@@ -21,19 +22,19 @@ impl<EL: EventListener> EventListener for Arc<Mutex<EL>> {
         self.lock().unwrap().register_scenario(scenario)
     }
 
-    fn report_success(&mut self, scenario_ident: String) {
+    fn report_success(&mut self, scenario_ident: Ident) {
         self.lock().unwrap().report_success(scenario_ident)
     }
 
-    fn report_launch(&mut self, scenario_ident: String) {
+    fn report_launch(&mut self, scenario_ident: Ident) {
         self.lock().unwrap().report_launch(scenario_ident)
     }
 
-    fn report_failure(&mut self, scenario_ident: String) {
+    fn report_failure(&mut self, scenario_ident: Ident) {
         self.lock().unwrap().report_failure(scenario_ident)
     }
 
-    fn report_logs(&mut self, scenario_ident: String, logs: Vec<String>) {
+    fn report_logs(&mut self, scenario_ident: Ident, logs: Vec<String>) {
         self.lock().unwrap().report_logs(scenario_ident, logs)
     }
 }
@@ -44,6 +45,7 @@ pub async fn run_schedule<EL: 'static + EventListener>(
     scenarios: Vec<impl Scenario>,
     event_listener: EL,
 ) {
+    let logger = setup_logging();
     let (report_ready, mut receive_ready) = mpsc::unbounded();
     let mut event_listener = event_listener;
 
@@ -59,14 +61,27 @@ pub async fn run_schedule<EL: 'static + EventListener>(
             .expect("There should be at least one scenario scheduled");
 
         let mut event_listener = event_listener.clone();
+        let logger = logger.clone();
         tokio::spawn(async move {
-            let id = scenario.ident().to_string();
+            let id = scenario.ident();
             event_listener.report_launch(id.clone());
             match scenario.play().await {
-                true => event_listener.report_success(id),
-                false => event_listener.report_failure(id),
+                true => event_listener.report_success(id.clone()),
+                false => event_listener.report_failure(id.clone()),
             }
+            let logs = logger.claim_logs(&id);
+            event_listener.report_logs(id, logs);
         });
+    }
+}
+
+fn setup_logging() -> Logger {
+    let logger = Logger::default();
+    if let Ok(()) = log::set_boxed_logger(Box::new(logger.clone())) {
+        log::set_max_level(LevelFilter::Debug);
+        logger
+    } else {
+        panic!("Cannot setup logger")
     }
 }
 

@@ -6,5 +6,6 @@ edition = "2021"
 [dependencies]
 traffic = { path = "../../traffic" }
 chain-support = { path = "../../chain-support" }
+log = "0.4"
 
 async-trait = "0.1"
