@@ -40,8 +40,11 @@ async fn serve_details<DE: DataExporter>(data: web::Data<Arc<Mutex<DE>>>) -> imp
     HttpResponse::Ok().body(data.export_details())
 }
 
-async fn serve_logs<DE: DataExporter>(data: web::Data<Arc<Mutex<DE>>>) -> impl Responder {
-    HttpResponse::Ok().body(data.export_logs())
+async fn serve_logs<DE: DataExporter>(
+    data: web::Data<Arc<Mutex<DE>>>,
+    scenario_ident: web::Path<String>,
+) -> impl Responder {
+    HttpResponse::Ok().body(data.export_logs(scenario_ident.into_inner()))
 }
 
 #[actix_web::main]
@@ -67,7 +70,7 @@ async fn main() -> Result<()> {
             .service(
                 web::scope("")
                     .route("details", web::get().to(serve_details::<Stats>))
-                    .route("logs", web::get().to(serve_logs::<Stats>)),
+                    .route("logs/{scenario_ident}", web::get().to(serve_logs::<Stats>)),
             )
     })
     .bind(config.expose_host)?

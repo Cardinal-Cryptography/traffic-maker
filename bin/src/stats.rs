@@ -120,8 +120,12 @@ impl DataExporter for Stats {
         serde_json::to_string(&self.details).expect("Details should be serializable")
     }
 
-    fn export_logs(&self) -> String {
-        serde_json::to_string(&self.logs).expect("Logs should be serializable")
+    fn export_logs(&self, scenario_ident: String) -> String {
+        if let Some(logs) = self.logs.get(scenario_ident.as_str()) {
+            serde_json::to_string(logs).expect("Logs should be serializable")
+        } else {
+            "".to_string()
+        }
     }
 }
 
