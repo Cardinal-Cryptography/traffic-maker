@@ -1,7 +1,7 @@
 use iced::{executor, Application, Command, Element};
 
 use crate::{
-    data::{Logs, Scenario},
+    data::{Ident, Logs, Scenario},
     message::Message,
     view::{LogsPage, OverviewPage},
 };
@@ -82,7 +82,7 @@ impl Application for App {
             Message::GoToLogs(scenario) => {
                 self.current_route = Route::Logs(scenario.clone());
                 Command::perform(
-                    Logs::fetch(scenario, self.stats_base_url.clone()),
+                    Logs::fetch(Ident(scenario), self.stats_base_url.clone()),
                     Message::FetchedLogs,
                 )
             }
