@@ -8,7 +8,7 @@ use serde::Serialize;
 
 use traffic::{EventListener, Scenario};
 
-use crate::data_export::DataExporter;
+use crate::data_export::{DataExporter, Ident};
 
 /// Current status of the scheduled scenario.
 #[derive(Debug, Clone, Copy, Serialize)]
@@ -120,8 +120,8 @@ impl DataExporter for Stats {
         serde_json::to_string(&self.details).expect("Details should be serializable")
     }
 
-    fn export_logs(&self, scenario_ident: String) -> String {
-        if let Some(logs) = self.logs.get(scenario_ident.as_str()) {
+    fn export_logs(&self, scenario_ident: Ident) -> String {
+        if let Some(logs) = self.logs.get(scenario_ident.0.as_str()) {
             serde_json::to_string(logs).expect("Logs should be serializable")
         } else {
             "".to_string()

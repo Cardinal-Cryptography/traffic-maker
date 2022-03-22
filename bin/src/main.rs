@@ -12,7 +12,11 @@ use chain_support::{create_connection, Protocol};
 use scenario_transfer::SimpleTransferScenario;
 use traffic::{run_schedule, EventListener};
 
-use crate::{config::Config, data_export::DataExporter, stats::Stats};
+use crate::{
+    config::Config,
+    data_export::{DataExporter, Ident},
+    stats::Stats,
+};
 
 mod config;
 mod data_export;
@@ -44,7 +48,7 @@ async fn serve_logs<DE: DataExporter>(
     data: web::Data<Arc<Mutex<DE>>>,
     scenario_ident: web::Path<String>,
 ) -> impl Responder {
-    HttpResponse::Ok().body(data.export_logs(scenario_ident.into_inner()))
+    HttpResponse::Ok().body(data.export_logs(Ident(scenario_ident.into_inner())))
 }
 
 #[actix_web::main]

@@ -10,12 +10,12 @@ pub struct Logs {
 
 impl Logs {
     pub async fn fetch(scenario_ident: String, base_url: String) -> Result<Logs, String> {
-        Self::_fetch(scenario_ident, base_url)
+        Self::inner_fetch(scenario_ident, base_url)
             .await
             .map_err(|e| format!("{:?}", e))
     }
 
-    async fn _fetch(scenario_ident: String, base_url: String) -> reqwest::Result<Logs> {
+    async fn inner_fetch(scenario_ident: String, base_url: String) -> reqwest::Result<Logs> {
         Ok(
             reqwest::get(format!("{}/logs/{}", base_url, scenario_ident))
                 .await?

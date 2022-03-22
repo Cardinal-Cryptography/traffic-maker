@@ -24,12 +24,12 @@ pub struct Scenario {
 
 impl Scenario {
     pub async fn fetch_all(base_url: String) -> Result<Vec<Scenario>, String> {
-        Self::_fetch_all(base_url)
+        Self::inner_fetch(base_url)
             .await
             .map_err(|e| format!("{:?}", e))
     }
 
-    async fn _fetch_all(base_url: String) -> reqwest::Result<Vec<Scenario>> {
+    async fn inner_fetch(base_url: String) -> reqwest::Result<Vec<Scenario>> {
         Ok(reqwest::get(format!("{}/details", base_url))
             .await?
             .json::<HashMap<String, Scenario>>()
