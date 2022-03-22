@@ -1,3 +1,4 @@
+use actix_cors::Cors;
 use std::{
     io::Result,
     sync::{Arc, Mutex},
@@ -56,11 +57,18 @@ async fn main() -> Result<()> {
     });
 
     HttpServer::new(move || {
-        App::new().app_data(web::Data::new(stats.clone())).service(
-            web::scope("")
-                .route("details", web::get().to(serve_details::<Stats>))
-                .route("logs", web::get().to(serve_logs::<Stats>)),
-        )
+        App::new()
+            .wrap(
+                Cors::default()
+                    .allow_any_origin()
+                    .allowed_methods(vec!["GET"]),
+            )
+            .app_data(web::Data::new(stats.clone()))
+            .service(
+                web::scope("")
+                    .route("details", web::get().to(serve_details::<Stats>))
+                    .route("logs", web::get().to(serve_logs::<Stats>)),
+            )
     })
     .bind(config.expose_host)?
     .run()
