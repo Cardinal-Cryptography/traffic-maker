@@ -7,7 +7,7 @@ use std::{
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 use clap::Parser;
 
-use chain_support::create_connection;
+use chain_support::{create_connection, Protocol};
 use scenario_transfer::SimpleTransferScenario;
 use traffic::{run_schedule, EventListener};
 
@@ -19,8 +19,12 @@ mod stats;
 
 const EXAMPLE_SCENARIO_INTERVAL: Duration = Duration::from_secs(15);
 
-async fn run_backend<EL: 'static + EventListener>(address: &str, event_listener: EL) {
-    let connection = create_connection(address);
+async fn run_backend<EL: 'static + EventListener>(
+    address: &str,
+    protocol: Protocol,
+    event_listener: EL,
+) {
+    let connection = create_connection(address, protocol);
 
     // TODO: read from some config scenarios to launch together with parameters
     let scenarios = vec![SimpleTransferScenario::new(
@@ -48,7 +52,7 @@ async fn main() -> Result<()> {
     let stats_for_backend = stats.clone();
 
     tokio::spawn(async move {
-        run_backend(&config.node, stats_for_backend).await;
+        run_backend(&config.node, config.protocol, stats_for_backend).await;
     });
 
     HttpServer::new(move || {

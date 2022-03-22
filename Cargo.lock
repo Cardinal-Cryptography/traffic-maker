@@ -293,7 +293,7 @@ dependencies = [
 [[package]]
 name = "aleph_client"
 version = "0.1.0"
-source = "git+https://github.com/Cardinal-Cryptography/aleph-node.git#c809661af7dc99687d8e26e2ff19f3e353a5ebda"
+source = "git+https://github.com/Cardinal-Cryptography/aleph-node.git?rev=fac45e32cb677a1ca75fa23ff1b018201220cd4a#fac45e32cb677a1ca75fa23ff1b018201220cd4a"
 dependencies = [
  "anyhow",
  "log",
