@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    sync::{Arc, RwLock},
+    sync::{Arc, Mutex},
 };
 
 use futures::channel::mpsc::UnboundedSender;
@@ -12,13 +12,13 @@ pub type LogLine = (Ident, String);
 
 #[derive(Default, Clone)]
 pub struct Logger {
-    subscriptions: Arc<RwLock<HashMap<Ident, Vec<UnboundedSender<LogLine>>>>>,
+    subscriptions: Arc<Mutex<HashMap<Ident, Vec<UnboundedSender<LogLine>>>>>,
 }
 
 impl Logger {
     pub fn subscribe(&self, target: &Ident, sender: UnboundedSender<LogLine>) {
         self.subscriptions
-            .write()
+            .lock()
             .expect("Should acquire write lock")
             .entry(target.clone())
             .or_insert_with(Vec::new)
@@ -44,13 +44,13 @@ impl Log for Logger {
         let target = Ident(record.target().to_string());
         if let Some(senders) = self
             .subscriptions
-            .read()
-            .expect("Should acquire read lock")
-            .get(&target)
+            .lock()
+            .expect("Should acquire lock")
+            .get_mut(&target)
         {
-            senders.iter().for_each(|s| {
+            senders.retain(|s| {
                 s.unbounded_send((target.clone(), Self::format(record)))
-                    .expect("Should manage to send")
+                    .is_ok()
             })
         }
     }
