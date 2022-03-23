@@ -46,13 +46,26 @@ pub async fn run_schedule<EL: 'static + EventListener>(
     event_listener: EL,
 ) {
     let logger = setup_logging();
+    let (report_logs, mut receive_logs) = mpsc::unbounded();
     let (report_ready, mut receive_ready) = mpsc::unbounded();
     let mut event_listener = event_listener;
 
     for scenario in scenarios {
         event_listener.register_scenario(&scenario);
+        logger.subscribe(&scenario.ident(), report_logs.clone());
         tokio::spawn(schedule_scenario(scenario, report_ready.clone()));
     }
+
+    let mut logs_listener = event_listener.clone();
+    tokio::spawn(async move {
+        loop {
+            let (ident, log) = receive_logs
+                .next()
+                .await
+                .expect("There should be some logging on");
+            logs_listener.report_logs(ident, vec![log]);
+        }
+    });
 
     loop {
         let mut scenario = receive_ready
@@ -61,7 +74,6 @@ pub async fn run_schedule<EL: 'static + EventListener>(
             .expect("There should be at least one scenario scheduled");
 
         let mut event_listener = event_listener.clone();
-        let logger = logger.clone();
         tokio::spawn(async move {
             let id = scenario.ident();
             event_listener.report_launch(id.clone());
@@ -69,16 +81,26 @@ pub async fn run_schedule<EL: 'static + EventListener>(
                 true => event_listener.report_success(id.clone()),
                 false => event_listener.report_failure(id.clone()),
             }
-            let logs = logger.claim_logs(&id);
-            event_listener.report_logs(id, logs);
         });
     }
 }
 
 fn setup_logging() -> Logger {
     let logger = Logger::default();
-    if let Ok(()) = log::set_boxed_logger(Box::new(logger.clone())) {
-        log::set_max_level(LevelFilter::Debug);
+    if log::set_boxed_logger(Box::new(logger.clone())).is_ok() {
+        let level = match option_env!("MAX_LOG_LEVEL")
+            .unwrap_or("DEBUG")
+            .to_lowercase()
+            .as_str()
+        {
+            "off" => LevelFilter::Off,
+            "error" => LevelFilter::Error,
+            "warn" => LevelFilter::Warn,
+            "info" => LevelFilter::Info,
+            "trace" => LevelFilter::Trace,
+            _ => LevelFilter::Debug,
+        };
+        log::set_max_level(level);
         logger
     } else {
         panic!("Cannot setup logger")

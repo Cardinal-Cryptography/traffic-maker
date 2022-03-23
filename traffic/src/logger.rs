@@ -1,24 +1,28 @@
 use std::{
     collections::HashMap,
-    sync::{Arc, Mutex},
+    sync::{Arc, RwLock},
 };
 
+use futures::channel::mpsc::UnboundedSender;
 use log::{Log, Metadata, Record};
 
 use crate::Ident;
 
+pub type LogLine = (Ident, String);
+
 #[derive(Default, Clone)]
 pub struct Logger {
-    logs: Arc<Mutex<HashMap<Ident, Vec<String>>>>,
+    subscriptions: Arc<RwLock<HashMap<Ident, Vec<UnboundedSender<LogLine>>>>>,
 }
 
 impl Logger {
-    pub fn claim_logs(&self, target: &Ident) -> Vec<String> {
-        self.logs
-            .lock()
-            .expect("Should acquire lock")
-            .remove(target)
-            .unwrap_or_default()
+    pub fn subscribe(&self, target: &Ident, sender: UnboundedSender<LogLine>) {
+        self.subscriptions
+            .write()
+            .expect("Should acquire write lock")
+            .entry(target.clone())
+            .or_insert_with(Vec::new)
+            .push(sender);
     }
 
     fn format(record: &Record) -> String {
@@ -37,12 +41,18 @@ impl Log for Logger {
     }
 
     fn log(&self, record: &Record) {
-        self.logs
-            .lock()
-            .expect("Should acquire lock")
-            .entry(Ident(record.target().to_string()))
-            .or_insert_with(Vec::new)
-            .push(Self::format(record));
+        let target = Ident(record.target().to_string());
+        if let Some(senders) = self
+            .subscriptions
+            .read()
+            .expect("Should acquire read lock")
+            .get(&target)
+        {
+            senders.iter().for_each(|s| {
+                s.unbounded_send((target.clone(), Self::format(record)))
+                    .expect("Should manage to send")
+            })
+        }
     }
 
     fn flush(&self) {}
