@@ -1,0 +1,8 @@
+# As `toml` does not support deserializing to `u128` type,
+# all amounts here are supposed to be already scaled down by 10^12.
+
+[[endowments]]
+amount = 10_000
+accounts = [
+    "//SimpleTransferSender",
+]
