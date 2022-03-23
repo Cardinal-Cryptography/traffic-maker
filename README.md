@@ -17,10 +17,8 @@ The default node address is `127.0.0.1:9944`, so for that you do not need to spe
 
 **Note:** For now, only `ws` ports are achievable. For `wss` support we must wait for changes to `aleph-client`.
 
-Currently, there is only one scenario available - `SimpleTransferScenario`, running every 5 seconds.
+Currently, there is only one scenario available - `SimpleTransferScenario`, running every 15 seconds.
 More scenarios and easy configuration are coming soon.
-
-**Note:** To avoid accessing sudo, the code assumes that there is an account with seed `//Cornucopia` (public key: `5Cyo51qgfmVMva6R98KCiFQvPSjSEwWjKWLZnmBEDDC6eHkL`) with _a lot_ of balance.
 
 Statistics are exposed at `expose_host` address, which by default is `127.0.0.1:8080`.
 Data is served at two endpoints: `/details` (brief information about every launched scenario) and `/logs` (logs from particular scenario).

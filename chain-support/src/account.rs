@@ -1,7 +1,7 @@
 use sp_core::{crypto::AccountId32, sr25519, Pair};
 use substrate_api_client::Balance;
 
-use crate::{transfer::transfer, Account, Connection};
+use crate::{Account, Connection};
 
 impl Account {
     fn new(keypair: sr25519::Pair, address: AccountId32) -> Self {
@@ -17,18 +17,12 @@ pub fn new_account_from_seed(seed: &str) -> Account {
     Account::new(keypair.clone(), AccountId32::from(keypair.public()))
 }
 
-/// Returns the account that is supposed to have 'unlimited' balances. Kinda faucet.
-///
-/// Thanks to this we can set balances at will without using `sudo` account.
-fn get_cornucopia() -> Account {
-    new_account_from_seed("//Cornucopia")
-}
-
-/// Workaround for `set_balance` extrinsic. `amount` tokens are transferred
-/// from //Cornucopia to `account`.
-pub fn top_up(connection: &Connection, account: &Account, amount: u128) {
-    let cornucopia = get_cornucopia();
-    transfer(connection, &cornucopia, account, amount);
+/// Creates a new derived `Account` from provided `seed` as a derivation path.
+/// The base seed is empty by default, but can be overridden with env.
+pub fn new_derived_account_from_seed(seed: &str) -> Account {
+    let base_seed = option_env!("SECRET_PHRASE_SEED").unwrap_or("").to_string();
+    let full_seed = format!("{}{}", base_seed, seed);
+    new_account_from_seed(&*full_seed)
 }
 
 /// Returns free balance of `account`.
