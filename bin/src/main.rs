@@ -40,12 +40,12 @@ async fn run_backend<EL: 'static + EventListener>(
     run_schedule(scenarios, event_listener).await;
 }
 
-async fn serve_details<DE: DataExporter>(data: web::Data<Arc<Mutex<DE>>>) -> impl Responder {
+async fn serve_details<DE: DataExporter>(data: web::Data<DE>) -> impl Responder {
     HttpResponse::Ok().body(data.export_details())
 }
 
 async fn serve_logs<DE: DataExporter>(
-    data: web::Data<Arc<Mutex<DE>>>,
+    data: web::Data<DE>,
     scenario_ident: web::Path<String>,
 ) -> impl Responder {
     HttpResponse::Ok().body(data.export_logs(Ident(scenario_ident.into_inner())))
@@ -73,8 +73,11 @@ async fn main() -> Result<()> {
             .app_data(web::Data::new(stats.clone()))
             .service(
                 web::scope("")
-                    .route("details", web::get().to(serve_details::<Stats>))
-                    .route("logs/{scenario_ident}", web::get().to(serve_logs::<Stats>)),
+                    .route("details", web::get().to(serve_details::<Arc<Mutex<Stats>>>))
+                    .route(
+                        "logs/{scenario_ident}",
+                        web::get().to(serve_logs::<Arc<Mutex<Stats>>>),
+                    ),
             )
     })
     .bind(config.expose_host)?
