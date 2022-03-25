@@ -11,14 +11,14 @@ To run the default scenario suite, you need a running chain with some node acces
 Then you can run:
 ```shell
 cargo build --release
-./target/release/bin --node "<address of the node>" --expose_host "<address for stats>"
+./target/release/bin
 ```
-The default node address is `127.0.0.1:9944`, so for that you do not need to specify `--node` option.
-
-**Note:** For now, only `ws` ports are achievable. For `wss` support we must wait for changes to `aleph-client`.
-
-Currently, there is only one scenario available - `SimpleTransferScenario`, running every 5 seconds.
-More scenarios and easy configuration are coming soon.
+The configuration file is `Timetable.toml`.
+There you can specify:
+ - `node` (by default `127.0.0.1:9944`): it is the web socket address to which bots will connect
+ - `protocol` (by default `ws://`): you can specify whether to use ssl
+ - `expose_host` (by default `127.0.0.1:8080`): where to publish statistics
+ - which bots to launch
 
 **Note:** To avoid accessing sudo, the code assumes that there is an account with seed `//Cornucopia` (public key: `5Cyo51qgfmVMva6R98KCiFQvPSjSEwWjKWLZnmBEDDC6eHkL`) with _a lot_ of balance.
 
