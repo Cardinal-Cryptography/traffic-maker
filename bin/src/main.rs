@@ -1,3 +1,4 @@
+use actix_cors::Cors;
 use std::{
     io::Result,
     sync::{Arc, Mutex},
@@ -11,7 +12,11 @@ use chain_support::{create_connection, Protocol};
 use scenario_transfer::SimpleTransferScenario;
 use traffic::{run_schedule, EventListener};
 
-use crate::{config::Config, data_export::DataExporter, stats::Stats};
+use crate::{
+    config::Config,
+    data_export::{DataExporter, Ident},
+    stats::Stats,
+};
 
 mod config;
 mod data_export;
@@ -35,12 +40,15 @@ async fn run_backend<EL: 'static + EventListener>(
     run_schedule(scenarios, event_listener).await;
 }
 
-async fn serve_details<DE: DataExporter>(data: web::Data<Arc<Mutex<DE>>>) -> impl Responder {
+async fn serve_details<DE: DataExporter>(data: web::Data<DE>) -> impl Responder {
     HttpResponse::Ok().body(data.export_details())
 }
 
-async fn serve_logs<DE: DataExporter>(data: web::Data<Arc<Mutex<DE>>>) -> impl Responder {
-    HttpResponse::Ok().body(data.export_logs())
+async fn serve_logs<DE: DataExporter>(
+    data: web::Data<DE>,
+    scenario_ident: web::Path<String>,
+) -> impl Responder {
+    HttpResponse::Ok().body(data.export_logs(Ident(scenario_ident.into_inner())))
 }
 
 #[actix_web::main]
@@ -56,11 +64,21 @@ async fn main() -> Result<()> {
     });
 
     HttpServer::new(move || {
-        App::new().app_data(web::Data::new(stats.clone())).service(
-            web::scope("")
-                .route("details", web::get().to(serve_details::<Stats>))
-                .route("logs", web::get().to(serve_logs::<Stats>)),
-        )
+        App::new()
+            .wrap(
+                Cors::default()
+                    .allow_any_origin()
+                    .allowed_methods(vec!["GET"]),
+            )
+            .app_data(web::Data::new(stats.clone()))
+            .service(
+                web::scope("")
+                    .route("details", web::get().to(serve_details::<Arc<Mutex<Stats>>>))
+                    .route(
+                        "logs/{scenario_ident}",
+                        web::get().to(serve_logs::<Arc<Mutex<Stats>>>),
+                    ),
+            )
     })
     .bind(config.expose_host)?
     .run()
