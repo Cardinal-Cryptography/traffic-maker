@@ -1,33 +1,27 @@
+use crate::data::Ident;
 use serde::Deserialize;
 
-/// The struct representing a collection of logs for a single bot.
+/// A deserializable counterpart for a corresponding struct from `bin/stats.rs`.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Logs {
-    /// Unique identifier of the scenario. Corresponds to `fn ident(&self)` from `Scenario` trait.
-    pub scenario_ident: String,
-    /// List of the recent log lines.
+    pub scenario_ident: Ident,
     pub content: Vec<String>,
 }
 
 impl Logs {
-    pub async fn fetch(_scenario_ident: String) -> Result<Logs, String> {
-        Ok(Logs::new(
-            "SimpleTransfer".to_string(),
-            vec![
-                "log-line1".to_string(),
-                "Reeeaaallly looooong line from the logs for the chosen scenario. The title of \
-                this scenario is presented above. And there are two log lines more."
-                    .to_string(),
-                "log-line3".to_string(),
-            ],
-        ))
+    pub async fn fetch(scenario_ident: Ident, base_url: String) -> Result<Logs, String> {
+        Self::inner_fetch(scenario_ident, base_url)
+            .await
+            .map_err(|e| format!("{:?}", e))
     }
 
-    fn new(scenario_ident: String, content: Vec<String>) -> Self {
-        Logs {
-            scenario_ident,
-            content,
-        }
+    async fn inner_fetch(scenario_ident: Ident, base_url: String) -> reqwest::Result<Logs> {
+        Ok(
+            reqwest::get(format!("{}/logs/{}", base_url, scenario_ident.0))
+                .await?
+                .json::<Logs>()
+                .await?,
+        )
     }
 }

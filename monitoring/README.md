@@ -34,3 +34,10 @@ And you launch it with `trunk serve` (by default it will serve at `localhost:808
 Alternatively (however not recommended), you can avoid using `trunk` and instead work only with `iced`. 
 This is described in details here: https://github.com/iced-rs/iced_web.
 Most probably installing `trunk` will take you less time.
+
+## Launching in production
+
+To launch optimized version, run
+```
+trunk serve --release
+```
