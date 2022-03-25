@@ -5,7 +5,7 @@ members = [
     "traffic",
     "chain-support",
     "common",
-    "scenarios/transfer",
+    "scenarios/transfer"
 ]
 
 exclude = [
