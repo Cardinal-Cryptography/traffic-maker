@@ -11,7 +11,6 @@ pub trait Scenario: Clone + Send + Sync + 'static {
     fn interval(&self) -> Duration;
 
     /// Runs the scenario and returns whether it succeeded.
-    // TODO: make it return Result<>
     async fn play(&mut self) -> bool;
 
     /// Identifier for this particular scenario.
