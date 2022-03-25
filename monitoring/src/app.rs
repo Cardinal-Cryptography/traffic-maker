@@ -1,6 +1,6 @@
 use iced::{executor, Application, Command, Element};
 
-use primitives::{Ident, ScenarioDetails, ScenarioLogs};
+use common::{Ident, ScenarioDetails, ScenarioLogs};
 
 use crate::{
     data::{fetch_logs, fetch_scenarios},

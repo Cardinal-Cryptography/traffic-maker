@@ -7,7 +7,7 @@ use chain_support::{
     transfer::transfer,
     Account, Connection,
 };
-use primitives::{Ident, Scenario};
+use common::{Ident, Scenario};
 
 const IDENT: &str = "SimpleTransfer";
 

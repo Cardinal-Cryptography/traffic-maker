@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use primitives::{Ident, ScenarioDetails, ScenarioLogs};
+use common::{Ident, ScenarioDetails, ScenarioLogs};
 
 pub async fn fetch_scenarios(base_url: String) -> Result<Vec<ScenarioDetails>, String> {
     inner_fetch_scenarios(base_url)

@@ -4,7 +4,7 @@ members = [
     "bin",
     "traffic",
     "chain-support",
-    "primitives",
+    "common",
     "scenarios/transfer",
 ]
 

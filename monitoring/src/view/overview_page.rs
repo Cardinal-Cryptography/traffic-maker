@@ -1,5 +1,5 @@
+use common::ScenarioDetails;
 use iced::{scrollable, Alignment, Column, Container, Element, Length, Rule, Scrollable, Text};
-use primitives::ScenarioDetails;
 
 use crate::{
     message::Message,

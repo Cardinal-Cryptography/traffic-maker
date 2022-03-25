@@ -6,7 +6,7 @@ use futures::{
 };
 use log::LevelFilter;
 
-use primitives::{Ident, Scenario};
+use common::{Ident, Scenario};
 
 use crate::logger::Logger;
 

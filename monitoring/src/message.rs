@@ -1,4 +1,4 @@
-use primitives::{Ident, ScenarioDetails, ScenarioLogs};
+use common::{Ident, ScenarioDetails, ScenarioLogs};
 
 /// Events driving the logic of the app.
 #[derive(Debug, Clone)]

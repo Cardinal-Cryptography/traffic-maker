@@ -2,7 +2,7 @@ use std::collections::{hash_map::Entry, HashMap};
 
 use log::warn;
 
-use primitives::{Ident, Scenario, ScenarioDetails, ScenarioLogs, ScenarioStatus};
+use common::{Ident, Scenario, ScenarioDetails, ScenarioLogs, ScenarioStatus};
 use traffic::EventListener;
 
 use crate::data_export::DataExporter;

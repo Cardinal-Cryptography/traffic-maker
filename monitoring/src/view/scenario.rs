@@ -1,8 +1,8 @@
+use common::{ScenarioDetails, ScenarioStatus};
 use iced::{
     alignment::{Horizontal, Vertical},
     button, Alignment, Button, Column, Element, Length, Row, Text,
 };
-use primitives::{ScenarioDetails, ScenarioStatus};
 
 use crate::{
     message::Message,

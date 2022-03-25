@@ -1,5 +1,5 @@
+use common::ScenarioLogs;
 use iced::{Column, Element, Text};
-use primitives::ScenarioLogs;
 
 use crate::{
     message::Message,

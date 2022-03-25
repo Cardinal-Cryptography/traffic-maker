@@ -6,7 +6,7 @@ use std::{
 use futures::channel::mpsc::UnboundedSender;
 use log::{Log, Metadata, Record};
 
-use primitives::Ident;
+use common::Ident;
 
 pub type LogLine = (Ident, String);
 

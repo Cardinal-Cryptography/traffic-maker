@@ -1,4 +1,4 @@
-use primitives::Ident;
+use common::Ident;
 use std::sync::{Arc, Mutex};
 
 /// Exposing scenario data.

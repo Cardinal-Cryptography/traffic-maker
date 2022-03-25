@@ -1,7 +1,7 @@
+use common::{Ident, ScenarioLogs};
 use iced::{
     button, scrollable, Alignment, Button, Column, Container, Element, Length, Scrollable, Text,
 };
-use primitives::{Ident, ScenarioLogs};
 
 use crate::{
     message::Message,
