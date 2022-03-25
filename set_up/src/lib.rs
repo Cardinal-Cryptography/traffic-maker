@@ -6,11 +6,3 @@ pub const DECIMALS: u128 = 1_000_000_000_000;
 pub const fn real_amount(scaled: u64) -> u128 {
     scaled as u128 * DECIMALS
 }
-
-pub fn secret_phrase_seed() -> String {
-    option_env!("SECRET_PHRASE_SEED").unwrap_or("").to_string()
-}
-
-pub fn full_phrase(derivation: &str) -> String {
-    format!("{}{}", secret_phrase_seed(), derivation)
-}

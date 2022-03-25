@@ -5,12 +5,13 @@ use substrate_api_client::{
     compose_call, compose_extrinsic, GenericAddress, Pair, XtStatus::Finalized,
 };
 
-use chain_support::{account::new_account_from_seed, transfer::transfer, Account};
-
-use crate::{
-    lib::{full_phrase, real_amount},
-    CliConfig,
+use chain_support::{
+    account::{new_account_from_seed, new_derived_account_from_seed},
+    transfer::transfer,
+    Account,
 };
+
+use crate::{lib::real_amount, CliConfig};
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Endowment {
@@ -19,7 +20,7 @@ pub struct Endowment {
 }
 
 fn set_endowment(account: &str, amount: u64, sudo_connection: &Connection) {
-    let beneficiary = new_account_from_seed(&*full_phrase(account));
+    let beneficiary = new_derived_account_from_seed(account);
     let xt = compose_call!(
         sudo_connection.metadata,
         "Balances",
@@ -34,7 +35,7 @@ fn set_endowment(account: &str, amount: u64, sudo_connection: &Connection) {
 }
 
 fn transfer_endowment(account: &str, amount: u64, sudo_connection: &Connection, sudo: &Account) {
-    let beneficiary = new_account_from_seed(&*full_phrase(&account.to_string()));
+    let beneficiary = new_derived_account_from_seed(account);
     transfer(sudo_connection, sudo, &beneficiary, real_amount(amount));
 }
 
