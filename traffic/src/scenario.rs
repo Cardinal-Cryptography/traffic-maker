@@ -1,3 +1,4 @@
+use crate::Ident;
 use std::time::Duration;
 
 #[async_trait::async_trait]
@@ -9,6 +10,6 @@ pub trait Scenario: Clone + Send + Sync + 'static {
     // TODO: make it return Result<>
     async fn play(&mut self) -> bool;
 
-    /// String identifier for this particular scenario.
-    fn ident(&self) -> &str;
+    /// Identifier for this particular scenario.
+    fn ident(&self) -> Ident;
 }

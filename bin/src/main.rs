@@ -10,13 +10,9 @@ use clap::Parser;
 
 use chain_support::{create_connection, Protocol};
 use scenario_transfer::SimpleTransferScenario;
-use traffic::{run_schedule, EventListener};
+use traffic::{run_schedule, EventListener, Ident};
 
-use crate::{
-    config::Config,
-    data_export::{DataExporter, Ident},
-    stats::Stats,
-};
+use crate::{config::Config, data_export::DataExporter, stats::Stats};
 
 mod config;
 mod data_export;
@@ -53,7 +49,6 @@ async fn serve_logs<DE: DataExporter>(
 
 #[actix_web::main]
 async fn main() -> Result<()> {
-    env_logger::init();
     let config: Config = Config::parse();
 
     let stats = Arc::new(Mutex::new(Stats::new()));

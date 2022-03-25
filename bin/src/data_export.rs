@@ -1,6 +1,5 @@
 use std::sync::{Arc, Mutex};
-
-pub struct Ident(pub String);
+use traffic::Ident;
 
 /// Exposing scenario data.
 pub trait DataExporter {
