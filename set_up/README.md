@@ -39,7 +39,7 @@ cargo run
 will endow all accounts specified in `Config.toml` with a corresponding amount.
 The endowment will be performed with `set_balance` extrinsic.
 
-If changing total issuance on the chain, you can pass `--transfer` flag:
+If you want to avoid changing total issuance on the chain, you can pass `--transfer` flag:
 ```
 cargo run -- --transfer
 ```
