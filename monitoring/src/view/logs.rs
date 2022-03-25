@@ -1,17 +1,17 @@
+use common::ScenarioLogs;
 use iced::{Column, Element, Text};
 
 use crate::{
-    data::Logs,
     message::Message,
     view::style::{FontSize, Spacing, FULL_SCREEN_TEXT_WIDTH},
 };
 
 pub struct LogsView {
-    logs: Logs,
+    logs: ScenarioLogs,
 }
 
 impl LogsView {
-    pub fn new(logs: Logs) -> Self {
+    pub fn new(logs: ScenarioLogs) -> Self {
         Self { logs }
     }
 

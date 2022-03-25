@@ -1,5 +1,5 @@
+use common::Ident;
 use std::sync::{Arc, Mutex};
-use traffic::Ident;
 
 /// Exposing scenario data.
 pub trait DataExporter {

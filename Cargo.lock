@@ -449,6 +449,7 @@ dependencies = [
  "actix-web",
  "chain-support",
  "clap",
+ "common",
  "env_logger",
  "log",
  "scenario-transfer",
@@ -667,6 +668,14 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "common"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "serde",
 ]
 
 [[package]]
@@ -2534,6 +2543,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "chain-support",
+ "common",
  "log",
  "traffic",
 ]
@@ -3579,11 +3589,10 @@ dependencies = [
 name = "traffic"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "chrono",
+ "common",
  "futures",
  "log",
- "serde",
  "tokio",
 ]
 
