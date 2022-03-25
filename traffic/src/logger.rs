@@ -19,7 +19,7 @@ impl Logger {
     pub fn subscribe(&self, target: &Ident, sender: UnboundedSender<LogLine>) {
         self.subscriptions
             .lock()
-            .expect("Should acquire write lock")
+            .expect("Should acquire lock")
             .entry(target.clone())
             .or_insert_with(Vec::new)
             .push(sender);

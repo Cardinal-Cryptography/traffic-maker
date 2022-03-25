@@ -156,11 +156,10 @@ impl EventListener for Stats {
         self.update_status(scenario_ident, Status::Failure)
     }
 
-    fn report_logs(&mut self, scenario_ident: Ident, logs: Vec<String>) {
+    fn report_logs(&mut self, scenario_ident: Ident, log: String) {
         Self::update_storage(&mut self.logs, scenario_ident, |all_logs| {
-            let mut logs = logs;
             // TODO: make `content` a bounded container
-            all_logs.content.append(&mut logs);
+            all_logs.content.push(log);
         });
     }
 }

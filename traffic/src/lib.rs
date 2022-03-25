@@ -1,5 +1,3 @@
-extern crate core;
-
 use serde::Serialize;
 
 pub use scenario::Scenario;

@@ -14,7 +14,7 @@ pub trait EventListener: Send + Clone {
     fn report_success(&mut self, scenario_ident: Ident);
     fn report_launch(&mut self, scenario_ident: Ident);
     fn report_failure(&mut self, scenario_ident: Ident);
-    fn report_logs(&mut self, scenario_ident: Ident, logs: Vec<String>);
+    fn report_logs(&mut self, scenario_ident: Ident, log: String);
 }
 
 impl<EL: EventListener> EventListener for Arc<Mutex<EL>> {
@@ -34,8 +34,8 @@ impl<EL: EventListener> EventListener for Arc<Mutex<EL>> {
         self.lock().unwrap().report_failure(scenario_ident)
     }
 
-    fn report_logs(&mut self, scenario_ident: Ident, logs: Vec<String>) {
-        self.lock().unwrap().report_logs(scenario_ident, logs)
+    fn report_logs(&mut self, scenario_ident: Ident, log: String) {
+        self.lock().unwrap().report_logs(scenario_ident, log)
     }
 }
 
@@ -63,7 +63,7 @@ pub async fn run_schedule<EL: 'static + EventListener>(
                 .next()
                 .await
                 .expect("There should be some logging on");
-            logs_listener.report_logs(ident, vec![log]);
+            logs_listener.report_logs(ident, log);
         }
     });
 
