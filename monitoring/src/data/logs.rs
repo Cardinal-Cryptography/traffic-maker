@@ -1,4 +1,4 @@
-use crate::data::Ident;
+use primitives::Ident;
 use serde::Deserialize;
 
 /// A deserializable counterpart for a corresponding struct from `bin/stats.rs`.

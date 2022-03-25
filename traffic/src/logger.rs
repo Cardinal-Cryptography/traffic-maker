@@ -6,7 +6,7 @@ use std::{
 use futures::channel::mpsc::UnboundedSender;
 use log::{Log, Metadata, Record};
 
-use crate::Ident;
+use primitives::Ident;
 
 pub type LogLine = (Ident, String);
 
@@ -41,7 +41,7 @@ impl Log for Logger {
     }
 
     fn log(&self, record: &Record) {
-        let target = Ident(record.target().to_string());
+        let target = record.target().into();
         if let Some(senders) = self
             .subscriptions
             .lock()

@@ -1,5 +1,6 @@
-use crate::Ident;
 use std::time::Duration;
+
+use primitives::Ident;
 
 #[async_trait::async_trait]
 pub trait Scenario: Clone + Send + Sync + 'static {

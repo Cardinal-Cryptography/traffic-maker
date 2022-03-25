@@ -1,6 +1,7 @@
 use iced::{
     button, scrollable, Alignment, Button, Column, Container, Element, Length, Scrollable, Text,
 };
+use primitives::Ident;
 
 use crate::{
     data::Logs,
@@ -12,7 +13,7 @@ use crate::{
 };
 
 pub struct LogsPage {
-    scenario: String,
+    scenario: Ident,
     log_view: Option<LogsView>,
 
     home_button_state: button::State,
@@ -20,7 +21,7 @@ pub struct LogsPage {
 }
 
 impl LogsPage {
-    pub fn new(scenario: String, logs: Option<Logs>) -> Self {
+    pub fn new(scenario: Ident, logs: Option<Logs>) -> Self {
         LogsPage {
             scenario,
             log_view: logs.map(LogsView::new),
@@ -37,7 +38,7 @@ impl LogsPage {
         .on_press(Message::GoToOverview)
         .style(AlephTheme);
 
-        let title = Text::new(&self.scenario)
+        let title = Text::new(&self.scenario.0)
             .size(FontSize::H1)
             .color(Color::PRIMARY);
 

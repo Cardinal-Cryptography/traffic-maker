@@ -1,7 +1,9 @@
 use iced::{executor, Application, Command, Element};
 
+use primitives::Ident;
+
 use crate::{
-    data::{Ident, Logs, Scenario},
+    data::{Logs, Scenario},
     message::Message,
     view::{LogsPage, OverviewPage},
 };
@@ -12,7 +14,7 @@ enum Route {
     /// See all the launched scenarios with their current status.
     Overview,
     /// See recent logs from particular scenario.
-    Logs(String),
+    Logs(Ident),
 }
 
 /// Core struct connecting state, view and update (Elm architecture).
@@ -82,7 +84,7 @@ impl Application for App {
             Message::GoToLogs(scenario) => {
                 self.current_route = Route::Logs(scenario.clone());
                 Command::perform(
-                    Logs::fetch(Ident(scenario), self.stats_base_url.clone()),
+                    Logs::fetch(scenario, self.stats_base_url.clone()),
                     Message::FetchedLogs,
                 )
             }

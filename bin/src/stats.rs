@@ -6,9 +6,9 @@ use std::{
 use log::warn;
 use serde::Serialize;
 
-use traffic::{EventListener, Ident, Scenario};
-
 use crate::data_export::DataExporter;
+use primitives::Ident;
+use traffic::{EventListener, Scenario};
 
 /// Current status of the scheduled scenario.
 #[derive(Debug, Clone, Copy, Serialize)]

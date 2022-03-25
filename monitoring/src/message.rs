@@ -1,4 +1,5 @@
 use crate::data::{Logs, Scenario};
+use primitives::Ident;
 
 /// Events driving the logic of the app.
 #[derive(Debug, Clone)]
@@ -11,5 +12,5 @@ pub enum Message {
     /// `Route::Overview` has been selected.
     GoToOverview,
     /// `Route::Logs` has been selected.
-    GoToLogs(String),
+    GoToLogs(Ident),
 }

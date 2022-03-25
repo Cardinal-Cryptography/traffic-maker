@@ -1,5 +1,6 @@
 use std::{collections::HashMap, time::Duration};
 
+use primitives::Ident;
 use serde::Deserialize;
 
 /// `Status` and `Scenario` are deserializable counterparts of the corresponding
@@ -15,7 +16,7 @@ pub enum Status {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Scenario {
-    pub ident: String,
+    pub ident: Ident,
     pub runs: u32,
     pub failures: u32,
     pub interval: Duration,

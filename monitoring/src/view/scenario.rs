@@ -24,7 +24,7 @@ impl ScenarioView {
     }
 
     pub fn view_in_list(&mut self) -> Element<Message> {
-        let ident = Text::new(self.scenario.ident.clone())
+        let ident = Text::new(self.scenario.ident.0.clone())
             .size(FontSize::H2)
             .color(Color::PRIMARY)
             .width(WIDE_COLUMN_WIDTH);

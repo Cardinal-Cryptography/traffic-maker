@@ -1,12 +1,14 @@
-use log::info;
 use std::time::Duration;
+
+use log::info;
 
 use chain_support::{
     account::{get_free_balance, new_account_from_seed, top_up},
     transfer::transfer,
     Account, Connection,
 };
-use traffic::{Ident, Scenario};
+use primitives::Ident;
+use traffic::Scenario;
 
 const IDENT: &str = "SimpleTransfer";
 
@@ -62,6 +64,6 @@ impl Scenario for SimpleTransferScenario {
     }
 
     fn ident(&self) -> Ident {
-        Ident(IDENT.to_string())
+        IDENT.into()
     }
 }

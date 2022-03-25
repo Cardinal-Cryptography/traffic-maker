@@ -4,7 +4,8 @@ members = [
     "bin",
     "traffic",
     "chain-support",
-    "scenarios/transfer"
+    "primitives",
+    "scenarios/transfer",
 ]
 
 exclude = [
