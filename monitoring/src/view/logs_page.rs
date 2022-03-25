@@ -1,10 +1,9 @@
 use iced::{
     button, scrollable, Alignment, Button, Column, Container, Element, Length, Scrollable, Text,
 };
-use primitives::Ident;
+use primitives::{Ident, ScenarioLogs};
 
 use crate::{
-    data::Logs,
     message::Message,
     view::{
         logs::LogsView,
@@ -21,7 +20,7 @@ pub struct LogsPage {
 }
 
 impl LogsPage {
-    pub fn new(scenario: Ident, logs: Option<Logs>) -> Self {
+    pub fn new(scenario: Ident, logs: Option<ScenarioLogs>) -> Self {
         LogsPage {
             scenario,
             log_view: logs.map(LogsView::new),

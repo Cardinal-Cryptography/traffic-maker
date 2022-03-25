@@ -2264,6 +2264,7 @@ dependencies = [
 name = "primitives"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "serde",
 ]
 
@@ -3588,7 +3589,6 @@ dependencies = [
 name = "traffic"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "chrono",
  "futures",
  "log",

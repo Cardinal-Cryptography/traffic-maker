@@ -1,9 +1,9 @@
 use iced::{executor, Application, Command, Element};
 
-use primitives::Ident;
+use primitives::{Ident, ScenarioDetails, ScenarioLogs};
 
 use crate::{
-    data::{Logs, Scenario},
+    data::{fetch_logs, fetch_scenarios},
     message::Message,
     view::{LogsPage, OverviewPage},
 };
@@ -26,9 +26,9 @@ pub struct App {
     /// (like `http://`), even if using localhost.
     stats_base_url: String,
     /// Fetched scenarios.
-    scenarios: Option<Vec<Scenario>>,
+    scenarios: Option<Vec<ScenarioDetails>>,
     /// Fetched logs for a particular scenario.
-    logs: Option<Logs>,
+    logs: Option<ScenarioLogs>,
 
     /// Overview page view.
     ///
@@ -62,7 +62,7 @@ impl Application for App {
                 logs_page: None,
             },
             Command::perform(
-                Scenario::fetch_all(flags.stats_base_url),
+                fetch_scenarios(flags.stats_base_url),
                 Message::FetchedScenarios,
             ),
         )
@@ -77,14 +77,14 @@ impl Application for App {
             Message::GoToOverview => {
                 self.current_route = Route::Overview;
                 Command::perform(
-                    Scenario::fetch_all(self.stats_base_url.clone()),
+                    fetch_scenarios(self.stats_base_url.clone()),
                     Message::FetchedScenarios,
                 )
             }
             Message::GoToLogs(scenario) => {
                 self.current_route = Route::Logs(scenario.clone());
                 Command::perform(
-                    Logs::fetch(scenario, self.stats_base_url.clone()),
+                    fetch_logs(scenario, self.stats_base_url.clone()),
                     Message::FetchedLogs,
                 )
             }

@@ -6,9 +6,9 @@ use futures::{
 };
 use log::LevelFilter;
 
-use primitives::Ident;
+use primitives::{Ident, Scenario};
 
-use crate::{logger::Logger, scenario::Scenario};
+use crate::logger::Logger;
 
 /// Abstraction for registering events (hook for stats).
 pub trait EventListener: Send + Clone {

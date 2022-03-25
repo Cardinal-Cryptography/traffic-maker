@@ -1,7 +1,7 @@
 use iced::{scrollable, Alignment, Column, Container, Element, Length, Rule, Scrollable, Text};
+use primitives::ScenarioDetails;
 
 use crate::{
-    data::Scenario,
     message::Message,
     view::{
         scenario::ScenarioView,
@@ -15,7 +15,7 @@ pub struct OverviewPage {
 }
 
 impl OverviewPage {
-    pub fn new(scenarios: Option<Vec<Scenario>>) -> Self {
+    pub fn new(scenarios: Option<Vec<ScenarioDetails>>) -> Self {
         match scenarios {
             None => OverviewPage {
                 scenario_views: vec![],
