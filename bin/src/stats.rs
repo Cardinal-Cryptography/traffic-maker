@@ -71,7 +71,7 @@ impl EventListener for Stats {
         let id = scenario.ident();
         let already_registered = self
             .details
-            .insert(id.clone(), ScenarioDetails::new(scenario.clone()))
+            .insert(id.clone(), ScenarioDetails::new(scenario))
             .is_some();
 
         if already_registered {

@@ -48,7 +48,7 @@ pub struct ScenarioDetails {
 }
 
 impl ScenarioDetails {
-    pub fn new<S: Scenario>(scenario: S) -> Self {
+    pub fn new<S: Scenario>(scenario: &S) -> Self {
         ScenarioDetails {
             ident: scenario.ident(),
             runs: 0,
