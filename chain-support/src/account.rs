@@ -18,7 +18,7 @@ pub fn new_account_from_seed(seed: &str) -> Account {
 }
 
 /// Creates a new derived `Account` from provided `seed` as a derivation path.
-/// The base seed is empty by default, but can be overridden with env.
+/// The base seed is empty by default, but can be overridden with env `SECRET_PHRASE_SEED`.
 pub fn new_derived_account_from_seed(seed: &str) -> Account {
     let base_seed = option_env!("SECRET_PHRASE_SEED").unwrap_or("").to_string();
     let full_seed = format!("{}{}", base_seed, seed);
