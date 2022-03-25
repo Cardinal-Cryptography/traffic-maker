@@ -1,0 +1,14 @@
+[environment]
+node = "127.0.0.1:9944"
+protocol = "ws"
+expose_host = "127.0.0.1:8080"
+
+[[scenarios]]
+kind = "SimpleTransfer"
+ident = "SimpleTransfer (7s)"
+interval = "7 seconds"
+
+[[scenarios]]
+kind = "SimpleTransfer"
+ident = "SimpleTransfer (15s)"
+interval = "15 seconds"

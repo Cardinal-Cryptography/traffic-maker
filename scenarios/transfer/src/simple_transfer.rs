@@ -9,12 +9,11 @@ use chain_support::{
 };
 use common::{Ident, Scenario};
 
-const IDENT: &str = "SimpleTransfer";
-
 /// Keeps two accounts: `sender` and `receiver`. Once in the `interval`,
 /// `sender` sends `transfer_value` units to `receiver`.
 #[derive(Clone)]
 pub struct SimpleTransferScenario {
+    ident: Ident,
     sender: Account,
     receiver: Account,
     interval: Duration,
@@ -23,7 +22,7 @@ pub struct SimpleTransferScenario {
 }
 
 impl SimpleTransferScenario {
-    pub fn new(connection: &Connection, interval: Duration) -> Self {
+    pub fn new(connection: &Connection, ident: Ident, interval: Duration) -> Self {
         let sender = new_account_from_seed("//SimpleTransferSender");
         let receiver = new_account_from_seed("//SimpleTransferReceiver");
 
@@ -32,6 +31,7 @@ impl SimpleTransferScenario {
         top_up(connection, &sender, transfer_value * 1_000);
 
         SimpleTransferScenario {
+            ident,
             sender,
             receiver,
             interval,
@@ -48,7 +48,7 @@ impl Scenario for SimpleTransferScenario {
     }
 
     async fn play(&mut self) -> bool {
-        info!(target: IDENT, "Ready to go");
+        info!(target: self.ident.0.as_str(), "Ready to go");
         let receiver_balance_before = get_free_balance(&self.receiver, &self.connection);
         transfer(
             &self.connection,
@@ -57,12 +57,12 @@ impl Scenario for SimpleTransferScenario {
             self.transfer_value,
         );
         let receiver_balance_after = get_free_balance(&self.receiver, &self.connection);
-        info!(target: IDENT, "Almost done");
+        info!(target: self.ident.0.as_str(), "Almost done");
 
         receiver_balance_after == receiver_balance_before + self.transfer_value
     }
 
     fn ident(&self) -> Ident {
-        IDENT.into()
+        self.ident.clone()
     }
 }

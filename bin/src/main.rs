@@ -1,40 +1,19 @@
-use actix_cors::Cors;
 use std::{
+    fs,
     io::Result,
     sync::{Arc, Mutex},
-    time::Duration,
 };
 
+use actix_cors::Cors;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
-use clap::Parser;
 
-use chain_support::{create_connection, Protocol};
-use scenario_transfer::SimpleTransferScenario;
-use traffic::{run_schedule, EventListener};
+use traffic::run_schedule;
 
 use crate::{config::Config, data_export::DataExporter, stats::Stats};
 
 mod config;
 mod data_export;
 mod stats;
-
-const EXAMPLE_SCENARIO_INTERVAL: Duration = Duration::from_secs(15);
-
-async fn run_backend<EL: 'static + EventListener>(
-    address: &str,
-    protocol: Protocol,
-    event_listener: EL,
-) {
-    let connection = create_connection(address, protocol);
-
-    // TODO: read from some config scenarios to launch together with parameters
-    let scenarios = vec![SimpleTransferScenario::new(
-        &connection,
-        EXAMPLE_SCENARIO_INTERVAL,
-    )];
-
-    run_schedule(scenarios, event_listener).await;
-}
 
 async fn serve_details<DE: DataExporter>(data: web::Data<DE>) -> impl Responder {
     HttpResponse::Ok().body(data.export_details())
@@ -49,13 +28,16 @@ async fn serve_logs<DE: DataExporter>(
 
 #[actix_web::main]
 async fn main() -> Result<()> {
-    let config: Config = Config::parse();
+    let config_content =
+        fs::read_to_string("Timetable.toml").expect("Config file should exist and be readable");
+    let config: Config = toml::from_str(&*config_content).expect("Should deserialize");
 
     let stats = Arc::new(Mutex::new(Stats::new()));
     let stats_for_backend = stats.clone();
 
+    let scenarios = config.get_scenarios();
     tokio::spawn(async move {
-        run_backend(&config.node, config.protocol, stats_for_backend).await;
+        run_schedule(scenarios, stats_for_backend).await;
     });
 
     HttpServer::new(move || {
@@ -75,7 +57,7 @@ async fn main() -> Result<()> {
                     ),
             )
     })
-    .bind(config.expose_host)?
+    .bind(config.get_expose_host())?
     .run()
     .await
 }
