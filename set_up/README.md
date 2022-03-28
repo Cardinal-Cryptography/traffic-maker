@@ -52,3 +52,7 @@ Note, that the amount is interpreted as full tokens, i.e. this number will be fu
 
 All accounts are obtained by appending specified derivation path to a special secret phrase.
 By default, it is an empty string, but you can provide your own by setting environment variable `SECRET_PHRASE_SEED`.
+
+**Note** `SECRET_PHRASE_SEED` is a **compile-time** variable.
+This means that the compiled binary will use the seed that was set during compilation time.
+In particular running `cargo run` after changing the seed will trigger recompilation.
