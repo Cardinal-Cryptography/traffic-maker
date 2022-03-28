@@ -68,7 +68,8 @@ struct ScenarioConfig {
     ident: Ident,
 
     /// How often should this scenario be launched.
-    interval: String,
+    #[serde(deserialize_with = "parse_interval")]
+    interval: Duration,
 }
 
 impl ScenarioConfig {
@@ -76,12 +77,16 @@ impl ScenarioConfig {
         #[allow(clippy::match_single_binding)]
         match self.kind {
             ScenarioKind::SimpleTransfer => {
-                SimpleTransferScenario::new(connection, self.ident.clone(), self.get_interval())
+                SimpleTransferScenario::new(connection, self.ident.clone(), self.interval)
             }
         }
     }
+}
 
-    fn get_interval(&self) -> Duration {
-        parse(self.interval.as_str()).expect("Interval should be parsable")
-    }
+fn parse_interval<'de, D>(deserializer: D) -> Result<Duration, D::Error>
+where
+    D: serde::de::Deserializer<'de>,
+{
+    let s: &str = serde::de::Deserialize::deserialize(deserializer)?;
+    parse(s).map_err(serde::de::Error::custom)
 }
