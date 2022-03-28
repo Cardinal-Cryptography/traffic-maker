@@ -26,11 +26,15 @@ async fn serve_logs<DE: DataExporter>(
     HttpResponse::Ok().body(data.export_logs(scenario_ident.into_inner().into()))
 }
 
-#[actix_web::main]
-async fn main() -> Result<()> {
+fn read_config() -> Config {
     let config_content =
         fs::read_to_string("Timetable.toml").expect("Config file should exist and be readable");
-    let config: Config = toml::from_str(&*config_content).expect("Should deserialize");
+    toml::from_str(&*config_content).expect("Should deserialize")
+}
+
+#[actix_web::main]
+async fn main() -> Result<()> {
+    let config = read_config();
 
     let stats = Arc::new(Mutex::new(Stats::new()));
     let stats_for_backend = stats.clone();

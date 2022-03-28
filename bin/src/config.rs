@@ -23,7 +23,7 @@ impl Config {
     }
 
     pub fn get_expose_host(&self) -> &str {
-        self.environment.expose_host()
+        self.environment.get_expose_host()
     }
 }
 
@@ -48,15 +48,21 @@ impl Environment {
         create_connection(&*self.node, protocol)
     }
 
-    pub fn expose_host(&self) -> &str {
+    pub fn get_expose_host(&self) -> &str {
         self.expose_host.as_str()
     }
 }
 
+/// All implemented scenarios should be included here.
+#[derive(Debug, Copy, Clone, Deserialize)]
+enum ScenarioKind {
+    SimpleTransfer,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 struct ScenarioConfig {
-    /// Identifier corresponding to the struct name.
-    kind: String,
+    /// What kind of scenario should be run.
+    kind: ScenarioKind,
 
     /// Unique identifier.
     ident: Ident,
@@ -67,15 +73,15 @@ struct ScenarioConfig {
 
 impl ScenarioConfig {
     pub fn get_scenario(&self, connection: &Connection) -> impl Scenario {
-        match self.kind.as_str() {
-            "SimpleTransfer" => {
-                SimpleTransferScenario::new(connection, self.ident.clone(), self.interval())
+        #[allow(clippy::match_single_binding)]
+        match self.kind {
+            ScenarioKind::SimpleTransfer => {
+                SimpleTransferScenario::new(connection, self.ident.clone(), self.get_interval())
             }
-            _ => panic!("Unknown scenario"),
         }
     }
 
-    fn interval(&self) -> Duration {
+    fn get_interval(&self) -> Duration {
         parse(self.interval.as_str()).expect("Interval should be parsable")
     }
 }
