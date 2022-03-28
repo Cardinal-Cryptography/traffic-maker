@@ -10,4 +10,5 @@ members = [
 
 exclude = [
     "monitoring",
+    "set_up",
 ]

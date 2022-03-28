@@ -3,7 +3,7 @@ use std::time::Duration;
 use log::info;
 
 use chain_support::{
-    account::{get_free_balance, new_account_from_seed, top_up},
+    account::{get_free_balance, new_derived_account_from_seed},
     transfer::transfer,
     Account, Connection,
 };
@@ -24,12 +24,10 @@ pub struct SimpleTransferScenario {
 
 impl SimpleTransferScenario {
     pub fn new(connection: &Connection, interval: Duration) -> Self {
-        let sender = new_account_from_seed("//SimpleTransferSender");
-        let receiver = new_account_from_seed("//SimpleTransferReceiver");
+        let sender = new_derived_account_from_seed("//SimpleTransferSender");
+        let receiver = new_derived_account_from_seed("//SimpleTransferReceiver");
 
         let transfer_value = 1_000_000_000;
-
-        top_up(connection, &sender, transfer_value * 1_000);
 
         SimpleTransferScenario {
             sender,
