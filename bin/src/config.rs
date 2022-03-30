@@ -14,11 +14,11 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn get_scenarios(&self) -> Vec<impl Scenario> {
+    pub fn create_scenarios(&self) -> Vec<impl Scenario> {
         let connection = self.environment.new_connection();
         self.scenarios
             .iter()
-            .map(|sc| sc.get_scenario(&connection))
+            .map(|sc| sc.create_scenario(&connection))
             .collect()
     }
 
@@ -73,7 +73,7 @@ struct ScenarioConfig {
 }
 
 impl ScenarioConfig {
-    pub fn get_scenario(&self, connection: &Connection) -> impl Scenario {
+    pub fn create_scenario(&self, connection: &Connection) -> impl Scenario {
         #[allow(clippy::match_single_binding)]
         match self.kind {
             ScenarioKind::SimpleTransfer => {

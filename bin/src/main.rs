@@ -39,7 +39,7 @@ async fn main() -> Result<()> {
     let stats = Arc::new(Mutex::new(Stats::new()));
     let stats_for_backend = stats.clone();
 
-    let scenarios = config.get_scenarios();
+    let scenarios = config.create_scenarios();
     tokio::spawn(async move {
         run_schedule(scenarios, stats_for_backend).await;
     });
