@@ -1,18 +1,92 @@
-use chain_support::{parse_to_protocol, Protocol};
-use clap::Parser;
+use parse_duration::parse;
+use std::time::Duration;
 
-#[derive(Debug, Parser, Clone)]
-#[clap(version = "1.0")]
+use serde::Deserialize;
+
+use chain_support::{create_connection, Connection, Protocol};
+use common::{Ident, Scenario};
+use scenario_transfer::SimpleTransferScenario;
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct Config {
+    environment: Environment,
+    scenarios: Vec<ScenarioConfig>,
+}
+
+impl Config {
+    pub fn create_scenarios(&self) -> Vec<impl Scenario> {
+        let connection = self.environment.new_connection();
+        self.scenarios
+            .iter()
+            .map(|sc| sc.create_scenario(&connection))
+            .collect()
+    }
+
+    pub fn get_expose_host(&self) -> &str {
+        self.environment.get_expose_host()
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct Environment {
     /// WS endpoint address of the node to connect to
-    #[clap(long, default_value = "127.0.0.1:9944")]
-    pub node: String,
+    node: String,
 
     /// Protocol to be used for connecting to node (`ws` or `wss`).
-    #[structopt(name = "use_ssl", parse(from_flag = parse_to_protocol))]
-    pub protocol: Protocol,
+    protocol: String,
 
     /// Where to expose stats
-    #[structopt(long, default_value = "127.0.0.1:8080")]
-    pub expose_host: String,
+    expose_host: String,
+}
+
+impl Environment {
+    pub fn new_connection(&self) -> Connection {
+        let protocol = match self.protocol.as_str() {
+            "wss" => Protocol::WSS,
+            _ => Protocol::WS,
+        };
+        create_connection(&*self.node, protocol)
+    }
+
+    pub fn get_expose_host(&self) -> &str {
+        self.expose_host.as_str()
+    }
+}
+
+/// All implemented scenarios should be included here.
+#[derive(Debug, Copy, Clone, Deserialize)]
+enum ScenarioKind {
+    SimpleTransfer,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct ScenarioConfig {
+    /// What kind of scenario should be run.
+    kind: ScenarioKind,
+
+    /// Unique identifier.
+    ident: Ident,
+
+    /// How often should this scenario be launched.
+    #[serde(deserialize_with = "parse_interval")]
+    interval: Duration,
+}
+
+impl ScenarioConfig {
+    pub fn create_scenario(&self, connection: &Connection) -> impl Scenario {
+        #[allow(clippy::match_single_binding)]
+        match self.kind {
+            ScenarioKind::SimpleTransfer => {
+                SimpleTransferScenario::new(connection, self.ident.clone(), self.interval)
+            }
+        }
+    }
+}
+
+fn parse_interval<'de, D>(deserializer: D) -> Result<Duration, D::Error>
+where
+    D: serde::de::Deserializer<'de>,
+{
+    let s: &str = serde::de::Deserialize::deserialize(deserializer)?;
+    parse(s).map_err(serde::de::Error::custom)
 }
