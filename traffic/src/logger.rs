@@ -3,6 +3,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use chrono::Local;
 use futures::channel::mpsc::UnboundedSender;
 use log::{Log, Metadata, Record};
 
@@ -28,7 +29,7 @@ impl Logger {
     fn format(record: &Record) -> String {
         format!(
             "{}  {}  {}",
-            chrono::Local::now().format("%Y-%m-%d %H:%M:%S"),
+            Local::now().format("%Y-%m-%d %H:%M:%S"),
             record.level(),
             record.args()
         )

@@ -1,40 +1,37 @@
 use std::time::Duration;
 
+use aleph_client::{balances_transfer, get_free_balance, Connection};
 use log::info;
+use substrate_api_client::{AccountId, Pair, XtStatus};
 
-use chain_support::{
-    account::{get_free_balance, new_derived_account_from_seed},
-    transfer::transfer,
-    Account, Connection,
-};
+use chain_support::keypair_derived_from_seed;
 use common::{Ident, Scenario};
+
+const TRANSFER_VALUE: u128 = 1_000_000_000;
 
 /// Keeps two accounts: `sender` and `receiver`. Once in the `interval`,
 /// `sender` sends `transfer_value` units to `receiver`.
 #[derive(Clone)]
 pub struct SimpleTransferScenario {
     ident: Ident,
-    sender: Account,
-    receiver: Account,
+    receiver: AccountId,
     interval: Duration,
-    transfer_value: u128,
     connection: Connection,
 }
 
 impl SimpleTransferScenario {
     pub fn new(connection: &Connection, ident: Ident, interval: Duration) -> Self {
-        let sender = new_derived_account_from_seed("//SimpleTransferSender");
-        let receiver = new_derived_account_from_seed("//SimpleTransferReceiver");
+        let sender = keypair_derived_from_seed("//SimpleTransferSender");
+        let connection = connection.clone().set_signer(sender);
 
-        let transfer_value = 1_000_000_000;
+        let receiver =
+            AccountId::from(keypair_derived_from_seed("//SimpleTransferReceiver").public());
 
         SimpleTransferScenario {
             ident,
-            sender,
             receiver,
             interval,
-            transfer_value,
-            connection: connection.clone(),
+            connection,
         }
     }
 }
@@ -47,17 +44,17 @@ impl Scenario for SimpleTransferScenario {
 
     async fn play(&mut self) -> bool {
         info!(target: self.ident.0.as_str(), "Ready to go");
-        let receiver_balance_before = get_free_balance(&self.receiver, &self.connection);
-        transfer(
+        let receiver_balance_before = get_free_balance(&self.connection, &self.receiver);
+        balances_transfer(
             &self.connection,
-            &self.sender,
             &self.receiver,
-            self.transfer_value,
+            TRANSFER_VALUE,
+            XtStatus::Finalized,
         );
-        let receiver_balance_after = get_free_balance(&self.receiver, &self.connection);
+        let receiver_balance_after = get_free_balance(&self.connection, &self.receiver);
         info!(target: self.ident.0.as_str(), "Almost done");
 
-        receiver_balance_after == receiver_balance_before + self.transfer_value
+        receiver_balance_after == receiver_balance_before + TRANSFER_VALUE
     }
 
     fn ident(&self) -> Ident {
