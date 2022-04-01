@@ -1,17 +1,18 @@
 use std::sync::{Arc, Mutex};
 
 use futures::{
-    channel::{mpsc, mpsc::UnboundedSender},
+    channel::{mpsc, mpsc::UnboundedReceiver},
     StreamExt,
 };
-use log::LevelFilter;
+use log::{error, LevelFilter};
+use tokio::task::JoinHandle;
 
 use common::{Ident, Scenario};
 
-use crate::logger::Logger;
+use crate::logger::{LogLine, Logger};
 
 /// Abstraction for registering events (hook for stats).
-pub trait EventListener: Send + Clone {
+pub trait EventListener: Send + Sync + Clone {
     fn register_scenario<S: Scenario>(&mut self, scenario: &S);
     fn report_success(&mut self, scenario_ident: Ident);
     fn report_launch(&mut self, scenario_ident: Ident);
@@ -48,42 +49,21 @@ pub async fn run_schedule<EL: 'static + EventListener>(
     event_listener: EL,
 ) {
     let logger = setup_logging();
-    let (report_logs, mut receive_logs) = mpsc::unbounded();
-    let (report_ready, mut receive_ready) = mpsc::unbounded();
-    let mut event_listener = event_listener;
+    let (report_logs, receive_logs) = mpsc::unbounded();
 
-    for scenario in scenarios {
-        event_listener.register_scenario(&scenario);
-        logger.subscribe(&scenario.ident(), report_logs.clone());
-        tokio::spawn(schedule_scenario(scenario, report_ready.clone()));
-    }
+    forward_logging(receive_logs, event_listener.clone());
 
-    let mut logs_listener = event_listener.clone();
-    tokio::spawn(async move {
-        loop {
-            let (ident, log) = receive_logs
-                .next()
-                .await
-                .expect("There should be some logging on");
-            logs_listener.report_logs(ident, log);
-        }
-    });
+    let handles = scenarios
+        .into_iter()
+        .map(|s| {
+            logger.subscribe(s.ident(), report_logs.clone());
+            tokio::spawn(schedule_scenario(s, event_listener.clone()))
+        })
+        .collect::<Vec<JoinHandle<_>>>();
 
-    loop {
-        let mut scenario = receive_ready
-            .next()
-            .await
-            .expect("There should be at least one scenario scheduled");
-
-        let mut event_listener = event_listener.clone();
-        tokio::spawn(async move {
-            let id = scenario.ident();
-            event_listener.report_launch(id.clone());
-            match scenario.play().await {
-                true => event_listener.report_success(id.clone()),
-                false => event_listener.report_failure(id.clone()),
-            }
-        });
+    for handle in handles {
+        let _ = handle.await;
+        error!("Should never stop scheduling scenario")
     }
 }
 
@@ -109,18 +89,38 @@ fn setup_logging() -> Logger {
     }
 }
 
-/// After every period of `scenario.interval()` reports readiness through the channel.
-async fn schedule_scenario<S: Scenario>(
-    scenario: S,
-    report_ready: UnboundedSender<S>,
+fn forward_logging<EL: 'static + EventListener>(
+    mut receive_logs: UnboundedReceiver<LogLine>,
+    mut logs_listener: EL,
+) {
+    tokio::spawn(async move {
+        loop {
+            let (ident, log) = receive_logs
+                .next()
+                .await
+                .expect("There should be some logging on");
+            logs_listener.report_logs(ident, log);
+        }
+    });
+}
+
+async fn schedule_scenario<S: Scenario, EL: 'static + EventListener>(
+    mut scenario: S,
+    mut event_listener: EL,
 ) -> impl Send {
+    event_listener.register_scenario(&scenario);
+
+    let id = scenario.ident();
     let mut interval = tokio::time::interval(scenario.interval());
 
-    interval.tick().await;
+    interval.tick().await; // this one is immediate
     loop {
         interval.tick().await;
-        report_ready
-            .unbounded_send(scenario.clone())
-            .expect("Should be able to report readiness");
+
+        event_listener.report_launch(id.clone());
+        match scenario.play().await {
+            Ok(()) => event_listener.report_success(id.clone()),
+            Err(_) => event_listener.report_failure(id.clone()),
+        }
     }
 }

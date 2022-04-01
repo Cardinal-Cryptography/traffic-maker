@@ -1,17 +1,22 @@
 use std::time::Duration;
 
+use log::{debug, error, info, trace, warn};
 use serde::{Deserialize, Serialize};
 
 use crate::Ident;
 
+pub enum ScenarioError {
+    ExecutionFailure,
+}
+
 /// Core trait that every bot should satisfy.
 #[async_trait::async_trait]
-pub trait Scenario: Clone + Send + Sync + 'static {
+pub trait Scenario: Send + 'static {
     /// How often should it be run.
     fn interval(&self) -> Duration;
 
     /// Runs the scenario and returns whether it succeeded.
-    async fn play(&mut self) -> bool;
+    async fn play(&mut self) -> Result<(), ScenarioError>;
 
     /// Identifier for this particular scenario.
     fn ident(&self) -> Ident;
@@ -74,5 +79,35 @@ impl ScenarioLogs {
             scenario_ident,
             content: Vec::new(),
         }
+    }
+}
+
+pub trait ScenarioLogging {
+    fn trace(&self, message: &str);
+    fn debug(&self, message: &str);
+    fn info(&self, message: &str);
+    fn warn(&self, message: &str);
+    fn error(&self, message: &str);
+}
+
+impl<S: Scenario> ScenarioLogging for S {
+    fn trace(&self, message: &str) {
+        trace!(target: self.ident().0.as_str(), "{}", message)
+    }
+
+    fn debug(&self, message: &str) {
+        debug!(target: self.ident().0.as_str(), "{}", message)
+    }
+
+    fn info(&self, message: &str) {
+        info!(target: self.ident().0.as_str(), "{}", message)
+    }
+
+    fn warn(&self, message: &str) {
+        warn!(target: self.ident().0.as_str(), "{}", message)
+    }
+
+    fn error(&self, message: &str) {
+        error!(target: self.ident().0.as_str(), "{}", message)
     }
 }

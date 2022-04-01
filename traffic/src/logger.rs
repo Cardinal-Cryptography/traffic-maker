@@ -17,11 +17,11 @@ pub struct Logger {
 }
 
 impl Logger {
-    pub fn subscribe(&self, target: &Ident, sender: UnboundedSender<LogLine>) {
+    pub fn subscribe(&self, target: Ident, sender: UnboundedSender<LogLine>) {
         self.subscriptions
             .lock()
             .expect("Should acquire lock")
-            .entry(target.clone())
+            .entry(target)
             .or_insert_with(Vec::new)
             .push(sender);
     }
