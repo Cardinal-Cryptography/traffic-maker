@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{error::Error, time::Duration};
 
 use log::{debug, error, info, trace, warn};
 use serde::{Deserialize, Serialize};
@@ -7,6 +7,12 @@ use crate::Ident;
 
 pub enum ScenarioError {
     ExecutionFailure,
+}
+
+impl<E: Error> From<E> for ScenarioError {
+    fn from(_: E) -> Self {
+        ScenarioError::ExecutionFailure
+    }
 }
 
 /// Core trait that every bot should satisfy.

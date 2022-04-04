@@ -612,6 +612,7 @@ name = "chain-support"
 version = "0.2.0"
 dependencies = [
  "aleph_client",
+ "tokio",
 ]
 
 [[package]]
@@ -2493,6 +2494,7 @@ dependencies = [
  "common",
  "log",
  "substrate-api-client",
+ "tokio",
 ]
 
 [[package]]

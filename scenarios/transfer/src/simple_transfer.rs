@@ -1,9 +1,8 @@
+use aleph_client::{get_free_balance, try_send_xt, Connection};
 use std::time::Duration;
+use substrate_api_client::{AccountId, GenericAddress, Pair, XtStatus::Finalized};
 
-use aleph_client::{balances_transfer, get_free_balance, Connection};
-use substrate_api_client::{AccountId, Pair, XtStatus};
-
-use chain_support::keypair_derived_from_seed;
+use chain_support::{do_async, keypair_derived_from_seed};
 use common::{Ident, Scenario, ScenarioError, ScenarioLogging};
 
 const TRANSFER_VALUE: u128 = 1_000_000_000;
@@ -35,6 +34,12 @@ impl SimpleTransferScenario {
     }
 }
 
+fn transfer(connection: &Connection, target: &AccountId) -> Result<(), ScenarioError> {
+    let xt = connection.balance_transfer(GenericAddress::Id(target.clone()), TRANSFER_VALUE);
+    try_send_xt(connection, xt, Some("transfer"), Finalized)?;
+    Ok(())
+}
+
 #[async_trait::async_trait]
 impl Scenario for SimpleTransferScenario {
     fn interval(&self) -> Duration {
@@ -44,14 +49,13 @@ impl Scenario for SimpleTransferScenario {
     async fn play(&mut self) -> Result<(), ScenarioError> {
         self.info("Ready to go");
 
-        let receiver_balance_before = get_free_balance(&self.connection, &self.receiver);
-        balances_transfer(
-            &self.connection,
-            &self.receiver,
-            TRANSFER_VALUE,
-            XtStatus::Finalized,
-        );
-        let receiver_balance_after = get_free_balance(&self.connection, &self.receiver);
+        let receiver_balance_before: u128 =
+            do_async!(get_free_balance, self.connection by ref, self.receiver by ref)?;
+
+        do_async!(transfer, self.connection by ref, self.receiver by ref)??;
+
+        let receiver_balance_after: u128 =
+            do_async!(get_free_balance, self.connection by ref, self.receiver by ref)?;
 
         if receiver_balance_after != receiver_balance_before + TRANSFER_VALUE {
             // It may happen that the balance is not as expected due to the

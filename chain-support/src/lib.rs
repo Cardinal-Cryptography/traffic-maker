@@ -1,7 +1,10 @@
+use std::fmt::Display;
+
 pub use aleph_client::{
     create_connection, keypair_from_string, send_xt, try_send_xt, Connection, KeyPair,
 };
-use std::fmt::Display;
+
+mod macros;
 
 /// Creates a new derived `KeyPair` from provided `seed` as a derivation path.
 /// The base seed is empty by default, but can be overridden with env `SECRET_PHRASE_SEED`.
