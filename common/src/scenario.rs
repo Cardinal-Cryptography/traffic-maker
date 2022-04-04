@@ -7,6 +7,7 @@ use crate::Ident;
 
 pub enum ScenarioError {
     ExecutionFailure,
+    CannotSendExtrinsic,
 }
 
 impl<E: Error> From<E> for ScenarioError {

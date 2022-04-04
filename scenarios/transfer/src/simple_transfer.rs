@@ -34,10 +34,15 @@ impl SimpleTransferScenario {
     }
 }
 
+// It is quite hard to make macros work with associated methods.
 fn transfer(connection: &Connection, target: &AccountId) -> Result<(), ScenarioError> {
-    let xt = connection.balance_transfer(GenericAddress::Id(target.clone()), TRANSFER_VALUE);
-    try_send_xt(connection, xt, Some("transfer"), Finalized)?;
-    Ok(())
+    for _ in 0..5 {
+        let xt = connection.balance_transfer(GenericAddress::Id(target.clone()), TRANSFER_VALUE);
+        if try_send_xt(connection, xt, Some("transfer"), Finalized).is_ok() {
+            return Ok(());
+        }
+    }
+    Err(ScenarioError::CannotSendExtrinsic)
 }
 
 #[async_trait::async_trait]
@@ -52,7 +57,14 @@ impl Scenario for SimpleTransferScenario {
         let receiver_balance_before: u128 =
             do_async!(get_free_balance, self.connection by ref, self.receiver by ref)?;
 
-        do_async!(transfer, self.connection by ref, self.receiver by ref)??;
+        match do_async!(transfer, self.connection by ref, self.receiver by ref)? {
+            e @ Err(ScenarioError::CannotSendExtrinsic) => {
+                self.error("Could not send extrinsic with transfer");
+                return e;
+            }
+            e @ Err(_) => return e,
+            _ => {}
+        };
 
         let receiver_balance_after: u128 =
             do_async!(get_free_balance, self.connection by ref, self.receiver by ref)?;
