@@ -65,7 +65,11 @@ jobs:
         run: sccache --start-server
 
       - name: Install trunk
-        run: cargo install --locked trunk
+        # Since we are restoring cargo files, normally, `trunk` will be already installed.
+        run: |
+          if ! [ -x "$(command -v git)" ]; then
+            cargo install --locked trunk
+          fi
 
       - name: Build backend
         run: cargo build --release
