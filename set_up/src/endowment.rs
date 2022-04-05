@@ -12,9 +12,15 @@ use chain_support::keypair_derived_from_seed;
 use crate::{lib::real_amount, CliConfig};
 
 #[derive(Clone, Debug, Deserialize)]
+pub struct Account {
+    pub name: String,
+    pub copies: Option<usize>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
 pub struct Endowment {
     pub amount: u64,
-    pub accounts: Vec<String>,
+    pub accounts: Vec<Account>,
 }
 
 fn set_endowment(sudo_connection: &Connection, account: AccountId, amount: u128) {
@@ -40,6 +46,15 @@ pub fn perform_endowments(cli_config: &CliConfig, endowments: &[Endowment]) {
     for Endowment { amount, accounts } in endowments {
         let accounts = accounts
             .iter()
+            .flat_map(|a| {
+                if a.copies.is_none() {
+                    vec![a.name.clone()]
+                } else {
+                    (0..a.copies.unwrap())
+                        .map(|i| format!("{}{}", a.name, i))
+                        .collect()
+                }
+            })
             .map(keypair_derived_from_seed)
             .map(|kp| kp.public())
             .map(AccountId::from)
