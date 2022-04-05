@@ -112,6 +112,7 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: frontend
+          path: monitoring/
 
       - name: check
         run: ls -alR
