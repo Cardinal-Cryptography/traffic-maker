@@ -1,0 +1,7 @@
+**
+!docker
+
+!monitoring
+
+!target/release/bin
+!Timetable.toml
