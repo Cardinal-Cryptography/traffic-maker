@@ -64,6 +64,9 @@ jobs:
       - name: Start sccache server
         run: sccache --start-server
 
+      - name: Install trunk
+        run: cargo install --locked trunk
+
       - name: Build backend
         run: cargo build --release
 
@@ -112,3 +115,16 @@ jobs:
 
       - name: check
         run: ls -alR
+
+      - name: Build docker image
+        run: |
+          docker build --tag traffic-maker -f ./docker/Dockerfile .
+          docker save -o traffic-maker.tar traffic-maker
+
+      - name: Upload docker image
+        uses: actions/upload-artifact@v2
+        with:
+          name: traffic-maker-docker
+          path: traffic-maker.tar
+          if-no-files-found: error
+          retention-days: 7
