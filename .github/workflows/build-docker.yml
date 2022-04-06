@@ -32,6 +32,13 @@ jobs:
       - name: Install WASM target
         run: rustup target add wasm32-unknown-unknown
 
+      # We want to avoid installing trunk every time when any Cargo.lock changes.
+      - name: Restore trunk
+        uses: actions/cache@v2
+        with:
+          path: ~/.cargo/bin/trunk
+          key: ${{ runner.os }}-trunk
+
       - name: Restore cargo cache
         uses: actions/cache@v2
         with:
