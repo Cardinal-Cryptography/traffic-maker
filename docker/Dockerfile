@@ -1,10 +1,6 @@
 # For 99.99% current image version is final, thus no tag (`latest`, by default).
 FROM ghcr.io/cardinal-cryptography/rust-with-trunk
 
-RUN apt-get update && apt-get install -y \
-    libssl-dev ca-certificates \
-    && rm -rf /tmp/* /var/{tmp,cache}/* /var/lib/{apt,dpkg}/
-
 COPY target/release/bin /usr/local/bin/backend
 RUN chmod +x /usr/local/bin/backend
 
