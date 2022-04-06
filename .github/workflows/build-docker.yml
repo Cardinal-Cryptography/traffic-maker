@@ -49,6 +49,7 @@ jobs:
             ~/.cargo/git/db/
             target/
             monitoring/target/
+            monitoring/dist/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Install sccache for ubuntu-latest
