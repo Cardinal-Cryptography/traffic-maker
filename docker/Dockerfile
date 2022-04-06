@@ -10,6 +10,7 @@ RUN chmod +x /usr/local/bin/backend
 
 COPY Timetable.toml /traffic-maker/
 COPY monitoring/ /traffic-maker/
+COPY frontend.tar.gz /traffic-maker/
 
 COPY docker/docker_entrypoint.sh /traffic-maker/docker_entrypoint.sh
 RUN chmod +x /traffic-maker/docker_entrypoint.sh
