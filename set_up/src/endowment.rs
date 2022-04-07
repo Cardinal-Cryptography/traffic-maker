@@ -23,7 +23,9 @@ pub struct Endowment {
     pub accounts: Vec<Account>,
 }
 
-fn batch_set_endowment(sudo_connection: &Connection, accounts: Vec<AccountId>, amount: u128) {
+type SudoConnection = Connection;
+
+fn batch_set_endowment(sudo_connection: &SudoConnection, accounts: Vec<AccountId>, amount: u128) {
     let xts = accounts
         .iter()
         .map(|account| {
