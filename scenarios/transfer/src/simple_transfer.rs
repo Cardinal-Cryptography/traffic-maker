@@ -1,42 +1,48 @@
+use aleph_client::{get_free_balance, try_send_xt, Connection};
 use std::time::Duration;
+use substrate_api_client::{AccountId, GenericAddress, Pair, XtStatus::Finalized};
 
-use log::info;
+use chain_support::{do_async, keypair_derived_from_seed};
+use common::{Ident, Scenario, ScenarioError, ScenarioLogging};
 
-use chain_support::{
-    account::{get_free_balance, new_derived_account_from_seed},
-    transfer::transfer,
-    Account, Connection,
-};
-use common::{Ident, Scenario};
+const TRANSFER_VALUE: u128 = 1_000_000_000;
 
 /// Keeps two accounts: `sender` and `receiver`. Once in the `interval`,
 /// `sender` sends `transfer_value` units to `receiver`.
 #[derive(Clone)]
 pub struct SimpleTransferScenario {
     ident: Ident,
-    sender: Account,
-    receiver: Account,
+    receiver: AccountId,
     interval: Duration,
-    transfer_value: u128,
     connection: Connection,
 }
 
 impl SimpleTransferScenario {
     pub fn new(connection: &Connection, ident: Ident, interval: Duration) -> Self {
-        let sender = new_derived_account_from_seed("//SimpleTransferSender");
-        let receiver = new_derived_account_from_seed("//SimpleTransferReceiver");
+        let sender = keypair_derived_from_seed("//SimpleTransferSender");
+        let connection = connection.clone().set_signer(sender);
 
-        let transfer_value = 1_000_000_000;
+        let receiver =
+            AccountId::from(keypair_derived_from_seed("//SimpleTransferReceiver").public());
 
         SimpleTransferScenario {
             ident,
-            sender,
             receiver,
             interval,
-            transfer_value,
-            connection: connection.clone(),
+            connection,
         }
     }
+}
+
+// It is quite hard to make macros work with associated methods.
+fn transfer(connection: &Connection, target: &AccountId) -> Result<(), ScenarioError> {
+    for _ in 0..5 {
+        let xt = connection.balance_transfer(GenericAddress::Id(target.clone()), TRANSFER_VALUE);
+        if try_send_xt(connection, xt, Some("transfer"), Finalized).is_ok() {
+            return Ok(());
+        }
+    }
+    Err(ScenarioError::CannotSendExtrinsic)
 }
 
 #[async_trait::async_trait]
@@ -45,19 +51,36 @@ impl Scenario for SimpleTransferScenario {
         self.interval
     }
 
-    async fn play(&mut self) -> bool {
-        info!(target: self.ident.0.as_str(), "Ready to go");
-        let receiver_balance_before = get_free_balance(&self.receiver, &self.connection);
-        transfer(
-            &self.connection,
-            &self.sender,
-            &self.receiver,
-            self.transfer_value,
-        );
-        let receiver_balance_after = get_free_balance(&self.receiver, &self.connection);
-        info!(target: self.ident.0.as_str(), "Almost done");
+    async fn play(&mut self) -> Result<(), ScenarioError> {
+        self.info("Ready to go");
 
-        receiver_balance_after == receiver_balance_before + self.transfer_value
+        let receiver_balance_before: u128 =
+            do_async!(get_free_balance, self.connection by ref, self.receiver by ref)?;
+
+        match do_async!(transfer, self.connection by ref, self.receiver by ref)? {
+            e @ Err(ScenarioError::CannotSendExtrinsic) => {
+                self.error("Could not send extrinsic with transfer");
+                return e;
+            }
+            e @ Err(_) => return e,
+            _ => {}
+        };
+
+        let receiver_balance_after: u128 =
+            do_async!(get_free_balance, self.connection by ref, self.receiver by ref)?;
+
+        if receiver_balance_after != receiver_balance_before + TRANSFER_VALUE {
+            // It may happen that the balance is not as expected due to the
+            // concurrent scenarios using this account.
+            self.warn(&format!(
+                "It doesn't seem like the transfer has reached receiver. \
+                Receiver's balance before: {} and after: {}. Transfer value: {}",
+                receiver_balance_before, receiver_balance_after, TRANSFER_VALUE,
+            ));
+        }
+
+        self.info("Done");
+        Ok(())
     }
 
     fn ident(&self) -> Ident {

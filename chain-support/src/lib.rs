@@ -1,14 +1,16 @@
+use std::fmt::Display;
+
 pub use aleph_client::{
-    create_connection, from as parse_to_protocol, send_xt, Connection, Protocol,
+    create_connection, keypair_from_string, send_xt, try_send_xt, Connection, KeyPair,
 };
-use sp_core::{crypto::AccountId32, sr25519::Pair};
 
-pub mod account;
-pub mod transfer;
+mod macros;
 
-/// Core struct representing an entity on the blockchain.
-#[derive(Clone)]
-pub struct Account {
-    pub keypair: Pair,
-    pub address: AccountId32,
+/// Creates a new derived `KeyPair` from provided `seed` as a derivation path.
+/// The base seed is empty by default, but can be overridden with env `SECRET_PHRASE_SEED`.
+/// Assumes that `seed` is already prefixed with a derivation delimiter (either `/` or `//`).
+pub fn keypair_derived_from_seed<S: AsRef<str> + Display>(seed: S) -> KeyPair {
+    let base_seed = option_env!("SECRET_PHRASE_SEED").unwrap_or("");
+    let full_seed = format!("{}{}", base_seed, seed);
+    keypair_from_string(&*full_seed)
 }

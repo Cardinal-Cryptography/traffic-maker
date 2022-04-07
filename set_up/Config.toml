@@ -2,7 +2,7 @@
 # all amounts here are supposed to be already scaled down by 10^12.
 
 [[endowments]]
-amount = 10_000
+amount = 30_000
 accounts = [
     "//SimpleTransferSender",
 ]

@@ -3,6 +3,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use chrono::Local;
 use futures::channel::mpsc::UnboundedSender;
 use log::{Log, Metadata, Record};
 
@@ -16,11 +17,11 @@ pub struct Logger {
 }
 
 impl Logger {
-    pub fn subscribe(&self, target: &Ident, sender: UnboundedSender<LogLine>) {
+    pub fn subscribe(&self, target: Ident, sender: UnboundedSender<LogLine>) {
         self.subscriptions
             .lock()
             .expect("Should acquire lock")
-            .entry(target.clone())
+            .entry(target)
             .or_insert_with(Vec::new)
             .push(sender);
     }
@@ -28,7 +29,7 @@ impl Logger {
     fn format(record: &Record) -> String {
         format!(
             "{}  {}  {}",
-            chrono::Local::now().format("%Y-%m-%d %H:%M:%S"),
+            Local::now().format("%Y-%m-%d %H:%M:%S"),
             record.level(),
             record.args()
         )

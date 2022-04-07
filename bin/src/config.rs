@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use serde::Deserialize;
 
-use chain_support::{create_connection, Connection, Protocol};
+use chain_support::{create_connection, Connection};
 use common::{Ident, Scenario};
 use scenario_transfer::SimpleTransferScenario;
 
@@ -32,20 +32,13 @@ struct Environment {
     /// WS endpoint address of the node to connect to
     node: String,
 
-    /// Protocol to be used for connecting to node (`ws` or `wss`).
-    protocol: String,
-
     /// Where to expose stats
     expose_host: String,
 }
 
 impl Environment {
     pub fn new_connection(&self) -> Connection {
-        let protocol = match self.protocol.as_str() {
-            "wss" => Protocol::WSS,
-            _ => Protocol::WS,
-        };
-        create_connection(&*self.node, protocol)
+        create_connection(&*self.node)
     }
 
     pub fn get_expose_host(&self) -> &str {

@@ -1,15 +1,13 @@
-use aleph_client::{create_connection, send_xt, Connection};
+use aleph_client::{
+    balances_batch_transfer, create_connection, keypair_from_string, send_xt, Connection,
+};
 use codec::Compact;
 use serde::Deserialize;
 use substrate_api_client::{
-    compose_call, compose_extrinsic, GenericAddress, Pair, XtStatus::Finalized,
+    compose_call, compose_extrinsic, AccountId, GenericAddress, Pair, XtStatus::Finalized,
 };
 
-use chain_support::{
-    account::{new_account_from_seed, new_derived_account_from_seed},
-    transfer::transfer,
-    Account,
-};
+use chain_support::keypair_derived_from_seed;
 
 use crate::{lib::real_amount, CliConfig};
 
@@ -19,37 +17,39 @@ pub struct Endowment {
     pub accounts: Vec<String>,
 }
 
-fn set_endowment(account: &str, amount: u64, sudo_connection: &Connection) {
-    let beneficiary = new_derived_account_from_seed(account);
+fn set_endowment(sudo_connection: &Connection, account: AccountId, amount: u128) {
+    // Unfortunately, `Connection::balance_set_balance` does not work. Calling it without wrapping
+    // with `Sudo::sudo` results in `BadOrigin`, so the inner extrinsic must be created with
+    // `compose_call` instead of `compose_extrinsic` as it is done in `Connection::balance_set_balance`.
     let xt = compose_call!(
         sudo_connection.metadata,
         "Balances",
         "set_balance",
-        GenericAddress::Id(beneficiary.address),
-        Compact(real_amount(amount)), // free balance
-        Compact(0u128)                // reserved balance
+        GenericAddress::Id(account),
+        Compact(amount), // free balance
+        Compact(0u128)   // reserved balance
     );
     let xt = compose_extrinsic!(sudo_connection, "Sudo", "sudo", xt);
-
-    send_xt(sudo_connection, xt.hex_encode(), "Set endowment", Finalized);
-}
-
-fn transfer_endowment(account: &str, amount: u64, sudo_connection: &Connection, sudo: &Account) {
-    let beneficiary = new_derived_account_from_seed(account);
-    transfer(sudo_connection, sudo, &beneficiary, real_amount(amount));
+    send_xt(sudo_connection, xt, Some("Set endowment"), Finalized);
 }
 
 pub fn perform_endowments(cli_config: &CliConfig, endowments: &[Endowment]) {
-    let sudo = new_account_from_seed(&*cli_config.sudo_phrase);
-    let sudo_connection =
-        create_connection(&cli_config.node, cli_config.protocol).set_signer(sudo.keypair.clone());
+    let sudo = keypair_from_string(&*cli_config.sudo_phrase);
+    let sudo_connection = create_connection(&cli_config.node).set_signer(sudo);
 
-    for endowment in endowments.iter() {
-        for account in endowment.accounts.iter() {
-            if cli_config.transfer {
-                transfer_endowment(account, endowment.amount, &sudo_connection, &sudo)
-            } else {
-                set_endowment(account, endowment.amount, &sudo_connection)
+    for Endowment { amount, accounts } in endowments {
+        let accounts = accounts
+            .iter()
+            .map(keypair_derived_from_seed)
+            .map(|kp| kp.public())
+            .map(AccountId::from)
+            .collect();
+
+        if cli_config.transfer {
+            balances_batch_transfer(&sudo_connection, accounts, real_amount(amount));
+        } else {
+            for account in accounts {
+                set_endowment(&sudo_connection, account, real_amount(amount))
             }
         }
     }
