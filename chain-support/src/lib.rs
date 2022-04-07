@@ -14,3 +14,10 @@ pub fn keypair_derived_from_seed<S: AsRef<str> + Display>(seed: S) -> KeyPair {
     let full_seed = format!("{}{}", base_seed, seed);
     keypair_from_string(&*full_seed)
 }
+
+/// A single token is 10^12 rappens.
+pub const DECIMALS: u128 = 1_000_000_000_000;
+
+pub const fn real_amount(scaled: &u64) -> u128 {
+    *scaled as u128 * DECIMALS
+}

@@ -29,6 +29,21 @@ pub trait Scenario: Send + 'static {
     fn ident(&self) -> Ident;
 }
 
+#[async_trait::async_trait]
+impl Scenario for Box<dyn Scenario> {
+    fn interval(&self) -> Duration {
+        (**self).interval()
+    }
+
+    async fn play(&mut self) -> Result<(), ScenarioError> {
+        (**self).play().await
+    }
+
+    fn ident(&self) -> Ident {
+        (**self).ident()
+    }
+}
+
 /// Current status of the scheduled scenario.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum ScenarioStatus {

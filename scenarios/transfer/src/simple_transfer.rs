@@ -1,43 +1,61 @@
-use aleph_client::{get_free_balance, try_send_xt, Connection};
 use std::time::Duration;
+
+use aleph_client::{get_free_balance, try_send_xt, Connection};
+use serde::Deserialize;
 use substrate_api_client::{AccountId, GenericAddress, Pair, XtStatus::Finalized};
 
-use chain_support::{do_async, keypair_derived_from_seed};
+use chain_support::{do_async, keypair_derived_from_seed, real_amount};
 use common::{Ident, Scenario, ScenarioError, ScenarioLogging};
 
-const TRANSFER_VALUE: u128 = 1_000_000_000;
+use crate::parse_interval;
 
-/// Keeps two accounts: `sender` and `receiver`. Once in the `interval`,
-/// `sender` sends `transfer_value` units to `receiver`.
-#[derive(Clone)]
-pub struct SimpleTransferScenario {
+/// This account should be included in the endowment list. The amount should be
+/// proportional to the `transfer_value` props parameter.
+const SENDER_SEED: &str = "//SimpleTransferSender";
+const RECEIVER_SEED: &str = "//SimpleTransferReceiver";
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct SimpleTransferProps {
     ident: Ident,
-    receiver: AccountId,
+    #[serde(deserialize_with = "parse_interval")]
     interval: Duration,
-    connection: Connection,
+    transfer_value: u64,
 }
 
-impl SimpleTransferScenario {
-    pub fn new(connection: &Connection, ident: Ident, interval: Duration) -> Self {
-        let sender = keypair_derived_from_seed("//SimpleTransferSender");
+#[derive(Clone)]
+pub struct SimpleTransfer {
+    ident: Ident,
+    interval: Duration,
+    receiver: AccountId,
+    connection: Connection,
+    transfer_value: u128,
+}
+
+impl SimpleTransfer {
+    pub fn new(connection: &Connection, props: SimpleTransferProps) -> Self {
+        let sender = keypair_derived_from_seed(SENDER_SEED);
         let connection = connection.clone().set_signer(sender);
 
-        let receiver =
-            AccountId::from(keypair_derived_from_seed("//SimpleTransferReceiver").public());
+        let receiver = AccountId::from(keypair_derived_from_seed(RECEIVER_SEED).public());
 
-        SimpleTransferScenario {
-            ident,
+        SimpleTransfer {
+            ident: props.ident,
+            interval: props.interval,
+            transfer_value: real_amount(&props.transfer_value),
             receiver,
-            interval,
             connection,
         }
     }
 }
 
 // It is quite hard to make macros work with associated methods.
-fn transfer(connection: &Connection, target: &AccountId) -> Result<(), ScenarioError> {
+fn transfer(
+    connection: &Connection,
+    target: &AccountId,
+    transfer_value: u128,
+) -> Result<(), ScenarioError> {
     for _ in 0..5 {
-        let xt = connection.balance_transfer(GenericAddress::Id(target.clone()), TRANSFER_VALUE);
+        let xt = connection.balance_transfer(GenericAddress::Id(target.clone()), transfer_value);
         if try_send_xt(connection, xt, Some("transfer"), Finalized).is_ok() {
             return Ok(());
         }
@@ -46,7 +64,7 @@ fn transfer(connection: &Connection, target: &AccountId) -> Result<(), ScenarioE
 }
 
 #[async_trait::async_trait]
-impl Scenario for SimpleTransferScenario {
+impl Scenario for SimpleTransfer {
     fn interval(&self) -> Duration {
         self.interval
     }
@@ -57,7 +75,8 @@ impl Scenario for SimpleTransferScenario {
         let receiver_balance_before: u128 =
             do_async!(get_free_balance, self.connection by ref, self.receiver by ref)?;
 
-        match do_async!(transfer, self.connection by ref, self.receiver by ref)? {
+        match do_async!(transfer, self.connection by ref, self.receiver by ref, self.transfer_value)?
+        {
             e @ Err(ScenarioError::CannotSendExtrinsic) => {
                 self.error("Could not send extrinsic with transfer");
                 return e;
@@ -69,13 +88,13 @@ impl Scenario for SimpleTransferScenario {
         let receiver_balance_after: u128 =
             do_async!(get_free_balance, self.connection by ref, self.receiver by ref)?;
 
-        if receiver_balance_after != receiver_balance_before + TRANSFER_VALUE {
+        if receiver_balance_after != receiver_balance_before + self.transfer_value {
             // It may happen that the balance is not as expected due to the
             // concurrent scenarios using this account.
             self.warn(&format!(
                 "It doesn't seem like the transfer has reached receiver. \
                 Receiver's balance before: {} and after: {}. Transfer value: {}",
-                receiver_balance_before, receiver_balance_after, TRANSFER_VALUE,
+                receiver_balance_before, receiver_balance_after, self.transfer_value,
             ));
         }
 
