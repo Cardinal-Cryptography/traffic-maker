@@ -1,0 +1,150 @@
+name: Build artifacts
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  build-targets:
+    name: Build and upload backend and frontend
+    runs-on: ubuntu-latest
+    env:
+      CARGO_INCREMENTAL: 0
+      RUST_BACKTRACE: full
+      RUSTC_WRAPPER: sccache
+      SCCACHE_VERSION: 0.2.13
+      SCCACHE_CACHE_SIZE: 2G
+    steps:
+      - name: Checkout Source code
+        uses: actions/checkout@v2
+
+      - name: Install Rust Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+          override: true
+
+      - name: Install WASM target
+        run: rustup target add wasm32-unknown-unknown
+
+      # We want to avoid installing trunk every time when any Cargo.lock changes.
+      - name: Restore trunk
+        uses: actions/cache@v2
+        with:
+          path: ~/.cargo/bin/trunk
+          key: ${{ runner.os }}-trunk
+
+      - name: Restore cargo cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+            monitoring/target/
+            monitoring/dist/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install sccache for ubuntu-latest
+        run: |
+          LINK=https://github.com/mozilla/sccache/releases/download
+          SCCACHE_FILE=sccache-$SCCACHE_VERSION-x86_64-unknown-linux-musl
+
+          mkdir -p $HOME/.local/bin
+          curl -L "$LINK/$SCCACHE_VERSION/$SCCACHE_FILE.tar.gz" | tar xz
+          mv -f $SCCACHE_FILE/sccache $HOME/.local/bin/sccache
+
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Restore sccache
+        uses: actions/cache@v2
+        with:
+          path: /home/runner/.cache/sccache
+          key: ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Start sccache server
+        run: sccache --start-server
+
+      - name: Install trunk
+        # Since we are restoring cargo files, normally, `trunk` will be already installed.
+        run: |
+          if ! [ -x "$(command -v git)" ]; then
+            cargo install --locked trunk
+          fi
+
+      - name: Build backend
+        run: cargo build --release
+
+      - name: Upload backend
+        uses: actions/upload-artifact@v2
+        with:
+          name: backend
+          path: target/release/bin
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Build frontend
+        run: |
+          cd monitoring/
+          trunk build --release
+
+      - name: Compress frontend target files
+        run: tar -czvf frontend.tar.gz monitoring/
+
+      - name: Upload frontend
+        uses: actions/upload-artifact@v2
+        with:
+          name: frontend
+          path: frontend.tar.gz
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Stop sccache server
+        run: sccache --stop-server || true
+
+  build-docker:
+    name: Build and upload docker image
+    needs: [ build-targets ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source code
+        uses: actions/checkout@v2
+
+      - name: Download backend
+        uses: actions/download-artifact@v2
+        with:
+          name: backend
+          path: target/release/
+
+      - name: Download frontend
+        uses: actions/download-artifact@v2
+        with:
+          name: frontend
+          path: frontend.tar.gz
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build docker image
+        run: |
+          docker build --tag traffic-maker -f ./docker/Dockerfile .
+          docker save -o traffic-maker.tar traffic-maker
+
+      - name: Save docker image as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: traffic-maker-docker
+          path: traffic-maker.tar
+          if-no-files-found: error
+          retention-days: 1
