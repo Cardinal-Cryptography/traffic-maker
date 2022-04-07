@@ -5,8 +5,10 @@ use std::time::Duration;
 use parse_duration::parse;
 use serde::de::{Deserialize, Deserializer};
 
+pub use round_robin::{RoundRobin, RoundRobinProps};
 pub use simple_transfer::{SimpleTransfer, SimpleTransferProps};
 
+mod round_robin;
 mod simple_transfer;
 
 fn parse_interval<'de, D>(deserializer: D) -> Result<Duration, D::Error>

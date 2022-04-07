@@ -4,7 +4,10 @@ pub use aleph_client::{
     create_connection, keypair_from_string, send_xt, try_send_xt, Connection, KeyPair,
 };
 
+pub use transfer::try_transfer;
+
 mod macros;
+mod transfer;
 
 /// Creates a new derived `KeyPair` from provided `seed` as a derivation path.
 /// The base seed is empty by default, but can be overridden with env `SECRET_PHRASE_SEED`.
@@ -21,3 +24,6 @@ pub const DECIMALS: u128 = 1_000_000_000_000;
 pub const fn real_amount(scaled: &u64) -> u128 {
     *scaled as u128 * DECIMALS
 }
+
+/// Common standard account prefix.
+pub const COMMON_BOT_SEED: &str = "//CommonBot";

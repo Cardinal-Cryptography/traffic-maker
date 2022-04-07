@@ -1,5 +1,6 @@
 scenarios = [
-    { kind = "SimpleTransfer", ident = "SimpleTransfer (7s)", interval = "7 seconds", transfer_value = 10 },
+    { kind = "SimpleTransfer", ident = "SimpleTransfer (7s)", interval = "7 seconds" },
+    { kind = "RoundRobin", ident = "RoundRobin (10s)", interval = "10 seconds", passes = 3 },
 ]
 
 [environment]

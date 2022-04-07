@@ -2,7 +2,7 @@ use serde::Deserialize;
 
 use chain_support::{create_connection, Connection};
 use common::Scenario;
-use scenarios_transfer::{SimpleTransfer, SimpleTransferProps};
+use scenarios_transfer::{RoundRobin, RoundRobinProps, SimpleTransfer, SimpleTransferProps};
 
 /// This structure should exactly correspond to `Timetable.toml`.
 #[derive(Debug, Clone, Deserialize)]
@@ -49,6 +49,7 @@ impl Environment {
 #[serde(tag = "kind")]
 enum ScenarioKind {
     SimpleTransfer(SimpleTransferProps),
+    RoundRobin(RoundRobinProps),
 }
 
 impl ScenarioKind {
@@ -57,6 +58,7 @@ impl ScenarioKind {
             ScenarioKind::SimpleTransfer(props) => {
                 Box::new(SimpleTransfer::new(connection, props.clone()))
             }
+            ScenarioKind::RoundRobin(props) => Box::new(RoundRobin::new(connection, props.clone())),
         }
     }
 }

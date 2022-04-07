@@ -1,4 +1,4 @@
-use std::{error::Error, time::Duration};
+use std::{error::Error, fmt::Debug, time::Duration};
 
 use log::{debug, error, info, trace, warn};
 use serde::{Deserialize, Serialize};
@@ -105,31 +105,46 @@ impl ScenarioLogs {
 }
 
 pub trait ScenarioLogging {
-    fn trace(&self, message: &str);
-    fn debug(&self, message: &str);
-    fn info(&self, message: &str);
-    fn warn(&self, message: &str);
-    fn error(&self, message: &str);
+    fn trace<M: AsRef<str> + Debug>(&self, message: M);
+    fn debug<M: AsRef<str> + Debug>(&self, message: M);
+    fn info<M: AsRef<str> + Debug>(&self, message: M);
+    fn warn<M: AsRef<str> + Debug>(&self, message: M);
+    fn error<M: AsRef<str> + Debug>(&self, message: M);
+
+    fn handle<R: Debug>(&self, result: Result<R, ScenarioError>) -> Result<R, ScenarioError> {
+        match result {
+            Err(ScenarioError::CannotSendExtrinsic) => {
+                self.error("Could not send extrinsic");
+            }
+            Err(_) => {
+                self.error("Encountered scenario error");
+            }
+            Ok(ref result) => {
+                self.trace(format!("Successfully obtained {:?}", result));
+            }
+        };
+        result
+    }
 }
 
 impl<S: Scenario> ScenarioLogging for S {
-    fn trace(&self, message: &str) {
-        trace!(target: self.ident().0.as_str(), "{}", message)
+    fn trace<M: AsRef<str> + Debug>(&self, message: M) {
+        trace!(target: self.ident().0.as_str(), "{:?}", message)
     }
 
-    fn debug(&self, message: &str) {
-        debug!(target: self.ident().0.as_str(), "{}", message)
+    fn debug<M: AsRef<str> + Debug>(&self, message: M) {
+        debug!(target: self.ident().0.as_str(), "{:?}", message)
     }
 
-    fn info(&self, message: &str) {
-        info!(target: self.ident().0.as_str(), "{}", message)
+    fn info<M: AsRef<str> + Debug>(&self, message: M) {
+        info!(target: self.ident().0.as_str(), "{:?}", message)
     }
 
-    fn warn(&self, message: &str) {
-        warn!(target: self.ident().0.as_str(), "{}", message)
+    fn warn<M: AsRef<str> + Debug>(&self, message: M) {
+        warn!(target: self.ident().0.as_str(), "{:?}", message)
     }
 
-    fn error(&self, message: &str) {
-        error!(target: self.ident().0.as_str(), "{}", message)
+    fn error<M: AsRef<str> + Debug>(&self, message: M) {
+        error!(target: self.ident().0.as_str(), "{:?}", message)
     }
 }

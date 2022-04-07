@@ -612,6 +612,8 @@ name = "chain-support"
 version = "0.2.0"
 dependencies = [
  "aleph_client",
+ "common",
+ "substrate-api-client",
  "tokio",
 ]
 
