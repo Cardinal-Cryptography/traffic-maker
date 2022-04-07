@@ -14,4 +14,5 @@ RUN chmod +x /traffic-maker/docker_entrypoint.sh
 EXPOSE 8081
 
 WORKDIR traffic-maker
+RUN tar -xzvf frontend.tar.gz
 ENTRYPOINT ["./docker_entrypoint.sh"]

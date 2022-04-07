@@ -141,7 +141,7 @@ jobs:
           docker build --tag traffic-maker -f ./docker/Dockerfile .
           docker save -o traffic-maker.tar traffic-maker
 
-      - name: Upload docker image
+      - name: Save docker image as artifact
         uses: actions/upload-artifact@v2
         with:
           name: traffic-maker-docker
