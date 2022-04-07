@@ -21,13 +21,16 @@ impl OverviewPage {
                 scenario_views: vec![],
                 scroll_state: scrollable::State::new(),
             },
-            Some(scenarios) => OverviewPage {
-                scenario_views: scenarios
-                    .iter()
-                    .map(|s| ScenarioView::new(s.clone()))
-                    .collect(),
-                scroll_state: scrollable::State::new(),
-            },
+            Some(mut scenarios) => {
+                scenarios.sort_by_key(|s| s.ident.0.clone());
+                OverviewPage {
+                    scenario_views: scenarios
+                        .iter()
+                        .map(|s| ScenarioView::new(s.clone()))
+                        .collect(),
+                    scroll_state: scrollable::State::new(),
+                }
+            }
         }
     }
 
