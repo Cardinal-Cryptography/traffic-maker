@@ -41,15 +41,18 @@ impl RoundRobin {
     }
 
     async fn pass_robin(&self, sender: KeyPair, receiver: AccountId) -> Result<(), ScenarioError> {
-        let receiver_free_before: u128 =
-            do_async!(get_free_balance, self.connection by ref, receiver by ref)?;
+        let receiver_free_before: u128 = do_async!(get_free_balance, &self.connection, &receiver)?;
 
         let connection = self.connection.clone().set_signer(sender.clone());
         let transfer_value = ROBIN_VALUE; // `do_async` does not support passing inline consts (yet)
-        self.handle(do_async!(try_transfer, connection by ref, receiver by ref, transfer_value)?)?;
+        self.handle(do_async!(
+            try_transfer,
+            &connection,
+            &receiver,
+            transfer_value
+        )?)?;
 
-        let receiver_free_after: u128 =
-            do_async!(get_free_balance, self.connection by ref, receiver by ref)?;
+        let receiver_free_after: u128 = do_async!(get_free_balance, &self.connection, &receiver)?;
 
         if receiver_free_after != receiver_free_before + ROBIN_VALUE {
             // It may happen that the balance is not as expected due to the

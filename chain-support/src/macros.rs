@@ -1,19 +1,19 @@
 #[macro_export]
 macro_rules! clone_args {
-    ($i:ident $(by ref)?) => {
+    ($(&)? $i:ident) => {
         let $i = $i.clone();
     };
 
-    ($self:ident . $i:ident $(by ref)?) => {
+    ($(&)? $self:ident . $i:ident) => {
         let $i = $self.$i.clone();
     };
 
-    ($i:ident $(by ref)?, $($rest:tt)*) => {
+    ($(&)? $i:ident, $($rest:tt)*) => {
         let $i = $i.clone();
         $crate::clone_args!($($rest)*);
     };
 
-    ($self:ident . $i:ident $(by ref)?, $($rest:tt)*) => {
+    ($(&)? $self:ident . $i:ident, $($rest:tt)*) => {
         let $i = $self.$i.clone();
         $crate::clone_args!($($rest)*);
     };
@@ -31,7 +31,7 @@ macro_rules! exchange_args_with_cloned {
         )
     };
 
-    (($($acc:tt)*); $i:ident by ref) => {
+    (($($acc:tt)*); & $i:ident) => {
         $crate::exchange_args_with_cloned!(
             ($($acc)* &$i);
         )
@@ -43,7 +43,7 @@ macro_rules! exchange_args_with_cloned {
         )
     };
 
-    (($($acc:tt)*); $self:ident . $i:ident by ref) => {
+    (($($acc:tt)*); & $self:ident . $i:ident) => {
         $crate::exchange_args_with_cloned!(
             ($($acc)* &$i);
         )
@@ -56,7 +56,7 @@ macro_rules! exchange_args_with_cloned {
         )
     };
 
-    (($($acc:tt)*); $i:ident by ref, $($rest:tt)*) => {
+    (($($acc:tt)*); & $i:ident, $($rest:tt)*) => {
         $crate::exchange_args_with_cloned!(
             ($($acc)* &$i,);
             $($rest)*
@@ -70,7 +70,7 @@ macro_rules! exchange_args_with_cloned {
         )
     };
 
-    (($($acc:tt)*); $self:ident . $i:ident by ref, $($rest:tt)*) => {
+    (($($acc:tt)*); & $self:ident . $i:ident, $($rest:tt)*) => {
         $crate::exchange_args_with_cloned!(
             ($($acc)* &$i,);
             $($rest)*

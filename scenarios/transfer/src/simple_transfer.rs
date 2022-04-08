@@ -57,15 +57,18 @@ impl Scenario for SimpleTransfer {
         self.info("Ready to go");
 
         let receiver_balance_before: u128 =
-            do_async!(get_free_balance, self.connection by ref, self.receiver by ref)?;
+            do_async!(get_free_balance, &self.connection, &self.receiver)?;
 
         let transfer_value = TRANSFER_VALUE; // `do_async` does not support passing inline consts (yet)
-        self.handle(
-            do_async!(try_transfer, self.connection by ref, self.receiver by ref, transfer_value)?,
-        )?;
+        self.handle(do_async!(
+            try_transfer,
+            &self.connection,
+            &self.receiver,
+            transfer_value
+        )?)?;
 
         let receiver_balance_after: u128 =
-            do_async!(get_free_balance, self.connection by ref, self.receiver by ref)?;
+            do_async!(get_free_balance, &self.connection, &self.receiver)?;
 
         if receiver_balance_after != receiver_balance_before + TRANSFER_VALUE {
             // It may happen that the balance is not as expected due to the
