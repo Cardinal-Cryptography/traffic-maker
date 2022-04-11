@@ -4,7 +4,7 @@ use aleph_client::{get_free_balance, Connection};
 use serde::Deserialize;
 use substrate_api_client::{AccountId, Pair};
 
-use chain_support::{do_async, keypair_derived_from_seed, try_transfer, DECIMALS};
+use chain_support::{do_async, keypair_derived_from_seed, real_amount, try_transfer};
 use common::{Ident, Scenario, ScenarioError, ScenarioLogging};
 
 use crate::parse_interval;
@@ -14,13 +14,12 @@ use crate::parse_interval;
 const SENDER_SEED: &str = "//SimpleTransferSender";
 const RECEIVER_SEED: &str = "//SimpleTransferReceiver";
 
-const TRANSFER_VALUE: u128 = 10 * DECIMALS;
-
 #[derive(Clone, Debug, Deserialize)]
 pub struct SimpleTransferProps {
     ident: Ident,
     #[serde(deserialize_with = "parse_interval")]
     interval: Duration,
+    transfer_value: u64,
 }
 
 #[derive(Clone)]
@@ -29,6 +28,7 @@ pub struct SimpleTransfer {
     interval: Duration,
     receiver: AccountId,
     connection: Connection,
+    transfer_value: u128,
 }
 
 impl SimpleTransfer {
@@ -43,6 +43,7 @@ impl SimpleTransfer {
             interval: props.interval,
             receiver,
             connection,
+            transfer_value: real_amount(&props.transfer_value),
         }
     }
 }
@@ -59,24 +60,23 @@ impl Scenario for SimpleTransfer {
         let receiver_balance_before: u128 =
             do_async!(get_free_balance, &self.connection, &self.receiver)?;
 
-        let transfer_value = TRANSFER_VALUE; // `do_async` does not support passing inline consts (yet)
         self.handle(do_async!(
             try_transfer,
             &self.connection,
             &self.receiver,
-            transfer_value
+            self.transfer_value
         )?)?;
 
         let receiver_balance_after: u128 =
             do_async!(get_free_balance, &self.connection, &self.receiver)?;
 
-        if receiver_balance_after != receiver_balance_before + TRANSFER_VALUE {
+        if receiver_balance_after != receiver_balance_before + self.transfer_value {
             // It may happen that the balance is not as expected due to the
             // concurrent scenarios using this account.
             self.warn(&format!(
                 "It doesn't seem like the transfer has reached receiver. \
                 Receiver's balance before: {} and after: {}. Transfer value: {}",
-                receiver_balance_before, receiver_balance_after, TRANSFER_VALUE,
+                receiver_balance_before, receiver_balance_after, self.transfer_value,
             ));
         }
 

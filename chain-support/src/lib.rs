@@ -18,12 +18,10 @@ pub fn keypair_derived_from_seed<S: AsRef<str> + Display>(seed: S) -> KeyPair {
     keypair_from_string(&*full_seed)
 }
 
-/// A single token is 10^12 rappens.
+/// A single token is 10^12 rappens. This value corresponds to the constants defined in
+/// `aleph-node::primitives` (`TOKEN_DECIMALS` and `TOKEN`).
 pub const DECIMALS: u128 = 1_000_000_000_000;
 
 pub const fn real_amount(scaled: &u64) -> u128 {
     *scaled as u128 * DECIMALS
 }
-
-/// Common standard account prefix.
-pub const COMMON_BOT_SEED: &str = "//CommonBot";
