@@ -21,7 +21,7 @@ pub struct RoundRobin {
 }
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct RoundRobinProps {
+pub struct RoundRobinConfig {
     ident: Ident,
     #[serde(deserialize_with = "parse_interval")]
     interval: Duration,
@@ -30,7 +30,7 @@ pub struct RoundRobinProps {
 }
 
 impl RoundRobin {
-    pub fn new(connection: &Connection, props: RoundRobinProps) -> Self {
+    pub fn new(connection: &Connection, props: RoundRobinConfig) -> Self {
         let accounts = (0..props.passes)
             .map(|i| keypair_derived_from_seed(&*format!("{}{}", ROUND_ROBIN_SEED, i)))
             .collect();

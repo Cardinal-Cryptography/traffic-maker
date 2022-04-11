@@ -15,7 +15,7 @@ const SENDER_SEED: &str = "//SimpleTransferSender";
 const RECEIVER_SEED: &str = "//SimpleTransferReceiver";
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct SimpleTransferProps {
+pub struct SimpleTransferConfig {
     ident: Ident,
     #[serde(deserialize_with = "parse_interval")]
     interval: Duration,
@@ -32,7 +32,7 @@ pub struct SimpleTransfer {
 }
 
 impl SimpleTransfer {
-    pub fn new(connection: &Connection, props: SimpleTransferProps) -> Self {
+    pub fn new(connection: &Connection, props: SimpleTransferConfig) -> Self {
         let sender = keypair_derived_from_seed(SENDER_SEED);
         let connection = connection.clone().set_signer(sender);
 

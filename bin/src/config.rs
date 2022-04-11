@@ -2,13 +2,14 @@ use serde::Deserialize;
 
 use chain_support::{create_connection, Connection};
 use common::Scenario;
-use scenarios_transfer::{RoundRobin, RoundRobinProps, SimpleTransfer, SimpleTransferProps};
+use scenarios_transfer::{RoundRobin, RoundRobinConfig, SimpleTransfer, SimpleTransferConfig};
 
-/// This structure should exactly correspond to `Timetable.toml`.
+/// This struct combines both the execution environment (including hosts and chain address),
+/// as well as the scenario configurations. It should be read from `Timetable.toml`.
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
     environment: Environment,
-    scenarios: Vec<ScenarioKind>,
+    scenarios: Vec<ScenarioConfig>,
 }
 
 impl Config {
@@ -47,18 +48,20 @@ impl Environment {
 /// All implemented scenarios should be included here.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(tag = "kind")]
-enum ScenarioKind {
-    SimpleTransfer(SimpleTransferProps),
-    RoundRobin(RoundRobinProps),
+enum ScenarioConfig {
+    SimpleTransfer(SimpleTransferConfig),
+    RoundRobin(RoundRobinConfig),
 }
 
-impl ScenarioKind {
+impl ScenarioConfig {
     pub fn construct_scenario(&self, connection: &Connection) -> Box<dyn Scenario> {
         match self {
-            ScenarioKind::SimpleTransfer(props) => {
+            ScenarioConfig::SimpleTransfer(props) => {
                 Box::new(SimpleTransfer::new(connection, props.clone()))
             }
-            ScenarioKind::RoundRobin(props) => Box::new(RoundRobin::new(connection, props.clone())),
+            ScenarioConfig::RoundRobin(props) => {
+                Box::new(RoundRobin::new(connection, props.clone()))
+            }
         }
     }
 }

@@ -5,8 +5,8 @@ use std::time::Duration;
 use parse_duration::parse;
 use serde::de::{Deserialize, Deserializer};
 
-pub use round_robin::{RoundRobin, RoundRobinProps};
-pub use simple_transfer::{SimpleTransfer, SimpleTransferProps};
+pub use round_robin::{RoundRobin, RoundRobinConfig};
+pub use simple_transfer::{SimpleTransfer, SimpleTransferConfig};
 
 mod round_robin;
 mod simple_transfer;
