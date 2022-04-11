@@ -67,7 +67,7 @@ impl DataExporter for Stats {
 }
 
 impl EventListener for Stats {
-    fn register_scenario<S: Scenario>(&mut self, scenario: &S) {
+    fn register_scenario<S: Scenario + ?Sized>(&mut self, scenario: &S) {
         let id = scenario.ident();
         let already_registered = self
             .details

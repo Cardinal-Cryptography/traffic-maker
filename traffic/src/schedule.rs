@@ -13,7 +13,7 @@ use crate::logger::{LogLine, Logger};
 
 /// Abstraction for registering events (hook for stats).
 pub trait EventListener: Send + Sync + Clone {
-    fn register_scenario<S: Scenario>(&mut self, scenario: &S);
+    fn register_scenario<S: Scenario + ?Sized>(&mut self, scenario: &S);
     fn report_success(&mut self, scenario_ident: Ident);
     fn report_launch(&mut self, scenario_ident: Ident);
     fn report_failure(&mut self, scenario_ident: Ident);
@@ -21,7 +21,7 @@ pub trait EventListener: Send + Sync + Clone {
 }
 
 impl<EL: EventListener> EventListener for Arc<Mutex<EL>> {
-    fn register_scenario<S: Scenario>(&mut self, scenario: &S) {
+    fn register_scenario<S: Scenario + ?Sized>(&mut self, scenario: &S) {
         self.lock().unwrap().register_scenario(scenario)
     }
 
@@ -45,7 +45,7 @@ impl<EL: EventListener> EventListener for Arc<Mutex<EL>> {
 /// Firstly schedules all the scenarios according to their declared intervals. Then, in a loop,
 /// waits for the next ready scenario and launches it.
 pub async fn run_schedule<EL: 'static + EventListener>(
-    scenarios: Vec<impl Scenario>,
+    scenarios: Vec<Box<dyn Scenario>>,
     event_listener: EL,
 ) {
     let logger = setup_logging();
@@ -104,11 +104,11 @@ fn forward_logging<EL: 'static + EventListener>(
     });
 }
 
-async fn schedule_scenario<S: Scenario, EL: 'static + EventListener>(
-    mut scenario: S,
+async fn schedule_scenario<EL: 'static + EventListener>(
+    mut scenario: Box<dyn Scenario>,
     mut event_listener: EL,
 ) -> impl Send {
-    event_listener.register_scenario(&scenario);
+    event_listener.register_scenario(scenario.as_ref());
 
     let id = scenario.ident();
     let mut interval = tokio::time::interval(scenario.interval());

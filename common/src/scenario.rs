@@ -31,7 +31,7 @@ impl<E: Error> From<E> for ScenarioError {
 
 /// Core trait that every bot should satisfy.
 #[async_trait::async_trait]
-pub trait Scenario: Send + 'static {
+pub trait Scenario: Send + Sync + 'static {
     /// How often should it be run.
     fn interval(&self) -> Duration;
 
@@ -40,21 +40,6 @@ pub trait Scenario: Send + 'static {
 
     /// Identifier for this particular scenario.
     fn ident(&self) -> Ident;
-}
-
-#[async_trait::async_trait]
-impl Scenario for Box<dyn Scenario> {
-    fn interval(&self) -> Duration {
-        (**self).interval()
-    }
-
-    async fn play(&mut self) -> Result<(), ScenarioError> {
-        (**self).play().await
-    }
-
-    fn ident(&self) -> Ident {
-        (**self).ident()
-    }
 }
 
 /// Current status of the scheduled scenario.
@@ -87,7 +72,7 @@ pub struct ScenarioDetails {
 }
 
 impl ScenarioDetails {
-    pub fn new<S: Scenario>(scenario: &S) -> Self {
+    pub fn new<S: Scenario + ?Sized>(scenario: &S) -> Self {
         ScenarioDetails {
             ident: scenario.ident(),
             runs: 0,
@@ -125,11 +110,11 @@ pub trait ScenarioLogging {
     fn error<M: Debug>(&self, message: M);
 
     fn handle<R: Debug>(&self, result: Result<R, ScenarioError>) -> Result<R, ScenarioError> {
-        match result {
-            Err(ref e) => {
+        match &result {
+            Err(e) => {
                 self.error(format!("Encountered scenario error: {}", e));
             }
-            Ok(ref result) => {
+            Ok(result) => {
                 self.trace(format!("Successfully obtained {:?}", result));
             }
         };

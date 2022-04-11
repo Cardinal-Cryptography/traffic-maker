@@ -13,7 +13,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn construct_scenarios(&self) -> Vec<impl Scenario> {
+    pub fn construct_scenarios(&self) -> Vec<Box<dyn Scenario>> {
         let connection = self.environment.get_new_connection();
         self.scenarios
             .iter()
