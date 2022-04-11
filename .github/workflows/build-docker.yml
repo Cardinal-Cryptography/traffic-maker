@@ -75,7 +75,7 @@ jobs:
       - name: Install trunk
         # Since we are restoring cargo files, normally, `trunk` will be already installed.
         run: |
-          if ! [ -x "$(command -v git)" ]; then
+          if ! [ -x "$(command -v trunk)" ]; then
             cargo install --locked trunk
           fi
 

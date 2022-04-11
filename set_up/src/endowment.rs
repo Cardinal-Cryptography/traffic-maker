@@ -7,9 +7,9 @@ use substrate_api_client::{
     compose_call, compose_extrinsic, AccountId, GenericAddress, Pair, XtStatus::Finalized,
 };
 
-use chain_support::keypair_derived_from_seed;
+use chain_support::{keypair_derived_from_seed, real_amount};
 
-use crate::{lib::real_amount, CliConfig};
+use crate::CliConfig;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Account {
@@ -19,6 +19,8 @@ pub struct Account {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Endowment {
+    /// As `toml` does not support deserializing `u128`, so we need to operate
+    /// on amounts scaled by `DECIMALS`.
     pub amount: u64,
     pub accounts: Vec<Account>,
 }

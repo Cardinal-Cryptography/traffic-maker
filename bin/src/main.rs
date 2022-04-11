@@ -29,7 +29,7 @@ async fn serve_logs<DE: DataExporter>(
 fn parse_config() -> Config {
     let config_content =
         fs::read_to_string("Timetable.toml").expect("Config file should exist and be readable");
-    toml::from_str(&*config_content).expect("Should deserialize")
+    toml::from_str(&*config_content).expect("Should deserialize timetable")
 }
 
 #[actix_web::main]
@@ -39,7 +39,7 @@ async fn main() -> Result<()> {
     let stats = Arc::new(Mutex::new(Stats::new()));
     let stats_for_backend = stats.clone();
 
-    let scenarios = config.create_scenarios();
+    let scenarios = config.construct_scenarios();
     tokio::spawn(async move {
         run_schedule(scenarios, stats_for_backend).await;
     });

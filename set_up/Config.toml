@@ -5,7 +5,7 @@
 amount = 30_000
 accounts = [
     { name = "//SimpleTransferSender" },
-    { name = "//CommonBot", copies = 20 }
+    { name = "//RoundRobin", copies = 20 }
 ]
 
 [[endowments]]

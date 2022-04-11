@@ -10,7 +10,6 @@ use crate::{
 
 mod cli_config;
 mod endowment;
-mod lib;
 
 #[derive(Clone, Debug, Deserialize)]
 struct Config {

@@ -1,4 +1,8 @@
-use std::{error::Error, time::Duration};
+use std::{
+    error::Error,
+    fmt::{Debug, Display, Formatter},
+    time::Duration,
+};
 
 use log::{debug, error, info, trace, warn};
 use serde::{Deserialize, Serialize};
@@ -10,6 +14,15 @@ pub enum ScenarioError {
     CannotSendExtrinsic,
 }
 
+impl Display for ScenarioError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ScenarioError::ExecutionFailure => write!(f, "Failure while executing scenario"),
+            ScenarioError::CannotSendExtrinsic => write!(f, "Could not send extrinsic"),
+        }
+    }
+}
+
 impl<E: Error> From<E> for ScenarioError {
     fn from(_: E) -> Self {
         ScenarioError::ExecutionFailure
@@ -18,7 +31,7 @@ impl<E: Error> From<E> for ScenarioError {
 
 /// Core trait that every bot should satisfy.
 #[async_trait::async_trait]
-pub trait Scenario: Send + 'static {
+pub trait Scenario: Send + Sync + 'static {
     /// How often should it be run.
     fn interval(&self) -> Duration;
 
@@ -59,7 +72,7 @@ pub struct ScenarioDetails {
 }
 
 impl ScenarioDetails {
-    pub fn new<S: Scenario>(scenario: &S) -> Self {
+    pub fn new<S: Scenario + ?Sized>(scenario: &S) -> Self {
         ScenarioDetails {
             ident: scenario.ident(),
             runs: 0,
@@ -90,31 +103,43 @@ impl ScenarioLogs {
 }
 
 pub trait ScenarioLogging {
-    fn trace(&self, message: &str);
-    fn debug(&self, message: &str);
-    fn info(&self, message: &str);
-    fn warn(&self, message: &str);
-    fn error(&self, message: &str);
+    fn trace<M: Debug>(&self, message: M);
+    fn debug<M: Debug>(&self, message: M);
+    fn info<M: Debug>(&self, message: M);
+    fn warn<M: Debug>(&self, message: M);
+    fn error<M: Debug>(&self, message: M);
+
+    fn handle<R: Debug>(&self, result: Result<R, ScenarioError>) -> Result<R, ScenarioError> {
+        match &result {
+            Err(e) => {
+                self.error(format!("Encountered scenario error: {}", e));
+            }
+            Ok(result) => {
+                self.trace(format!("Successfully obtained {:?}", result));
+            }
+        };
+        result
+    }
 }
 
 impl<S: Scenario> ScenarioLogging for S {
-    fn trace(&self, message: &str) {
-        trace!(target: self.ident().0.as_str(), "{}", message)
+    fn trace<M: Debug>(&self, message: M) {
+        trace!(target: self.ident().0.as_str(), "{:?}", message)
     }
 
-    fn debug(&self, message: &str) {
-        debug!(target: self.ident().0.as_str(), "{}", message)
+    fn debug<M: Debug>(&self, message: M) {
+        debug!(target: self.ident().0.as_str(), "{:?}", message)
     }
 
-    fn info(&self, message: &str) {
-        info!(target: self.ident().0.as_str(), "{}", message)
+    fn info<M: Debug>(&self, message: M) {
+        info!(target: self.ident().0.as_str(), "{:?}", message)
     }
 
-    fn warn(&self, message: &str) {
-        warn!(target: self.ident().0.as_str(), "{}", message)
+    fn warn<M: Debug>(&self, message: M) {
+        warn!(target: self.ident().0.as_str(), "{:?}", message)
     }
 
-    fn error(&self, message: &str) {
-        error!(target: self.ident().0.as_str(), "{}", message)
+    fn error<M: Debug>(&self, message: M) {
+        error!(target: self.ident().0.as_str(), "{:?}", message)
     }
 }
