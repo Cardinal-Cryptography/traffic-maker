@@ -32,18 +32,18 @@ pub struct SimpleTransfer {
 }
 
 impl SimpleTransfer {
-    pub fn new(connection: &Connection, props: SimpleTransferConfig) -> Self {
+    pub fn new(connection: &Connection, config: SimpleTransferConfig) -> Self {
         let sender = keypair_derived_from_seed(SENDER_SEED);
         let connection = connection.clone().set_signer(sender);
 
         let receiver = AccountId::from(keypair_derived_from_seed(RECEIVER_SEED).public());
 
         SimpleTransfer {
-            ident: props.ident,
-            interval: props.interval,
+            ident: config.ident,
+            interval: config.interval,
             receiver,
             connection,
-            transfer_value: real_amount(&props.transfer_value),
+            transfer_value: real_amount(&config.transfer_value),
         }
     }
 }
