@@ -16,8 +16,6 @@ pub fn try_transfer(
             return Ok(());
         }
 
-        // For now we have to use blocking `sleep`, because otherwise `do_async`
-        // would have to accept `async` action which actually is not that easy to implement.
         sleep(Duration::from_millis(500));
     }
     Err(ScenarioError::CannotSendExtrinsic)

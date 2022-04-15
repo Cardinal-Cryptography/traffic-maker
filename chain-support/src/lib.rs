@@ -1,11 +1,15 @@
+#![feature(fn_traits)]
+
 use std::fmt::Display;
 
 pub use aleph_client::{
     create_connection, keypair_from_string, send_xt, try_send_xt, Connection, KeyPair,
 };
 
+pub use event_listening::{Event, EventKind, ListeningError, SingleEventListener, TransferEvent};
 pub use transfer::try_transfer;
 
+mod event_listening;
 mod macros;
 mod transfer;
 

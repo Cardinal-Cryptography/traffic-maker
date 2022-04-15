@@ -27,13 +27,13 @@ macro_rules! exchange_args_with_cloned {
 
     (($($acc:tt)*); $i:ident) => {
         $crate::exchange_args_with_cloned!(
-            ($($acc)* $i);
+            ($($acc)* $i,);
         )
     };
 
     (($($acc:tt)*); & $i:ident) => {
         $crate::exchange_args_with_cloned!(
-            ($($acc)* &$i);
+            ($($acc)* &$i,);
         )
     };
 

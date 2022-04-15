@@ -10,8 +10,10 @@ substrate-api-client = { git = "https://github.com/Cardinal-Cryptography/substra
 chain-support = { path = "../../chain-support" }
 common = { path = "../../common" }
 
+anyhow = "1.0"
 async-trait = "0.1"
 log = "0.4"
 parse_duration = "2.1.1"
+rand = "0.8.5"
 serde = { version = "1.0", features = ["derive"] }
 tokio = { version = "1.17.0", features = ["rt-multi-thread"] }

@@ -5,7 +5,7 @@ use std::{
 
 use chrono::Local;
 use futures::channel::mpsc::UnboundedSender;
-use log::{Log, Metadata, Record};
+use log::{Level, Log, Metadata, Record};
 
 use common::Ident;
 
@@ -53,6 +53,8 @@ impl Log for Logger {
                 s.unbounded_send((target.clone(), Self::format(record)))
                     .is_ok()
             })
+        } else if record.level() == Level::Error {
+            println!("{:?}", record.args());
         }
     }
 
