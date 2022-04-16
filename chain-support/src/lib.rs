@@ -1,3 +1,4 @@
+// Needed for `do_async!`.
 #![feature(fn_traits)]
 
 use std::fmt::Display;
@@ -7,11 +8,9 @@ pub use aleph_client::{
 };
 
 pub use event_listening::{Event, EventKind, ListeningError, SingleEventListener, TransferEvent};
-pub use transfer::try_transfer;
 
 mod event_listening;
 mod macros;
-mod transfer;
 
 /// Creates a new derived `KeyPair` from provided `seed` as a derivation path.
 /// The base seed is empty by default, but can be overridden with env `SECRET_PHRASE_SEED`.
