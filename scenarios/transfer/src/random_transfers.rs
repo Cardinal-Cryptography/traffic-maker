@@ -90,8 +90,14 @@ pub struct RandomTransfers {
     connection: Connection,
 }
 
-/// Shortcut for a collection of (sender, receiver) pairs (with indices).
-type Pairs = Vec<((usize, KeyPair), (usize, AccountId))>;
+/// Represents a single sender-receiver pair.
+#[derive(Clone)]
+struct TransferPair {
+    sender: KeyPair,
+    sender_id: usize,
+    receiver: AccountId,
+    receiver_id: usize,
+}
 
 impl RandomTransfers {
     pub fn new(connection: &Connection, config: RandomTransfersConfig) -> Self {
@@ -132,18 +138,18 @@ impl RandomTransfers {
 
     /// Returns a vector of `self.transfers` random (sender, receiver) pairs corresponding
     /// to `self.direction`.
-    fn designate_pairs(&self) -> Pairs {
+    fn designate_pairs(&self) -> Vec<TransferPair> {
         let possibilities = self.generate_pairs();
         let mut generator = thread_rng();
         let index_pairs = possibilities.choose_multiple(&mut generator, self.transfers);
 
         index_pairs
             .into_iter()
-            .map(|(s, r)| {
-                (
-                    (s, compute_keypair(s)),
-                    (r, AccountId::from(compute_keypair(r).public())),
-                )
+            .map(|(s, r)| TransferPair {
+                sender: compute_keypair(s),
+                sender_id: s,
+                receiver: AccountId::from(compute_keypair(r).public()),
+                receiver_id: r,
             })
             .collect()
     }
@@ -162,9 +168,19 @@ impl RandomTransfers {
         Ok(self.balances_fraction(sender_balances))
     }
 
-    async fn send_sequentially(&self, pairs: Pairs) -> Result<(), ScenarioError> {
-        for (idx, ((sid, sender), (rid, receiver))) in pairs.into_iter().enumerate() {
-            self.debug(format!("Transferring money from #{} to #{}.", sid, rid));
+    async fn send_sequentially(&self, pairs: Vec<TransferPair>) -> Result<(), ScenarioError> {
+        for (idx, transfer_pair) in pairs.into_iter().enumerate() {
+            let TransferPair {
+                sender,
+                sender_id,
+                receiver,
+                receiver_id,
+            } = transfer_pair;
+
+            self.debug(format!(
+                "Transferring money from #{} to #{}.",
+                sender_id, receiver_id
+            ));
 
             let transfer_value = self.compute_transfer_value(&sender).await?;
             let connection = self.connection.clone().set_signer(sender);
@@ -184,12 +200,22 @@ impl RandomTransfers {
         Ok(())
     }
 
-    async fn send_in_batch(&self, pairs: Pairs) -> Result<(), ScenarioError> {
+    async fn send_in_batch(&self, pairs: Vec<TransferPair>) -> Result<(), ScenarioError> {
         // `xts` is built in good old imperative way, because it requires async, fallible call
         // for computing transfer value, which is not so nice to be used within `map()`.
         let mut xts = Vec::new();
-        for ((sid, sender), (rid, receiver)) in pairs.clone() {
-            self.debug(format!("Preparing transfer from #{} to #{}.", sid, rid));
+        for transfer_pair in pairs.clone() {
+            let TransferPair {
+                sender,
+                sender_id,
+                receiver,
+                receiver_id,
+            } = transfer_pair;
+
+            self.debug(format!(
+                "Preparing transfer from #{} to #{}.",
+                sender_id, receiver_id
+            ));
 
             let transfer_value = self.compute_transfer_value(&sender).await?;
             let connection = self.connection.clone().set_signer(sender);
@@ -203,7 +229,7 @@ impl RandomTransfers {
         }
 
         // `self.connection` may not be signed, but somebody has to pay for submitting
-        let connection = self.connection.clone().set_signer(pairs[0].clone().0 .1);
+        let connection = self.connection.clone().set_signer(pairs[0].sender.clone());
         let xt = compose_extrinsic!(&connection, "Utility", "batch", xts);
         self.handle(
             do_async!(
