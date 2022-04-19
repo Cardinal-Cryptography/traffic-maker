@@ -1,6 +1,6 @@
 use std::{collections::HashMap, time::Duration};
 
-use aleph_client::{get_free_balance, try_send_xt, Connection, KeyPair};
+use aleph_client::{get_free_balance, substrate_api_client, try_send_xt, Connection, KeyPair};
 use anyhow::Result as AnyResult;
 use codec::Compact;
 use rand::{prelude::IteratorRandom, thread_rng, Rng};

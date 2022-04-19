@@ -4,8 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-aleph_client = { git = "https://github.com/Cardinal-Cryptography/aleph-node.git", rev = "57623da69b9e1545cbe109de8042a6f57bf32bea" }
-substrate-api-client = { git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git", tag = "polkadot-v0.9.13.b2bfc0c3" }
+aleph_client = { git = "https://github.com/Cardinal-Cryptography/aleph-node.git", rev = "b23e4f78735361bb428bc2ea84dc30f8d5f302e8" }
 
 chain-support = { path = "../../chain-support" }
 common = { path = "../../common" }

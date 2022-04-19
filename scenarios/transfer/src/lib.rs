@@ -2,7 +2,7 @@
 
 use std::time::Duration;
 
-use aleph_client::{try_send_xt, Connection, KeyPair};
+use aleph_client::{substrate_api_client, try_send_xt, Connection, KeyPair};
 use anyhow::Result as AnyResult;
 use parse_duration::parse;
 use serde::de::{Deserialize, Deserializer};

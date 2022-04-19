@@ -93,18 +93,24 @@ dependencies = [
 
 [[package]]
 name = "aleph_client"
-version = "0.3.0"
-source = "git+https://github.com/Cardinal-Cryptography/aleph-node.git?rev=57623da69b9e1545cbe109de8042a6f57bf32bea#57623da69b9e1545cbe109de8042a6f57bf32bea"
+version = "0.4.1"
+source = "git+https://github.com/Cardinal-Cryptography/aleph-node.git?rev=b23e4f78735361bb428bc2ea84dc30f8d5f302e8#b23e4f78735361bb428bc2ea84dc30f8d5f302e8"
 dependencies = [
  "anyhow",
+ "hex",
  "log",
+ "pallet-aleph",
  "pallet-balances",
+ "pallet-multisig",
  "pallet-staking",
+ "pallet-treasury",
  "parity-scale-codec",
+ "primitives",
  "serde_json",
  "sp-core",
  "sp-runtime",
  "substrate-api-client",
+ "thiserror",
 ]
 
 [[package]]
@@ -335,7 +341,6 @@ dependencies = [
  "log",
  "parity-scale-codec",
  "serde",
- "substrate-api-client",
  "thiserror",
  "tokio",
 ]
@@ -1513,6 +1518,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-aleph"
+version = "0.2.0"
+source = "git+https://github.com/Cardinal-Cryptography/aleph-node.git?rev=b23e4f78735361bb428bc2ea84dc30f8d5f302e8#b23e4f78735361bb428bc2ea84dc30f8d5f302e8"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "pallet-session",
+ "parity-scale-codec",
+ "primitives",
+ "scale-info",
+ "serde",
+ "sp-io",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-authorship"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate.git?branch=polkadot-v0.9.13#afb74de23dfe2994e7ce38c0870efb9734e966f7"
@@ -1538,6 +1560,20 @@ dependencies = [
  "log",
  "parity-scale-codec",
  "scale-info",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-multisig"
+version = "4.0.0-dev"
+source = "git+https://github.com/paritytech/substrate.git?branch=polkadot-v0.9.13#afb74de23dfe2994e7ce38c0870efb9734e966f7"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-io",
  "sp-runtime",
  "sp-std",
 ]
@@ -1614,6 +1650,22 @@ dependencies = [
  "smallvec",
  "sp-core",
  "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-treasury"
+version = "4.0.0-dev"
+source = "git+https://github.com/paritytech/substrate.git?branch=polkadot-v0.9.13#afb74de23dfe2994e7ce38c0870efb9734e966f7"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "impl-trait-for-tuples",
+ "pallet-balances",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
  "sp-runtime",
  "sp-std",
 ]
@@ -1766,6 +1818,22 @@ dependencies = [
  "impl-serde",
  "scale-info",
  "uint",
+]
+
+[[package]]
+name = "primitives"
+version = "0.3.0"
+source = "git+https://github.com/Cardinal-Cryptography/aleph-node.git?rev=b23e4f78735361bb428bc2ea84dc30f8d5f302e8#b23e4f78735361bb428bc2ea84dc30f8d5f302e8"
+dependencies = [
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-api",
+ "sp-application-crypto",
+ "sp-core",
+ "sp-runtime",
+ "sp-staking",
+ "sp-std",
 ]
 
 [[package]]
@@ -2116,7 +2184,6 @@ dependencies = [
  "clap",
  "parity-scale-codec",
  "serde",
- "substrate-api-client",
  "toml",
 ]
 

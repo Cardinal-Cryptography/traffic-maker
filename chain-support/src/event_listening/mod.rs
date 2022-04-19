@@ -1,8 +1,8 @@
 use std::fmt::Debug;
 
-use aleph_client::KeyPair;
+use aleph_client::{account_from_keypair, substrate_api_client, KeyPair};
 use codec::Decode;
-use substrate_api_client::{AccountId, Pair};
+use substrate_api_client::AccountId;
 use thiserror::Error;
 
 pub use single_event::SingleEventListener;
@@ -77,7 +77,7 @@ pub struct TransferEvent {
 impl TransferEvent {
     pub fn new(from: &KeyPair, to: &AccountId, amount: u128) -> Self {
         TransferEvent {
-            from: AccountId::from(from.public()),
+            from: account_from_keypair(from),
             to: to.clone(),
             amount,
         }

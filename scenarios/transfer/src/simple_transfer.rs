@@ -1,10 +1,10 @@
 use std::time::Duration;
 
-use aleph_client::{Connection, KeyPair};
+use aleph_client::{account_from_keypair, substrate_api_client, Connection, KeyPair};
 use anyhow::Result as AnyResult;
 use rand::random;
 use serde::Deserialize;
-use substrate_api_client::{AccountId, Pair};
+use substrate_api_client::AccountId;
 
 use chain_support::{keypair_derived_from_seed, real_amount};
 use common::{Ident, Scenario, ScenarioLogging};
@@ -39,7 +39,7 @@ impl SimpleTransfer {
         let sender = keypair_derived_from_seed(SENDER_SEED);
         let connection = connection.clone().set_signer(sender.clone());
 
-        let receiver = AccountId::from(keypair_derived_from_seed(RECEIVER_SEED).public());
+        let receiver = account_from_keypair(&keypair_derived_from_seed(RECEIVER_SEED));
 
         SimpleTransfer {
             ident: config.ident,
