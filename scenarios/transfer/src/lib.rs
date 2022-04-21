@@ -13,7 +13,9 @@ use chain_support::{SingleEventListener, TransferEvent};
 use common::ScenarioError;
 pub use round_robin::{RoundRobin, RoundRobinConfig};
 pub use simple_transfer::{SimpleTransfer, SimpleTransferConfig};
+pub use random_transfers::{Direction, Granularity, RandomTransfers, RandomTransfersConfig};
 
+mod random_transfers;
 mod round_robin;
 mod simple_transfer;
 
