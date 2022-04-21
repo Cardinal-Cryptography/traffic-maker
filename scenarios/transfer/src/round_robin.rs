@@ -30,16 +30,16 @@ pub struct RoundRobinConfig {
 }
 
 impl RoundRobin {
-    pub fn new(connection: &Connection, props: RoundRobinConfig) -> Self {
-        let accounts = (0..props.passes)
+    pub fn new(connection: &Connection, config: RoundRobinConfig) -> Self {
+        let accounts = (0..config.passes)
             .map(|i| keypair_derived_from_seed(&*format!("{}{}", ROUND_ROBIN_SEED, i)))
             .collect();
         RoundRobin {
-            ident: props.ident,
+            ident: config.ident,
             accounts,
-            interval: props.interval,
+            interval: config.interval,
             connection: connection.clone(),
-            robin_value: real_amount(&props.robin_value),
+            robin_value: real_amount(&config.robin_value),
         }
     }
 

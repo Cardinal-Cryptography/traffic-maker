@@ -1,5 +1,5 @@
 /// `clone_args` expects non-empty sequence of arguments to be cloned.
-/// There are 4 handled types of argument:
+/// There are 5 handled types of argument:
 /// - *variable passed by value* (`$i:ident`): this one is simply cloned
 ///   to a new variable with the same name, so this snippet:
 ///   ```no_run
@@ -36,6 +36,15 @@
 /// - *field passed by reference* (`& $self:ident . $i:ident`): this is handled
 ///   exactly the same as in the previous case, no difference;
 ///
+/// - *value or expression* (`$e:expr`): this is completely ignored; no cloning;
+///   so this snippet:
+///   ```no_run
+///     use chain_support::clone_args;
+///
+///     clone_args!(4);
+///   ```
+///   does nothing.
+///
 /// *Note:* Of course these rules are not perfectly safe, e.g. `ident` will
 /// be matched against keyword, which will fail to compile. Please use it
 /// with the simple rules mentioned above.
@@ -51,6 +60,9 @@ macro_rules! clone_args {
         let $i = $self.$i.clone();
     };
 
+    // value as a single argument
+    ($e:expr) => {};
+
     // variable as the first argument
     ($(&)? $i:ident, $($rest:tt)*) => {
         let $i = $i.clone();
@@ -60,6 +72,11 @@ macro_rules! clone_args {
     // field as the first argument
     ($(&)? $self:ident . $i:ident, $($rest:tt)*) => {
         let $i = $self.$i.clone();
+        $crate::clone_args!($($rest)*);
+    };
+
+    // value as the first argument
+    ($e:expr, $($rest:tt)*) => {
         $crate::clone_args!($($rest)*);
     };
 }
@@ -74,7 +91,7 @@ macro_rules! clone_args {
 ///
 /// The accumulator is separated with `;` from target args.
 ///
-/// Similarly to `clone_args`, there are 4 categories of expected arguments:
+/// Similarly to `clone_args`, there are 5 categories of expected arguments:
 /// - *variable passed by value* (`$i:ident`): this one will be translated to the same name
 /// - *variable passed by reference* (`& $i:ident`): this one will be translated to the same
 ///   name, however, the counterpart will be taken by reference
@@ -82,6 +99,8 @@ macro_rules! clone_args {
 ///   field name
 /// - *field passed by reference* (`& $self:ident . $i:ident`): this one will be translated
 ///   to the field name, however, the counterpart will be taken by reference
+/// - *value or expression* (`$e:expr`): this one will be simply copied (syntactically, no
+///   real copying).
 ///
 /// For example, this snippet:
 /// ```no_run
@@ -143,6 +162,13 @@ macro_rules! exchange_args_with_cloned {
         )
     };
 
+    // the last argument is a value
+    (($($acc:tt)*); $e:expr) => {
+        $crate::exchange_args_with_cloned!(
+            ($($acc)* $e);
+        )
+    };
+
     // the first argument is a variable passed by value
     (($($acc:tt)*); $i:ident, $($rest:tt)*) => {
         $crate::exchange_args_with_cloned!(
@@ -171,6 +197,14 @@ macro_rules! exchange_args_with_cloned {
     (($($acc:tt)*); & $self:ident . $i:ident, $($rest:tt)*) => {
         $crate::exchange_args_with_cloned!(
             ($($acc)* &$i,);
+            $($rest)*
+        )
+    };
+
+    // the first argument is a value
+    (($($acc:tt)*); $e:expr, $($rest:tt)*) => {
+        $crate::exchange_args_with_cloned!(
+            ($($acc)* $e,);
             $($rest)*
         )
     };

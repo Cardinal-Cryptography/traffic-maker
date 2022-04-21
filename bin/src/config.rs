@@ -2,7 +2,10 @@ use serde::Deserialize;
 
 use chain_support::{create_connection, Connection};
 use common::Scenario;
-use scenarios_transfer::{RoundRobin, RoundRobinConfig, SimpleTransfer, SimpleTransferConfig};
+use scenarios_transfer::{
+    RandomTransfers, RandomTransfersConfig, RoundRobin, RoundRobinConfig, SimpleTransfer,
+    SimpleTransferConfig,
+};
 
 /// This struct combines both the execution environment (including hosts and chain address),
 /// as well as the scenario configurations. It should be read from `Timetable.toml`.
@@ -51,16 +54,20 @@ impl Environment {
 enum ScenarioConfig {
     SimpleTransfer(SimpleTransferConfig),
     RoundRobin(RoundRobinConfig),
+    RandomTransfers(RandomTransfersConfig),
 }
 
 impl ScenarioConfig {
     pub fn construct_scenario(&self, connection: &Connection) -> Box<dyn Scenario> {
         match self {
-            ScenarioConfig::SimpleTransfer(props) => {
-                Box::new(SimpleTransfer::new(connection, props.clone()))
+            ScenarioConfig::SimpleTransfer(config) => {
+                Box::new(SimpleTransfer::new(connection, config.clone()))
             }
-            ScenarioConfig::RoundRobin(props) => {
-                Box::new(RoundRobin::new(connection, props.clone()))
+            ScenarioConfig::RoundRobin(config) => {
+                Box::new(RoundRobin::new(connection, config.clone()))
+            }
+            ScenarioConfig::RandomTransfers(config) => {
+                Box::new(RandomTransfers::new(connection, config.clone()))
             }
         }
     }

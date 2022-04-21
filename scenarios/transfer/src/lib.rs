@@ -5,9 +5,11 @@ use std::time::Duration;
 use parse_duration::parse;
 use serde::de::{Deserialize, Deserializer};
 
+pub use random_transfers::{Direction, Granularity, RandomTransfers, RandomTransfersConfig};
 pub use round_robin::{RoundRobin, RoundRobinConfig};
 pub use simple_transfer::{SimpleTransfer, SimpleTransferConfig};
 
+mod random_transfers;
 mod round_robin;
 mod simple_transfer;
 
