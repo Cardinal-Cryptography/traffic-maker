@@ -1,14 +1,15 @@
 use std::time::Duration;
 
 use aleph_client::{Connection, KeyPair};
-use anyhow::Result;
-use chain_support::{keypair_derived_from_seed, real_amount};
-use common::{Ident, Scenario, ScenarioLogging};
+use anyhow::Result as AnyResult;
 use rand::random;
 use serde::Deserialize;
 use substrate_api_client::{AccountId, Pair};
 
-use crate::parse_interval;
+use chain_support::{keypair_derived_from_seed, real_amount};
+use common::{Ident, Scenario, ScenarioLogging};
+
+use crate::{parse_interval, try_transfer};
 
 /// This account should be included in the endowment list. The amount should be
 /// proportional to the `transfer_value` props parameter.
@@ -46,7 +47,7 @@ impl SimpleTransfer {
             sender,
             receiver,
             connection,
-            transfer_value: real_amount(&props.transfer_value) + random::<u32>() as u128,
+            transfer_value: real_amount(&config.transfer_value) + random::<u32>() as u128,
         }
     }
 }
@@ -57,10 +58,10 @@ impl Scenario for SimpleTransfer {
         self.interval
     }
 
-    async fn play(&mut self) -> Result<()> {
+    async fn play(&mut self) -> AnyResult<()> {
         self.info("Ready to go");
 
-        let transfer_result = crate::try_transfer(
+        let transfer_result = try_transfer(
             &self.connection,
             &self.sender,
             &self.receiver,

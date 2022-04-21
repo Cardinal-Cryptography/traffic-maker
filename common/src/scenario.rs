@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::Result as AnyResult;
 use log::{debug, error, info, trace, warn};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -31,7 +31,7 @@ pub trait Scenario: Send + Sync + 'static {
     fn interval(&self) -> Duration;
 
     /// Runs the scenario and returns whether it succeeded.
-    async fn play(&mut self) -> Result<()>;
+    async fn play(&mut self) -> AnyResult<()>;
 
     /// Identifier for this particular scenario.
     fn ident(&self) -> Ident;
@@ -104,7 +104,7 @@ pub trait ScenarioLogging {
     fn warn<M: Debug>(&self, message: M);
     fn error<M: Debug>(&self, message: M);
 
-    fn handle<R: Debug>(&self, result: Result<R>) -> Result<R> {
+    fn handle<R: Debug>(&self, result: AnyResult<R>) -> AnyResult<R> {
         match &result {
             Err(e) => {
                 self.error(format!("Encountered error: {}", e));

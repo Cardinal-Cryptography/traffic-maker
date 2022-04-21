@@ -1,12 +1,13 @@
 use std::time::Duration;
 
 use aleph_client::{Connection, KeyPair};
-use anyhow::Result;
-use chain_support::{keypair_derived_from_seed, real_amount};
-use common::{Ident, Scenario, ScenarioLogging};
+use anyhow::Result as AnyResult;
 use rand::random;
 use serde::Deserialize;
 use substrate_api_client::{AccountId, Pair};
+
+use chain_support::{keypair_derived_from_seed, real_amount};
+use common::{Ident, Scenario, ScenarioLogging};
 
 use crate::{parse_interval, try_transfer};
 
@@ -44,7 +45,7 @@ impl RoundRobin {
         }
     }
 
-    async fn pass_robin(&self, sender: KeyPair, receiver: AccountId) -> Result<()> {
+    async fn pass_robin(&self, sender: KeyPair, receiver: AccountId) -> AnyResult<()> {
         let transfer_result = try_transfer(
             &self.connection,
             &sender,
@@ -63,7 +64,7 @@ impl Scenario for RoundRobin {
         self.interval
     }
 
-    async fn play(&mut self) -> Result<()> {
+    async fn play(&mut self) -> AnyResult<()> {
         self.info("Starting scenario");
 
         let n = self.accounts.len();

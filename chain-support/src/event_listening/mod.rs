@@ -42,6 +42,29 @@ pub trait Event: Clone + Debug + Decode + Send + 'static {
     fn matches(&self, other: &Self) -> bool;
 }
 
+/// Blanket implementation for events like `pallet_utility::BatchCompleted` with no fields.
+#[derive(Clone, Debug, Decode)]
+pub struct BareEvent {
+    #[codec(skip)]
+    kind: EventKind,
+}
+
+impl Event for BareEvent {
+    fn kind(&self) -> EventKind {
+        self.kind.clone()
+    }
+
+    fn matches(&self, _: &Self) -> bool {
+        true
+    }
+}
+
+impl From<EventKind> for BareEvent {
+    fn from(kind: EventKind) -> Self {
+        Self { kind }
+    }
+}
+
 /// Representation of the `Transfer` event from pallet `Balances`. For details
 /// look at `pallet_balances::Event::Transfer`.
 #[derive(Clone, Debug, Decode, PartialEq, Eq)]

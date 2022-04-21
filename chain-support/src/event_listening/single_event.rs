@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use ac_node_api::events::{EventsDecoder, Raw};
 use aleph_client::Connection;
-use anyhow::Result;
+use anyhow::Result as AnyResult;
 use hex::FromHex;
 use tokio::{
     sync::oneshot::{channel, Receiver, Sender},
@@ -36,7 +36,7 @@ pub struct SingleEventListener<E: Event> {
 ///
 /// The only blocking call in this module. It is implemented as an outside function
 /// to enable calling it with `do_async` macro.
-fn subscribe_for_events(connection: &Connection) -> Result<EventsOut> {
+fn subscribe_for_events(connection: &Connection) -> AnyResult<EventsOut> {
     let (events_in, events_out) = std::sync::mpsc::channel();
     connection
         .subscribe_events(events_in)
@@ -55,7 +55,7 @@ impl<E: Event> SingleEventListener<E> {
         expected_event: &E,
         encoded_batch: String,
         events_decoder: &EventsDecoder,
-    ) -> Result<E> {
+    ) -> AnyResult<E> {
         let encoded_batch = encoded_batch.replace("0x", "");
         let raw_events =
             events_decoder.decode_events(&mut Vec::from_hex(encoded_batch)?.as_slice())?;
@@ -116,7 +116,7 @@ impl<E: Event> SingleEventListener<E> {
     /// Constructs new `SingleEventListener` and starts listening for `event` in another
     /// thread. Can fail (returns `ListeningError::CannotSubscribe`) only if subscribing
     /// to a node was unsuccessful.
-    pub async fn new(connection: &Connection, event: E) -> Result<Self> {
+    pub async fn new(connection: &Connection, event: E) -> AnyResult<Self> {
         let (event_tx, event_rx) = channel::<E>();
         let (cancel_tx, cancel_rx) = channel();
 
@@ -137,7 +137,7 @@ impl<E: Event> SingleEventListener<E> {
     ///
     /// Returns `Err(_)` only if there have been problems with joining the auxiliary thread
     /// (through `handle`).
-    async fn cancel_listening(cancel: Sender<()>, handle: JoinHandle<()>) -> Result<()> {
+    async fn cancel_listening(cancel: Sender<()>, handle: JoinHandle<()>) -> AnyResult<()> {
         // Even if sending cancellation fails, then it should be all fine: the process
         // must have finished anyway, since the channel is closed.
         let _ = cancel.send(());
@@ -145,7 +145,7 @@ impl<E: Event> SingleEventListener<E> {
     }
 
     /// Semantically identical to `Self::cancel_listening`.
-    pub async fn kill(self) -> Result<()> {
+    pub async fn kill(self) -> AnyResult<()> {
         Self::cancel_listening(self.cancel_listening, self.listening_handle).await
     }
 
@@ -153,12 +153,27 @@ impl<E: Event> SingleEventListener<E> {
     /// `Ok(event)` if `event` has been emitted, observed and satisfied requirements
     /// before the deadline. Otherwise, returns `ListeningError::NoEventSpotted`. In any case,
     /// the auxiliary thread will be shut down.
-    pub async fn expect_event(self, duration: Duration) -> Result<E> {
+    pub async fn expect_event(self, duration: Duration) -> AnyResult<E> {
         match timeout(duration, self.receive_event).await {
             Ok(Ok(event)) => Ok(event),
             _ => {
                 Self::cancel_listening(self.cancel_listening, self.listening_handle).await?;
                 Err(ListeningError::NoEventSpotted.into())
+            }
+        }
+    }
+
+    /// If `result` is `Ok(_)` then delegates to `self.expect_event`. Otherwise, cancels listening.
+    pub async fn expect_event_if_ok<R>(
+        self,
+        duration: Duration,
+        result: AnyResult<R>,
+    ) -> AnyResult<E> {
+        match result {
+            Ok(_) => self.expect_event(duration).await,
+            Err(e) => {
+                let _ = self.kill().await;
+                Err(e)
             }
         }
     }

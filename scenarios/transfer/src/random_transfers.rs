@@ -1,6 +1,7 @@
 use std::{collections::HashMap, time::Duration};
 
 use aleph_client::{get_free_balance, try_send_xt, Connection, KeyPair};
+use anyhow::Result as AnyResult;
 use codec::Compact;
 use rand::{prelude::IteratorRandom, thread_rng, Rng};
 use serde::Deserialize;
@@ -8,10 +9,10 @@ use substrate_api_client::{
     compose_call, compose_extrinsic, AccountId, GenericAddress, Pair, XtStatus,
 };
 
-use chain_support::{do_async, keypair_derived_from_seed, try_transfer};
+use chain_support::{do_async, keypair_derived_from_seed, BareEvent, SingleEventListener};
 use common::{Ident, Scenario, ScenarioError, ScenarioLogging};
 
-use crate::parse_interval;
+use crate::{parse_interval, try_transfer};
 
 /// We operate on an account pool based on this seed. The final seeds will have
 /// a form of `RANDOM_TRANSFER_SEED{i: usize}`.
@@ -168,13 +169,13 @@ impl RandomTransfers {
     }
 
     /// Computes how much money should be transferred from `sender`.
-    async fn compute_transfer_value(&self, sender: &KeyPair) -> Result<u128, ScenarioError> {
+    async fn compute_transfer_value(&self, sender: &KeyPair) -> AnyResult<u128> {
         let sender_account = AccountId::from(sender.public());
         let sender_balances = do_async!(get_free_balance, &self.connection, &sender_account)?;
         Ok(self.balances_fraction(sender_balances))
     }
 
-    async fn send_sequentially(&self, pairs: Vec<TransferPair>) -> Result<(), ScenarioError> {
+    async fn send_sequentially(&self, pairs: Vec<TransferPair>) -> AnyResult<()> {
         for (idx, transfer_pair) in pairs.into_iter().enumerate() {
             let TransferPair {
                 sender,
@@ -189,13 +190,11 @@ impl RandomTransfers {
             ));
 
             let transfer_value = self.compute_transfer_value(&sender).await?;
-            let connection = self.connection.clone().set_signer(sender);
-            self.handle(do_async!(
-                try_transfer,
-                &connection,
-                &receiver,
-                transfer_value
-            )?)?;
+            let connection = self.connection.clone().set_signer(sender.clone());
+
+            let transfer_result =
+                try_transfer(&connection, &sender, &receiver, transfer_value).await;
+            self.handle(transfer_result)?;
 
             self.debug(format!(
                 "Completed {}/{} transfers.",
@@ -206,7 +205,7 @@ impl RandomTransfers {
         Ok(())
     }
 
-    async fn send_in_batch(&self, pairs: Vec<TransferPair>) -> Result<(), ScenarioError> {
+    async fn send_in_batch(&self, pairs: Vec<TransferPair>) -> AnyResult<()> {
         // `xts` is built in good old imperative way, because it requires async, fallible call
         // for computing transfer value, which is not so nice to be used within `map()`.
         let mut xts = Vec::new();
@@ -237,16 +236,25 @@ impl RandomTransfers {
         // `self.connection` may not be signed, but somebody has to pay for submitting
         let connection = self.connection.clone().set_signer(pairs[0].sender.clone());
         let xt = compose_extrinsic!(&connection, "Utility", "batch", xts);
-        self.handle(
-            do_async!(
-                try_send_xt,
-                &connection,
-                xt,
-                Some("Sending transfers in batch"),
-                XtStatus::Finalized
-            )?
-            .map_err(|_| ScenarioError::CannotSendExtrinsic),
-        )?;
+
+        let sel =
+            SingleEventListener::new(&connection, BareEvent::from(("Utility", "BatchCompleted")))
+                .await?;
+        let batch_result = try_send_xt(
+            &connection,
+            xt,
+            Some("Sending transfers in batch"),
+            XtStatus::Finalized,
+        )
+        .map_err(|_| ScenarioError::CannotSendExtrinsic.into());
+
+        let batch_result = sel
+            .expect_event_if_ok(Duration::from_secs(1), batch_result)
+            .await
+            .map(|_| ());
+
+        self.handle(batch_result)?;
+
         Ok(())
     }
 }
@@ -257,7 +265,7 @@ impl Scenario for RandomTransfers {
         self.interval
     }
 
-    async fn play(&mut self) -> Result<(), ScenarioError> {
+    async fn play(&mut self) -> AnyResult<()> {
         self.info("Starting scenario");
 
         let pairs = self.designate_pairs();
