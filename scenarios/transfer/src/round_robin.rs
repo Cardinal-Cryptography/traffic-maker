@@ -8,8 +8,9 @@ use substrate_api_client::AccountId;
 
 use chain_support::{keypair_derived_from_seed, real_amount};
 use common::{Ident, Scenario, ScenarioLogging};
+use scenarios_support::parse_interval;
 
-use crate::{parse_interval, try_transfer};
+use crate::try_transfer;
 
 const ROUND_ROBIN_SEED: &str = "//RoundRobin";
 

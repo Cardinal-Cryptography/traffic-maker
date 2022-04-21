@@ -5,6 +5,7 @@ members = [
     "traffic",
     "chain-support",
     "common",
+    "scenarios/support",
     "scenarios/transfer",
     "scenarios/multisig",
 ]

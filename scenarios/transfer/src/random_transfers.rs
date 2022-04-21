@@ -11,8 +11,9 @@ use substrate_api_client::{
 
 use chain_support::{do_async, keypair_derived_from_seed, BareEvent, SingleEventListener};
 use common::{Ident, Scenario, ScenarioError, ScenarioLogging};
+use scenarios_support::parse_interval;
 
-use crate::{parse_interval, try_transfer};
+use crate::try_transfer;
 
 /// We operate on an account pool based on this seed. The final seeds will have
 /// a form of `RANDOM_TRANSFER_SEED{i: usize}`.

@@ -1742,6 +1742,9 @@ dependencies = [
 [[package]]
 name = "multisig"
 version = "0.1.0"
+dependencies = [
+ "scenarios-support",
+]
 
 [[package]]
 name = "nalgebra"
@@ -2568,6 +2571,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "scenarios-support"
+version = "0.1.0"
+dependencies = [
+ "parse_duration",
+ "serde",
+]
+
+[[package]]
 name = "scenarios-transfer"
 version = "0.1.0"
 dependencies = [
@@ -2580,6 +2591,7 @@ dependencies = [
  "parity-scale-codec",
  "parse_duration",
  "rand 0.8.5",
+ "scenarios-support",
  "serde",
  "tokio",
 ]

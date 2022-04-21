@@ -4,8 +4,6 @@ use std::time::Duration;
 
 use aleph_client::{substrate_api_client, try_send_xt, Connection, KeyPair};
 use anyhow::Result as AnyResult;
-use parse_duration::parse;
-use serde::de::{Deserialize, Deserializer};
 use substrate_api_client::{AccountId, GenericAddress, XtStatus};
 use tokio::time::sleep;
 
@@ -18,14 +16,6 @@ pub use simple_transfer::{SimpleTransfer, SimpleTransferConfig};
 mod random_transfers;
 mod round_robin;
 mod simple_transfer;
-
-fn parse_interval<'de, D>(deserializer: D) -> Result<Duration, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let s: &str = Deserialize::deserialize(deserializer)?;
-    parse(s).map_err(serde::de::Error::custom)
-}
 
 async fn loop_transfer(connection: &Connection, target: &AccountId, amount: u128) -> AnyResult<()> {
     for _ in 0..5 {
