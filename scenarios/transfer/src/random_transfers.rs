@@ -235,7 +235,7 @@ impl RandomTransfers {
 
         // `self.connection` may not be signed, but somebody has to pay for submitting
         let connection = self.connection.clone().set_signer(pairs[0].sender.clone());
-        let xt = compose_extrinsic!(&connection, "Utility", "batch", xts);
+        let xt = compose_extrinsic!(connection, "Utility", "batch", xts);
 
         let sel =
             SingleEventListener::new(&connection, BareEvent::from(("Utility", "BatchCompleted")))
