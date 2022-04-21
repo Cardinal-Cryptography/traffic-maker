@@ -1740,13 +1740,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "multisig"
-version = "0.1.0"
-dependencies = [
- "scenarios-support",
-]
-
-[[package]]
 name = "nalgebra"
 version = "0.27.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2568,6 +2561,22 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "scenarios-multisig"
+version = "0.1.0"
+dependencies = [
+ "aleph_client",
+ "anyhow",
+ "async-trait",
+ "chain-support",
+ "common",
+ "rand 0.8.5",
+ "scenarios-support",
+ "serde",
+ "thiserror",
+ "tokio",
 ]
 
 [[package]]
