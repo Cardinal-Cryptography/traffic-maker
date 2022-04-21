@@ -51,7 +51,7 @@ pub struct BareEvent {
 
 impl Event for BareEvent {
     fn kind(&self) -> EventKind {
-        self.kind.clone()
+        self.kind
     }
 
     fn matches(&self, _: &Self) -> bool {
