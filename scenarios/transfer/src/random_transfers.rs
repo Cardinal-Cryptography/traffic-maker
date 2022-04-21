@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{collections::HashMap, time::Duration};
 
 use aleph_client::{get_free_balance, try_send_xt, Connection, KeyPair};
 use codec::Compact;
@@ -14,10 +14,10 @@ use common::{Ident, Scenario, ScenarioError, ScenarioLogging};
 use crate::parse_interval;
 
 /// We operate on an account pool based on this seed. The final seeds will have
-/// a form of `COMMON_ACCOUNT_SEED{i: usize}`.
+/// a form of `RANDOM_TRANSFER_SEED{i: usize}`.
 const RANDOM_TRANSFER_SEED: &str = "//RandomTransfer";
 
-/// We expect that there are as many endowed accounts (of seed phrases: `COMMON_ACCOUNT_SEED{i}`,
+/// We expect that there are as many endowed accounts (of seed phrases: `RANDOM_TRANSFER_SEED{i}`,
 /// where `i` is from 0 to this value (exclusively)).
 const AVAILABLE_ACCOUNTS: usize = 100;
 
@@ -143,12 +143,18 @@ impl RandomTransfers {
         let mut generator = thread_rng();
         let index_pairs = possibilities.choose_multiple(&mut generator, self.transfers);
 
+        let keypairs: HashMap<usize, KeyPair> = index_pairs
+            .iter()
+            .flat_map(|pair| [pair.0, pair.1])
+            .map(|i| (i, compute_keypair(i)))
+            .collect();
+
         index_pairs
             .into_iter()
             .map(|(s, r)| TransferPair {
-                sender: compute_keypair(s),
+                sender: keypairs[&s].clone(),
                 sender_id: s,
-                receiver: AccountId::from(compute_keypair(r).public()),
+                receiver: AccountId::from(keypairs[&r].public()),
                 receiver_id: r,
             })
             .collect()
