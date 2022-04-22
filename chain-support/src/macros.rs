@@ -88,6 +88,7 @@ macro_rules! clone_args {
 /// it has to perform 'output accumulation', i.e. as the first argument,
 /// `exchange_args_with_cloned` takes accumulated result, which effectively is a tuple;
 /// Hence, for the initial call you would probably pass `()` here.
+/// If a single argument is passed, the result will be a singleton tuple.
 ///
 /// The accumulator is separated with `;` from target args.
 ///
@@ -137,14 +138,14 @@ macro_rules! exchange_args_with_cloned {
     // the last argument is a variable passed by value
     (($($acc:tt)*); $i:ident) => {
         $crate::exchange_args_with_cloned!(
-            ($($acc)* $i);
+            ($($acc)* $i,);
         )
     };
 
     // the last argument is a variable passed by reference
     (($($acc:tt)*); & $i:ident) => {
         $crate::exchange_args_with_cloned!(
-            ($($acc)* &$i);
+            ($($acc)* &$i,);
         )
     };
 

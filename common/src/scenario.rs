@@ -1,14 +1,15 @@
+use anyhow::Result as AnyResult;
+use log::{debug, error, info, trace, warn};
+use serde::{Deserialize, Serialize};
 use std::{
-    error::Error,
     fmt::{Debug, Display, Formatter},
     time::Duration,
 };
-
-use log::{debug, error, info, trace, warn};
-use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 use crate::Ident;
 
+#[derive(Debug, Error)]
 pub enum ScenarioError {
     ExecutionFailure,
     CannotSendExtrinsic,
@@ -23,12 +24,6 @@ impl Display for ScenarioError {
     }
 }
 
-impl<E: Error> From<E> for ScenarioError {
-    fn from(_: E) -> Self {
-        ScenarioError::ExecutionFailure
-    }
-}
-
 /// Core trait that every bot should satisfy.
 #[async_trait::async_trait]
 pub trait Scenario: Send + Sync + 'static {
@@ -36,7 +31,7 @@ pub trait Scenario: Send + Sync + 'static {
     fn interval(&self) -> Duration;
 
     /// Runs the scenario and returns whether it succeeded.
-    async fn play(&mut self) -> Result<(), ScenarioError>;
+    async fn play(&mut self) -> AnyResult<()>;
 
     /// Identifier for this particular scenario.
     fn ident(&self) -> Ident;
@@ -109,10 +104,10 @@ pub trait ScenarioLogging {
     fn warn<M: Debug>(&self, message: M);
     fn error<M: Debug>(&self, message: M);
 
-    fn handle<R: Debug>(&self, result: Result<R, ScenarioError>) -> Result<R, ScenarioError> {
+    fn handle<R: Debug>(&self, result: AnyResult<R>) -> AnyResult<R> {
         match &result {
             Err(e) => {
-                self.error(format!("Encountered scenario error: {}", e));
+                self.error(format!("Encountered error: {}", e));
             }
             Ok(result) => {
                 self.trace(format!("Successfully obtained {:?}", result));

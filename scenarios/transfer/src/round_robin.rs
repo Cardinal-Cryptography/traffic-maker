@@ -1,13 +1,15 @@
 use std::time::Duration;
 
-use aleph_client::{get_free_balance, Connection, KeyPair};
+use aleph_client::{Connection, KeyPair};
+use anyhow::Result as AnyResult;
+use rand::random;
 use serde::Deserialize;
 use substrate_api_client::{AccountId, Pair};
 
-use chain_support::{do_async, keypair_derived_from_seed, real_amount, try_transfer};
-use common::{Ident, Scenario, ScenarioError, ScenarioLogging};
+use chain_support::{keypair_derived_from_seed, real_amount};
+use common::{Ident, Scenario, ScenarioLogging};
 
-use crate::parse_interval;
+use crate::{parse_interval, try_transfer};
 
 const ROUND_ROBIN_SEED: &str = "//RoundRobin";
 
@@ -43,32 +45,16 @@ impl RoundRobin {
         }
     }
 
-    async fn pass_robin(&self, sender: KeyPair, receiver: AccountId) -> Result<(), ScenarioError> {
-        let receiver_free_before: u128 = do_async!(get_free_balance, &self.connection, &receiver)?;
-
-        let connection = self.connection.clone().set_signer(sender.clone());
-        self.handle(do_async!(
-            try_transfer,
-            &connection,
+    async fn pass_robin(&self, sender: KeyPair, receiver: AccountId) -> AnyResult<()> {
+        let transfer_result = try_transfer(
+            &self.connection,
+            &sender,
             &receiver,
-            self.robin_value
-        )?)?;
+            self.robin_value + random::<u32>() as u128,
+        )
+        .await;
 
-        let receiver_free_after: u128 = do_async!(get_free_balance, &self.connection, &receiver)?;
-
-        if receiver_free_after != receiver_free_before + self.robin_value {
-            // It may happen that the balance is not as expected due to the
-            // concurrent scenarios using this account.
-            self.warn(&format!(
-                "It doesn't seem like the robin has reached receiver. \
-                Receiver's balance before: {} and after: {}. Robin value: {}",
-                receiver_free_before, receiver_free_after, self.robin_value,
-            ));
-        } else {
-            self.debug("Receiver has received the robin.");
-        };
-
-        Ok(())
+        self.handle(transfer_result)
     }
 }
 
@@ -78,7 +64,7 @@ impl Scenario for RoundRobin {
         self.interval
     }
 
-    async fn play(&mut self) -> Result<(), ScenarioError> {
+    async fn play(&mut self) -> AnyResult<()> {
         self.info("Starting scenario");
 
         let n = self.accounts.len();

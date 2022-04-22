@@ -1,13 +1,15 @@
 use std::time::Duration;
 
-use aleph_client::{get_free_balance, Connection};
+use aleph_client::{Connection, KeyPair};
+use anyhow::Result as AnyResult;
+use rand::random;
 use serde::Deserialize;
 use substrate_api_client::{AccountId, Pair};
 
-use chain_support::{do_async, keypair_derived_from_seed, real_amount, try_transfer};
-use common::{Ident, Scenario, ScenarioError, ScenarioLogging};
+use chain_support::{keypair_derived_from_seed, real_amount};
+use common::{Ident, Scenario, ScenarioLogging};
 
-use crate::parse_interval;
+use crate::{parse_interval, try_transfer};
 
 /// This account should be included in the endowment list. The amount should be
 /// proportional to the `transfer_value` props parameter.
@@ -26,6 +28,7 @@ pub struct SimpleTransferConfig {
 pub struct SimpleTransfer {
     ident: Ident,
     interval: Duration,
+    sender: KeyPair,
     receiver: AccountId,
     connection: Connection,
     transfer_value: u128,
@@ -34,16 +37,17 @@ pub struct SimpleTransfer {
 impl SimpleTransfer {
     pub fn new(connection: &Connection, config: SimpleTransferConfig) -> Self {
         let sender = keypair_derived_from_seed(SENDER_SEED);
-        let connection = connection.clone().set_signer(sender);
+        let connection = connection.clone().set_signer(sender.clone());
 
         let receiver = AccountId::from(keypair_derived_from_seed(RECEIVER_SEED).public());
 
         SimpleTransfer {
             ident: config.ident,
             interval: config.interval,
+            sender,
             receiver,
             connection,
-            transfer_value: real_amount(&config.transfer_value),
+            transfer_value: real_amount(&config.transfer_value) + random::<u32>() as u128,
         }
     }
 }
@@ -54,31 +58,17 @@ impl Scenario for SimpleTransfer {
         self.interval
     }
 
-    async fn play(&mut self) -> Result<(), ScenarioError> {
+    async fn play(&mut self) -> AnyResult<()> {
         self.info("Ready to go");
 
-        let receiver_balance_before: u128 =
-            do_async!(get_free_balance, &self.connection, &self.receiver)?;
-
-        self.handle(do_async!(
-            try_transfer,
+        let transfer_result = try_transfer(
             &self.connection,
+            &self.sender,
             &self.receiver,
-            self.transfer_value
-        )?)?;
-
-        let receiver_balance_after: u128 =
-            do_async!(get_free_balance, &self.connection, &self.receiver)?;
-
-        if receiver_balance_after != receiver_balance_before + self.transfer_value {
-            // It may happen that the balance is not as expected due to the
-            // concurrent scenarios using this account.
-            self.warn(&format!(
-                "It doesn't seem like the transfer has reached receiver. \
-                Receiver's balance before: {} and after: {}. Transfer value: {}",
-                receiver_balance_before, receiver_balance_after, self.transfer_value,
-            ));
-        }
+            self.transfer_value,
+        )
+        .await;
+        self.handle(transfer_result)?;
 
         self.info("Done");
         Ok(())

@@ -611,9 +611,16 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 name = "chain-support"
 version = "0.2.0"
 dependencies = [
+ "ac-node-api",
  "aleph_client",
+ "anyhow",
  "common",
+ "hex",
+ "log",
+ "parity-scale-codec",
+ "serde",
  "substrate-api-client",
+ "thiserror",
  "tokio",
 ]
 
@@ -634,9 +641,11 @@ dependencies = [
 name = "common"
 version = "0.2.0"
 dependencies = [
+ "anyhow",
  "async-trait",
  "log",
  "serde",
+ "thiserror",
 ]
 
 [[package]]
@@ -2491,6 +2500,7 @@ name = "scenarios-transfer"
 version = "0.1.0"
 dependencies = [
  "aleph_client",
+ "anyhow",
  "async-trait",
  "chain-support",
  "common",
