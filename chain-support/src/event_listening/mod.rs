@@ -5,7 +5,7 @@ use codec::Decode;
 use substrate_api_client::AccountId;
 use thiserror::Error;
 
-pub use single_event::SingleEventListener;
+pub use single_event::{with_event_listening, SingleEventListener};
 
 mod single_event;
 

@@ -78,7 +78,7 @@ impl Multisig {
         let mut actions = vec![self.strategy.initial_action()];
         let mut call_submitted = actions[0].requires_call();
 
-        for _ in 1..self.threshold {
+        for _ in 1..(self.threshold - 1) {
             let next_action = self.strategy.middle_action();
             call_submitted |= next_action.requires_call();
             actions.push(next_action)
@@ -86,8 +86,9 @@ impl Multisig {
         actions.push(self.strategy.final_action(call_submitted));
 
         if self.cancel {
-            let i = thread_rng().gen_range(1..=self.threshold);
+            let i = thread_rng().gen_range(1..self.threshold);
             actions[i] = Cancel;
+            actions.truncate(i + 1)
         }
 
         actions
@@ -98,13 +99,41 @@ impl Multisig {
             .balance_transfer(GenericAddress::Address32(Default::default()), 0)
     }
 
+    fn get_party(&self, members: &[KeyPair]) -> AnyResult<MultisigParty> {
+        MultisigParty::new(members.clone().to_vec(), self.threshold as u16)
+    }
+
     async fn perform_multisig(
         &self,
         members: Vec<KeyPair>,
         actions: Vec<Action>,
         call: Call,
     ) -> AnyResult<()> {
-        let party = MultisigParty::new(members.clone(), self.threshold as u16);
+        let connection = self.connection.clone().set_signer(members[0].clone());
+
+        let party = self.get_party(&members)?;
+        let mut sig_agg = actions[0]
+            .perform(&connection, party, None, call.clone(), &members[0], false)
+            .await?;
+
+        for (idx, action) in actions[1..].iter().enumerate() {
+            let should_finalize = idx == actions.len() - 1;
+
+            sig_agg = action
+                .perform(
+                    &connection,
+                    self.get_party(&members)?,
+                    sig_agg,
+                    call.clone(),
+                    &members[idx],
+                    should_finalize,
+                )
+                .await?;
+
+            if action.is_cancel() {
+                break;
+            }
+        }
 
         Ok(())
     }

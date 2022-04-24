@@ -7,7 +7,7 @@ use anyhow::Result as AnyResult;
 use substrate_api_client::{AccountId, GenericAddress, XtStatus};
 use tokio::time::sleep;
 
-use chain_support::{SingleEventListener, TransferEvent};
+use chain_support::{with_event_listening, TransferEvent};
 use common::ScenarioError;
 pub use random_transfers::{Direction, Granularity, RandomTransfers, RandomTransfersConfig};
 pub use round_robin::{RoundRobin, RoundRobinConfig};
@@ -37,9 +37,10 @@ pub async fn try_transfer(
 ) -> AnyResult<()> {
     let connection = connection.clone().set_signer(source.clone());
     let expected_event = TransferEvent::new(source, target, amount);
-    let sel = SingleEventListener::new(&connection, expected_event).await?;
-    let transfer_result = loop_transfer(&connection, target, amount).await;
-    sel.expect_event_if_ok(Duration::from_secs(1), transfer_result)
-        .await
-        .map(|_| ())
+
+    with_event_listening(&connection, expected_event, Duration::from_secs(1), async {
+        loop_transfer(&connection, target, amount).await
+    })
+    .await
+    .map(|_| ())
 }

@@ -9,7 +9,7 @@ use substrate_api_client::{
     compose_call, compose_extrinsic, AccountId, GenericAddress, Pair, XtStatus,
 };
 
-use chain_support::{do_async, keypair_derived_from_seed, BareEvent, SingleEventListener};
+use chain_support::{do_async, keypair_derived_from_seed, with_event_listening, BareEvent};
 use common::{Ident, Scenario, ScenarioError, ScenarioLogging};
 use scenarios_support::parse_interval;
 
@@ -238,21 +238,21 @@ impl RandomTransfers {
         let connection = self.connection.clone().set_signer(pairs[0].sender.clone());
         let xt = compose_extrinsic!(connection, "Utility", "batch", xts);
 
-        let sel =
-            SingleEventListener::new(&connection, BareEvent::from(("Utility", "BatchCompleted")))
-                .await?;
-        let batch_result = try_send_xt(
+        let batch_result = with_event_listening(
             &connection,
-            xt,
-            Some("Sending transfers in batch"),
-            XtStatus::Finalized,
+            BareEvent::from(("Utility", "BatchCompleted")),
+            Duration::from_secs(1),
+            async {
+                try_send_xt(
+                    &connection,
+                    xt,
+                    Some("Sending transfers in batch"),
+                    XtStatus::Finalized,
+                )
+                .map_err(|_| ScenarioError::CannotSendExtrinsic.into())
+            },
         )
-        .map_err(|_| ScenarioError::CannotSendExtrinsic.into());
-
-        let batch_result = sel
-            .expect_event_if_ok(Duration::from_secs(1), batch_result)
-            .await
-            .map(|_| ());
+        .await;
 
         self.handle(batch_result)?;
 

@@ -152,21 +152,21 @@ macro_rules! exchange_args_with_cloned {
     // the last argument is a field passed by value
     (($($acc:tt)*); $self:ident . $i:ident) => {
         $crate::exchange_args_with_cloned!(
-            ($($acc)* $i);
+            ($($acc)* $i,);
         )
     };
 
     // the last argument is a field passed by reference
     (($($acc:tt)*); & $self:ident . $i:ident) => {
         $crate::exchange_args_with_cloned!(
-            ($($acc)* &$i);
+            ($($acc)* &$i,);
         )
     };
 
     // the last argument is a value
     (($($acc:tt)*); $e:expr) => {
         $crate::exchange_args_with_cloned!(
-            ($($acc)* $e);
+            ($($acc)* $e,);
         )
     };
 
@@ -266,6 +266,15 @@ macro_rules! do_async {
 
             $crate::clone_args!($($arg)*);
             spawn_blocking(move || $action.call($crate::exchange_args_with_cloned!((); $($arg)*))).await
+        }
+    };
+
+    ($scope:ident :: $action:ident, $self:ident, $($arg:tt)*) => {
+        {
+            use tokio::task::spawn_blocking;
+
+            $crate::clone_args!($($arg)*);
+            spawn_blocking(move || $scope :: $action.call($crate::exchange_args_with_cloned!((&$self,); $($arg)*))).await
         }
     };
 }

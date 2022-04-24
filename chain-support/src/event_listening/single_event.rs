@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{future::Future, time::Duration};
 
 use ac_node_api::events::{EventsDecoder, Raw};
 use aleph_client::Connection;
@@ -162,19 +162,23 @@ impl<E: Event> SingleEventListener<E> {
             }
         }
     }
+}
 
-    /// If `result` is `Ok(_)` then delegates to `self.expect_event`. Otherwise, cancels listening.
-    pub async fn expect_event_if_ok<R>(
-        self,
-        duration: Duration,
-        result: AnyResult<R>,
-    ) -> AnyResult<E> {
-        match result {
-            Ok(_) => self.expect_event(duration).await,
-            Err(e) => {
-                let _ = self.kill().await;
-                Err(e)
-            }
+pub async fn with_event_listening<E: Event, R, F: Future<Output = AnyResult<R>>>(
+    connection: &Connection,
+    expected_event: E,
+    event_timeout: Duration,
+    action: F,
+) -> AnyResult<(R, E)> {
+    let sel = SingleEventListener::new(connection, expected_event).await?;
+    match action.await {
+        Ok(result) => match sel.expect_event(event_timeout).await {
+            Ok(event) => Ok((result, event)),
+            Err(e) => Err(e),
+        },
+        Err(e) => {
+            let _ = sel.kill().await;
+            Err(e)
         }
     }
 }

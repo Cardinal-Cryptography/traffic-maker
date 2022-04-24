@@ -2,6 +2,7 @@ use serde::Deserialize;
 
 use chain_support::{create_connection, Connection};
 use common::Scenario;
+use scenarios_multisig::{Multisig, MultisigConfig};
 use scenarios_transfer::{
     RandomTransfers, RandomTransfersConfig, RoundRobin, RoundRobinConfig, SimpleTransfer,
     SimpleTransferConfig,
@@ -55,6 +56,7 @@ enum ScenarioConfig {
     SimpleTransfer(SimpleTransferConfig),
     RoundRobin(RoundRobinConfig),
     RandomTransfers(RandomTransfersConfig),
+    Multisig(MultisigConfig),
 }
 
 impl ScenarioConfig {
@@ -69,6 +71,7 @@ impl ScenarioConfig {
             ScenarioConfig::RandomTransfers(config) => {
                 Box::new(RandomTransfers::new(connection, config.clone()))
             }
+            ScenarioConfig::Multisig(config) => Box::new(Multisig::new(connection, config.clone())),
         }
     }
 }
