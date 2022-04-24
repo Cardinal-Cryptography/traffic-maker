@@ -55,7 +55,7 @@ impl Multisig {
         let party_size = config.party_size.get(AVAILABLE_ACCOUNTS);
         let threshold = config.threshold.get(party_size).unwrap();
 
-        Multisig {
+        let multisig = Multisig {
             ident: config.ident,
             interval: config.interval,
             party_size,
@@ -63,7 +63,13 @@ impl Multisig {
             strategy: config.strategy,
             cancel: config.cancel,
             connection: connection.clone(),
-        }
+        };
+        multisig.info(format!(
+            "Creating multisig scenario with party size: {} and threshold: {}",
+            party_size, threshold
+        ));
+
+        multisig
     }
 
     fn select_members(&self) -> Vec<KeyPair> {
@@ -100,7 +106,7 @@ impl Multisig {
     }
 
     fn get_party(&self, members: &[KeyPair]) -> AnyResult<MultisigParty> {
-        MultisigParty::new(members.clone().to_vec(), self.threshold as u16)
+        MultisigParty::new(members.to_vec(), self.threshold as u16)
     }
 
     async fn perform_multisig(
