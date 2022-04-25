@@ -1,9 +1,10 @@
-use std::{future::Future, time::Duration};
+use std::{fmt::Debug, future::Future, time::Duration};
 
 use ac_node_api::events::{EventsDecoder, Raw};
 use aleph_client::Connection;
 use anyhow::Result as AnyResult;
 use hex::FromHex;
+use log::error;
 use tokio::{
     sync::oneshot::{channel, Receiver, Sender},
     task::JoinHandle,
@@ -67,10 +68,24 @@ impl<E: Event> SingleEventListener<E> {
                 if (&*raw_event.pallet, &*raw_event.variant) != expected_event.kind() {
                     continue;
                 }
+
+                println!("{:?}", raw_event);
+
+                println!("{:?} {:?}", raw_event.pallet, raw_event.variant);
+
                 if let Ok(received_event) = E::decode(&mut &raw_event.data[..]) {
+                    println!("{:?}", received_event);
+                    println!("{:?}", expected_event);
+
                     if expected_event.matches(&received_event) {
+                        println!("matches");
+
                         return Ok(received_event);
+                    } else {
+                        println!("no match");
                     }
+                } else {
+                    println!("no decode")
                 }
             }
         }
@@ -164,14 +179,18 @@ impl<E: Event> SingleEventListener<E> {
     }
 }
 
-pub async fn with_event_listening<E: Event, R, F: Future<Output = AnyResult<R>>>(
+pub async fn with_event_listening<E: Event, R: Debug, F: Future<Output = AnyResult<R>>>(
     connection: &Connection,
     expected_event: E,
     event_timeout: Duration,
     action: F,
 ) -> AnyResult<(R, E)> {
     let sel = SingleEventListener::new(connection, expected_event).await?;
-    match action.await {
+
+    let a = action.await;
+    error!("{:?}", a);
+
+    match a {
         Ok(result) => match sel.expect_event(event_timeout).await {
             Ok(event) => Ok((result, event)),
             Err(e) => Err(e),

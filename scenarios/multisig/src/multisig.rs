@@ -55,7 +55,7 @@ impl Multisig {
         let party_size = config.party_size.get(AVAILABLE_ACCOUNTS);
         let threshold = config.threshold.get(party_size).unwrap();
 
-        let multisig = Multisig {
+        Multisig {
             ident: config.ident,
             interval: config.interval,
             party_size,
@@ -63,13 +63,7 @@ impl Multisig {
             strategy: config.strategy,
             cancel: config.cancel,
             connection: connection.clone(),
-        };
-        multisig.info(format!(
-            "Creating multisig scenario with party size: {} and threshold: {}",
-            party_size, threshold
-        ));
-
-        multisig
+        }
     }
 
     fn select_members(&self) -> Vec<KeyPair> {
@@ -118,12 +112,18 @@ impl Multisig {
         let connection = self.connection.clone().set_signer(members[0].clone());
 
         let party = self.get_party(&members)?;
+        self.info("Initializing signature aggregation");
         let mut sig_agg = actions[0]
             .perform(&connection, party, None, call.clone(), &members[0], false)
             .await?;
 
         for (idx, action) in actions[1..].iter().enumerate() {
-            let should_finalize = idx == actions.len() - 1;
+            let should_finalize = idx + 2 == actions.len();
+
+            self.info(format!(
+                "Performing `{:?}`. Should finalize: {}",
+                action, should_finalize
+            ));
 
             sig_agg = action
                 .perform(
@@ -131,7 +131,7 @@ impl Multisig {
                     self.get_party(&members)?,
                     sig_agg,
                     call.clone(),
-                    &members[idx],
+                    &members[idx + 1],
                     should_finalize,
                 )
                 .await?;
@@ -152,13 +152,17 @@ impl Scenario for Multisig {
     }
 
     async fn play(&mut self) -> AnyResult<()> {
-        self.info("Starting scenario");
+        self.info(format!(
+            "Starting multisig scenario with party size: {} and threshold: {}",
+            self.party_size, self.threshold
+        ));
 
         let members = self.select_members();
         let actions = self.prepare_actions();
         let call = self.prepare_call();
 
-        self.perform_multisig(members, actions, call).await?;
+        let result = self.perform_multisig(members, actions, call).await;
+        self.handle(result)?;
 
         self.info("Scenario finished successfully");
         Ok(())

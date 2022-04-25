@@ -2573,6 +2573,7 @@ dependencies = [
  "async-trait",
  "chain-support",
  "common",
+ "pallet-multisig",
  "parity-scale-codec",
  "rand 0.8.5",
  "scenarios-support",

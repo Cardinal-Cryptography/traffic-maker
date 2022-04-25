@@ -1,7 +1,7 @@
 // for `do_async!`
 #![feature(fn_traits)]
 
-use std::time::Duration;
+use std::{fmt::Debug, time::Duration};
 
 use aleph_client::{
     account_from_keypair, compute_call_hash,
@@ -26,7 +26,7 @@ use crate::events::{
 mod events;
 mod multisig;
 
-const EVENT_TIMEOUT: Duration = Duration::from_millis(1500);
+const EVENT_TIMEOUT: Duration = Duration::from_millis(2000);
 type CallHash = [u8; 32];
 
 /// Gathers all possible errors from this module.
@@ -122,6 +122,8 @@ impl Action {
         if !self.is_initial() && sig_agg.is_none() {
             return Err(MultisigError::InvalidAggregation.into());
         }
+
+        println!("KURWA:::::::::::::::: {:?}", party.get_account());
 
         let connection = connection.clone().set_signer(caller.clone());
         let caller = account_from_keypair(caller);
