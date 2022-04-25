@@ -1,3 +1,7 @@
+/// Here we have 'copies' of the events from `pallet_multisig`,
+/// since need `Event` trait implemented for them. The fields of
+/// `Timepoint` or `DispatchResult` are ignored as their values
+/// are either non-reproducible or irrelevant.
 use aleph_client::BlockNumber;
 use codec::Decode;
 use pallet_multisig::Timepoint;
@@ -65,6 +69,8 @@ impl Event for MultisigApprovalEvent {
     }
 }
 
+/// Placeholder for real `DispatchResult`. Without it,
+/// we would have to add dependency on some substrate secondary crates.
 #[derive(Debug, Decode, Clone)]
 enum DispatchResult {
     Ok,
