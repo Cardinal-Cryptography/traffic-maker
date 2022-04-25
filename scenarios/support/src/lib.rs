@@ -3,6 +3,7 @@ use std::time::Duration;
 use parse_duration::parse;
 use serde::{Deserialize, Deserializer};
 
+/// Utility parser method for `Duration` struct.
 pub fn parse_interval<'de, D>(deserializer: D) -> core::result::Result<Duration, D::Error>
 where
     D: Deserializer<'de>,

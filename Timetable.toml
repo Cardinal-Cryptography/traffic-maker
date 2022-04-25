@@ -1,10 +1,10 @@
 scenarios = [
-#    { kind = "SimpleTransfer", ident = "SimpleTransfer (7s)", interval = "7 seconds", transfer_value = 10 },
-#    { kind = "RoundRobin", ident = "RoundRobin (10s)", interval = "10 seconds", passes = 3, robin_value = 1 },
-#    { kind = "RandomTransfers", ident = "ManyToMany (10s)", interval = "10 seconds", direction = "ManyToMany", granularity = "OneByOne", transfers = 5, transfer_fraction = 1 },
-#    { kind = "RandomTransfers", ident = "OneToMany (10s)", interval = "10 seconds", direction = "OneToMany", granularity = "Batched", transfers = 7, transfer_fraction = 3 },
-    { kind = "Multisig", ident = "Multisig (optimal)", interval = "5 seconds", party_size = { "Precise" = 4 }, threshold = { "Precise" = 3 }, strategy = "Optimal", cancel = false },
-#    { kind = "Multisig", ident = "Multisig (mess)", interval = "40 seconds", party_size = "Medium", threshold = { "Precise" = 3 }, strategy = "Mess", cancel = false },
+    { kind = "SimpleTransfer", ident = "SimpleTransfer (7s)", interval = "7 seconds", transfer_value = 10 },
+    { kind = "RoundRobin", ident = "RoundRobin (10s)", interval = "10 seconds", passes = 3, robin_value = 1 },
+    { kind = "RandomTransfers", ident = "ManyToMany (10s)", interval = "10 seconds", direction = "ManyToMany", granularity = "OneByOne", transfers = 5, transfer_fraction = 1 },
+    { kind = "RandomTransfers", ident = "OneToMany (10s)", interval = "10 seconds", direction = "OneToMany", granularity = "Batched", transfers = 7, transfer_fraction = 3 },
+    { kind = "Multisig", ident = "Multisig (optimal)", interval = "12 seconds", party_size = { "Precise" = 4 }, threshold = { "Precise" = 3 }, strategy = "Optimal", cancel = false },
+    { kind = "Multisig", ident = "Multisig (cancel)", interval = "15 seconds", party_size = "Large", threshold = { "Precise" = 3 }, strategy = "Optimal", cancel = true },
 ]
 
 [environment]

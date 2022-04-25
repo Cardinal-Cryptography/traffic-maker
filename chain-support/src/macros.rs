@@ -212,7 +212,7 @@ macro_rules! exchange_args_with_cloned {
 }
 
 /// `do_async` enables running blocking task within an asynchronous environment in a convenient way.
-/// It takes the target function: `action` (unfortunately, it cannot be an associated method)
+/// It takes the target function: `action` (either function or an associated method)
 /// and its arguments. `action` is executed with `tokio::task::spawn_blocking`, so the
 /// corresponding dependency has to be included in the caller's crate.
 ///
@@ -224,12 +224,15 @@ macro_rules! exchange_args_with_cloned {
 /// to use unstable feature `fn_traits`. Hence, you have to include `#![feature(fn_traits)]`
 /// rule in caller's crate root.
 ///
-/// The permissible arguments are: variable, variable passed by reference, field and field
-/// passed by reference.
+/// Note: for now, only associated methods expecting `&self` are handled. To call such method,
+/// use `do_async!(StructName::method_name, object, args...)`.
+///
+/// The permissible arguments are: variable, variable passed by reference, field, field
+/// passed by reference and an expression.
 ///
 /// For example, this snippet:
 /// ```no_run
-///     use chain_support::{do_async};    
+///     use chain_support::do_async;    
 ///
 ///     fn fun(a: u8, b: usize, c: &usize) {}
 ///
@@ -256,10 +259,40 @@ macro_rules! exchange_args_with_cloned {
 ///          spawn_blocking(move || f.call((x, f1, &f2))).await
 ///     }?
 /// ```
+/// Similarly, this snippet:
+/// ```no_run
+///     use chain_support::do_async;
+///
+///     struct S { f: usize }
+///     impl S {
+///         pub fn g(&self, bool) {}
+///     }
+///     
+///     let s = S { f: 1 };
+///     let x = Some(true);
+///
+///     do_async!(S::g, s, x.unwrap())?;
+/// ```
+/// is equivalent to:
+/// ```no_run
+///     struct S { f: usize }
+///     impl S {
+///         fn g(&self) {}
+///     }
+///     
+///     let s = S { f: 1 };
+///     let x = Some(true);
+///
+///     {
+//          use tokio::task::spawn_blocking;
+//          spawn_blocking(move || S::g.call((&s, (x.unwrap()), ))).await
+//      }
+/// ```
 ///
 /// Returns `tokio::runtime::task::Result<T>`, where `T` is the return type for `action`.
 #[macro_export]
 macro_rules! do_async {
+    // standard function call
     ($action:ident, $($arg:tt)*) => {
         {
             use tokio::task::spawn_blocking;
@@ -269,6 +302,7 @@ macro_rules! do_async {
         }
     };
 
+    // associated method call
     ($scope:ident :: $action:ident, $self:ident, $($arg:tt)*) => {
         {
             use tokio::task::spawn_blocking;

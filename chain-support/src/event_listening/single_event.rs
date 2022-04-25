@@ -4,7 +4,6 @@ use ac_node_api::events::{EventsDecoder, Raw};
 use aleph_client::Connection;
 use anyhow::Result as AnyResult;
 use hex::FromHex;
-use log::error;
 use tokio::{
     sync::oneshot::{channel, Receiver, Sender},
     task::JoinHandle,
@@ -69,23 +68,10 @@ impl<E: Event> SingleEventListener<E> {
                     continue;
                 }
 
-                println!("{:?}", raw_event);
-
-                println!("{:?} {:?}", raw_event.pallet, raw_event.variant);
-
                 if let Ok(received_event) = E::decode(&mut &raw_event.data[..]) {
-                    println!("{:?}", received_event);
-                    println!("{:?}", expected_event);
-
                     if expected_event.matches(&received_event) {
-                        println!("matches");
-
                         return Ok(received_event);
-                    } else {
-                        println!("no match");
                     }
-                } else {
-                    println!("no decode")
                 }
             }
         }
@@ -179,6 +165,14 @@ impl<E: Event> SingleEventListener<E> {
     }
 }
 
+/// Handy wrapper for a waiting-flow depending on the success of `action`.
+/// Performs three steps:
+/// - creates `SingleEventListener` instance for `expected_event` (using `connection`)
+/// - awaits for `action`
+/// - depending on whether `action` returned:
+///     - `Ok(result)`: waits for `expected_event` for at most `event_timeout` and
+///       returns either `(result, received_event)` if listening succeeded or `Err(_)` otherwise
+///     - `Err(e)`: cancels listening and returns `Err(e)`
 pub async fn with_event_listening<E: Event, R: Debug, F: Future<Output = AnyResult<R>>>(
     connection: &Connection,
     expected_event: E,
@@ -186,11 +180,7 @@ pub async fn with_event_listening<E: Event, R: Debug, F: Future<Output = AnyResu
     action: F,
 ) -> AnyResult<(R, E)> {
     let sel = SingleEventListener::new(connection, expected_event).await?;
-
-    let a = action.await;
-    error!("{:?}", a);
-
-    match a {
+    match action.await {
         Ok(result) => match sel.expect_event(event_timeout).await {
             Ok(event) => Ok((result, event)),
             Err(e) => Err(e),

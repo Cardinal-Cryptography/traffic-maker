@@ -33,6 +33,7 @@ impl Event for NewMultisigEvent {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Decode, Clone)]
 pub struct MultisigApprovalEvent {
     approving: AccountId,
@@ -76,6 +77,7 @@ impl Default for DispatchResult {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Decode, Clone)]
 pub struct MultisigExecutedEvent {
     approving: AccountId,
@@ -109,6 +111,7 @@ impl Event for MultisigExecutedEvent {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Decode, Clone)]
 pub struct MultisigCancelledEvent {
     cancelling: AccountId,
