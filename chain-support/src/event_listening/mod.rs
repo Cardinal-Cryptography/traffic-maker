@@ -33,7 +33,7 @@ pub type EventKind = (&'static str, &'static str);
 /// `EventKind` will be decoded (deserialized) to the corresponding struct and then
 /// checked against `matches()` method.
 ///
-/// For a reference, look below at `TransferEvent`.
+/// For a reference, look below at `Transfer`.
 pub trait Event: Clone + Debug + Decode + Send + 'static {
     /// Returns corresponding `EventKind`.
     fn kind(&self) -> EventKind;
@@ -46,15 +46,15 @@ pub trait Event: Clone + Debug + Decode + Send + 'static {
 /// look at `pallet_balances::Event::Transfer`.
 #[derive(Clone, Debug, Event, Decode, PartialEq, Eq)]
 #[pallet = "Balances"]
-pub struct TransferEvent {
+pub struct Transfer {
     from: AccountId,
     to: AccountId,
     amount: u128,
 }
 
-impl TransferEvent {
+impl Transfer {
     pub fn new(from: &KeyPair, to: &AccountId, amount: u128) -> Self {
-        TransferEvent {
+        Transfer {
             from: AccountId::from(from.public()),
             to: to.clone(),
             amount,
