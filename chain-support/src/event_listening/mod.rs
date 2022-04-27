@@ -5,8 +5,8 @@ use codec::Decode;
 use substrate_api_client::{AccountId, Pair};
 use thiserror::Error;
 
+pub use event_derive::Event;
 pub use single_event::SingleEventListener;
-
 mod single_event;
 
 /// Gathers all possible errors from this module.
@@ -43,21 +43,22 @@ pub trait Event: Clone + Debug + Decode + Send + 'static {
 }
 
 /// Blanket implementation for events like `pallet_utility::BatchCompleted` with no fields.
-#[derive(Clone, Debug, Decode)]
+#[derive(Clone, Debug, Decode, Event)]
+#[pallet = "dupa"]
 pub struct BareEvent {
     #[codec(skip)]
     kind: EventKind,
 }
 
-impl Event for BareEvent {
-    fn kind(&self) -> EventKind {
-        self.kind
-    }
-
-    fn matches(&self, _: &Self) -> bool {
-        true
-    }
-}
+// impl Event for BareEvent {
+//     fn kind(&self) -> EventKind {
+//         self.kind
+//     }
+//
+//     fn matches(&self, _: &Self) -> bool {
+//         true
+//     }
+// }
 
 impl From<EventKind> for BareEvent {
     fn from(kind: EventKind) -> Self {
@@ -67,7 +68,8 @@ impl From<EventKind> for BareEvent {
 
 /// Representation of the `Transfer` event from pallet `Balances`. For details
 /// look at `pallet_balances::Event::Transfer`.
-#[derive(Clone, Debug, Decode, PartialEq, Eq)]
+#[derive(Clone, Debug, Event, Decode, PartialEq, Eq)]
+#[pallet = "Balances"]
 pub struct TransferEvent {
     from: AccountId,
     to: AccountId,
@@ -84,12 +86,12 @@ impl TransferEvent {
     }
 }
 
-impl Event for TransferEvent {
-    fn kind(&self) -> EventKind {
-        ("Balances", "Transfer")
-    }
-
-    fn matches(&self, other: &Self) -> bool {
-        self.eq(other)
-    }
-}
+// impl Event for TransferEvent {
+//     fn kind(&self) -> EventKind {
+//         ("Balances", "Transfer")
+//     }
+//
+//     fn matches(&self, other: &Self) -> bool {
+//         self.eq(other)
+//     }
+// }
