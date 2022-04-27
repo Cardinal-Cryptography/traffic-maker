@@ -2,15 +2,14 @@ use std::{collections::HashMap, time::Duration};
 
 use aleph_client::{get_free_balance, try_send_xt, Connection, KeyPair};
 use anyhow::Result as AnyResult;
-use codec::Compact;
+use chain_support::{do_async, keypair_derived_from_seed, Event, SingleEventListener};
+use codec::{Compact, Decode};
+use common::{Ident, Scenario, ScenarioError, ScenarioLogging};
 use rand::{prelude::IteratorRandom, thread_rng, Rng};
 use serde::Deserialize;
 use substrate_api_client::{
     compose_call, compose_extrinsic, AccountId, GenericAddress, Pair, XtStatus,
 };
-
-use chain_support::{do_async, keypair_derived_from_seed, BareEvent, SingleEventListener};
-use common::{Ident, Scenario, ScenarioError, ScenarioLogging};
 
 use crate::{parse_interval, try_transfer};
 
@@ -26,6 +25,10 @@ const AVAILABLE_ACCOUNTS: usize = 100;
 fn compute_keypair(idx: usize) -> KeyPair {
     keypair_derived_from_seed(format!("{}{}", RANDOM_TRANSFER_SEED, idx))
 }
+
+#[derive(Debug, Clone, Event, Decode)]
+#[pallet = "Utility"]
+struct BatchCompleted;
 
 /// Describes which type of traffic is intended. Variants are pretty self-explanatory.
 #[derive(Clone, Debug, Deserialize)]
@@ -237,9 +240,7 @@ impl RandomTransfers {
         let connection = self.connection.clone().set_signer(pairs[0].sender.clone());
         let xt = compose_extrinsic!(connection, "Utility", "batch", xts);
 
-        let sel =
-            SingleEventListener::new(&connection, BareEvent::from(("Utility", "BatchCompleted")))
-                .await?;
+        let sel = SingleEventListener::new(&connection, BatchCompleted {}).await?;
         let batch_result = try_send_xt(
             &connection,
             xt,
