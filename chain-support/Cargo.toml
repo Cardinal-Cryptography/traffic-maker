@@ -17,3 +17,4 @@ tokio = { version = "1.17.0", features = [ "rt-multi-thread", "time", "sync" ] }
 thiserror = "1.0"
 
 common = { path = "../common" }
+event-derive = { path = "src/event_listening/derive" }
