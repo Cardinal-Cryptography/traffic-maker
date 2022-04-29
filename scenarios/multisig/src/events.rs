@@ -6,11 +6,11 @@ use aleph_client::BlockNumber;
 use codec::Decode;
 use pallet_multisig::Timepoint;
 
-use chain_support::{Event, EventKind};
+use chain_support::Event;
 
 use crate::{AccountId, CallHash};
 
-#[derive(Clone, Debug, Decode, Default, Event)]
+#[derive(Clone, Debug, Decode, Event)]
 #[pallet = "Multisig"]
 pub struct NewMultisig {
     approving: AccountId,
@@ -28,12 +28,12 @@ impl NewMultisig {
     }
 }
 
-#[derive(Clone, Debug, Decode, Default, Event)]
+#[derive(Clone, Debug, Decode, Event)]
 #[pallet = "Multisig"]
 pub struct MultisigApproval {
     approving: AccountId,
     #[event_ignore]
-    timepoint: Timepoint<BlockNumber>,
+    _timepoint: Timepoint<BlockNumber>,
     multisig: AccountId,
     call_hash: CallHash,
 }
@@ -42,56 +42,43 @@ impl MultisigApproval {
     pub fn new(approving: AccountId, multisig: AccountId, call_hash: CallHash) -> Self {
         MultisigApproval {
             approving,
+            _timepoint: Default::default(),
             multisig,
             call_hash,
-            ..Default::default()
         }
     }
 }
 
-/// Placeholder for real `DispatchResult`. Without it,
-/// we would have to add dependency on some substrate secondary crates.
-#[derive(Debug, Decode, Clone)]
-enum DispatchResult {
-    Ok,
-    Err,
-}
-
-impl Default for DispatchResult {
-    fn default() -> Self {
-        DispatchResult::Ok
-    }
-}
-
-#[derive(Clone, Debug, Decode, Default, Event)]
+#[derive(Clone, Debug, Decode, Event)]
 #[pallet = "Multisig"]
 pub struct MultisigExecuted {
     approving: AccountId,
     #[event_ignore]
-    timepoint: Timepoint<BlockNumber>,
+    _timepoint: Timepoint<BlockNumber>,
     multisig: AccountId,
     call_hash: CallHash,
     #[event_ignore]
-    result: DispatchResult,
+    _result: Result<(), sp_runtime::DispatchError>,
 }
 
 impl MultisigExecuted {
     pub fn new(approving: AccountId, multisig: AccountId, call_hash: CallHash) -> Self {
         MultisigExecuted {
             approving,
+            _timepoint: Default::default(),
             multisig,
             call_hash,
-            ..Default::default()
+            _result: Ok(()),
         }
     }
 }
 
-#[derive(Clone, Debug, Decode, Default, Event)]
+#[derive(Clone, Debug, Decode, Event)]
 #[pallet = "Multisig"]
 pub struct MultisigCancelled {
     cancelling: AccountId,
     #[event_ignore]
-    timepoint: Timepoint<BlockNumber>,
+    _timepoint: Timepoint<BlockNumber>,
     multisig: AccountId,
     call_hash: CallHash,
 }
@@ -100,9 +87,9 @@ impl MultisigCancelled {
     pub fn new(cancelling: AccountId, multisig: AccountId, call_hash: CallHash) -> Self {
         MultisigCancelled {
             cancelling,
+            _timepoint: Default::default(),
             multisig,
             call_hash,
-            ..Default::default()
         }
     }
 }

@@ -116,7 +116,7 @@ impl Multisig {
             .balance_transfer(GenericAddress::Address32(Default::default()), 0)
     }
 
-    /// Due to the problems described in `lib.rs::Action::perform` we have to create
+    /// Due to the problems described in `crate::Action::perform` we have to create
     /// party for each call. Fortunately it is not so expensive.
     fn get_party(members: &[KeyPair], threshold: usize) -> AnyResult<MultisigParty> {
         MultisigParty::new(members.to_vec(), threshold as u16)
@@ -177,7 +177,7 @@ impl Scenario for Multisig {
     }
 
     async fn play(&mut self) -> AnyResult<()> {
-        let party_size = self.party_size.clone().get(AVAILABLE_ACCOUNTS);
+        let party_size = self.party_size.clone().get(AVAILABLE_ACCOUNTS)?;
         let threshold = self.threshold.clone().get(party_size)?;
 
         self.info(format!(

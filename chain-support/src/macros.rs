@@ -284,9 +284,9 @@ macro_rules! exchange_args_with_cloned {
 ///     let x = Some(true);
 ///
 ///     {
-//          use tokio::task::spawn_blocking;
-//          spawn_blocking(move || S::g.call((&s, (x.unwrap()), ))).await
-//      }
+///         use tokio::task::spawn_blocking;
+///         spawn_blocking(move || S::g.call((&s, (x.unwrap()), ))).await
+///     };
 /// ```
 ///
 /// Returns `tokio::runtime::task::Result<T>`, where `T` is the return type for `action`.

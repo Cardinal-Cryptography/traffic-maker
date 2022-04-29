@@ -2,16 +2,18 @@ use std::{collections::HashMap, time::Duration};
 
 use aleph_client::{get_free_balance, substrate_api_client, try_send_xt, Connection, KeyPair};
 use anyhow::Result as AnyResult;
-use chain_support::{do_async, keypair_derived_from_seed, Event, SingleEventListener};
 use codec::{Compact, Decode};
-use common::{Ident, Scenario, ScenarioError, ScenarioLogging};
 use rand::{prelude::IteratorRandom, thread_rng, Rng};
 use serde::Deserialize;
 use substrate_api_client::{
     compose_call, compose_extrinsic, AccountId, GenericAddress, Pair, XtStatus,
 };
 
-use crate::{parse_interval, try_transfer};
+use chain_support::{do_async, keypair_derived_from_seed, with_event_listening, Event};
+use common::{Ident, Scenario, ScenarioError, ScenarioLogging};
+use scenarios_support::parse_interval;
+
+use crate::try_transfer;
 
 /// We operate on an account pool based on this seed. The final seeds will have
 /// a form of `RANDOM_TRANSFER_SEED{i: usize}`.

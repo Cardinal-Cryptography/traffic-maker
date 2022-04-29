@@ -41,6 +41,8 @@ pub enum MultisigError {
     ThresholdTooLow,
     #[error("👪❌ Aggregation is no longer valid.")]
     InvalidAggregation,
+    #[error("👪❌ Party size should be less than {0}.")]
+    SizeTooHigh(usize),
 }
 
 /// Way to express desired multisig party size. The final value is obtainable
@@ -58,12 +60,18 @@ pub enum PartySize {
 }
 
 impl PartySize {
-    pub fn get(self, upper_bound: usize) -> usize {
+    pub fn get(self, upper_bound: usize) -> AnyResult<usize> {
         match self {
-            PartySize::Small => thread_rng().gen_range(2..6),
-            PartySize::Medium => thread_rng().gen_range(6..15),
-            PartySize::Large => thread_rng().gen_range(15..=upper_bound),
-            PartySize::Precise(size) => size,
+            PartySize::Small => Ok(thread_rng().gen_range(2..6)),
+            PartySize::Medium => Ok(thread_rng().gen_range(6..15)),
+            PartySize::Large => Ok(thread_rng().gen_range(15..=upper_bound)),
+            PartySize::Precise(size) => {
+                if size <= upper_bound {
+                    Ok(size)
+                } else {
+                    Err(MultisigError::SizeTooHigh(upper_bound).into())
+                }
+            }
         }
     }
 }
@@ -73,7 +81,6 @@ impl PartySize {
 /// - `Random`: for a random threshold between 2 and `party_size`
 /// - `Precise(t)`: for a fixed threshold of `t`; beware that when `t` is less than 2
 ///   or greater than `party_size`, the getter will return suitable error `Err(_)`
-///
 #[derive(Clone, Debug, Deserialize)]
 pub enum Threshold {
     Random,
@@ -105,6 +112,16 @@ enum Action {
     Cancel,
 }
 
+/// Auxiliary function flattening result of result. Highly useful for results
+/// being returned from within `do_async!`.
+fn flatten<T, E: Into<anyhow::Error>>(result: Result<AnyResult<T>, E>) -> AnyResult<T> {
+    match result {
+        Ok(Ok(r)) => Ok(r),
+        Ok(Err(e)) => Err(e),
+        Err(e) => Err(e.into()),
+    }
+}
+
 impl Action {
     /// Checks whether the action carries a whole call (not just its hash).
     pub fn requires_call(&self) -> bool {
@@ -119,16 +136,6 @@ impl Action {
     /// Checks whether this is an initiating action.
     pub fn is_initial(&self) -> bool {
         matches!(self, InitiateWithCall | InitiateWithHash)
-    }
-
-    /// Auxiliary function flattening result of result. Highly useful for results
-    /// being returned from within `do_async!`.
-    fn flatten<R, E: Into<anyhow::Error>>(result: Result<AnyResult<R>, E>) -> AnyResult<R> {
-        match result {
-            Ok(Ok(r)) => Ok(r),
-            Ok(Err(e)) => Err(e),
-            Err(e) => Err(e.into()),
-        }
     }
 
     /// Effectively performs the semantics behind `Action`. Calls corresponding methods
@@ -177,7 +184,7 @@ impl Action {
             InitiateWithHash => {
                 let event = NewMultisigEvent::new(caller, party.get_account(), call_hash);
                 with_event_listening(&connection, event, EVENT_TIMEOUT, async {
-                    Self::flatten(do_async!(
+                    flatten(do_async!(
                         MultisigParty::initiate_aggregation_with_hash,
                         party,
                         &connection,
@@ -191,13 +198,12 @@ impl Action {
             InitiateWithCall => {
                 let event = NewMultisigEvent::new(caller, party.get_account(), call_hash);
                 with_event_listening(&connection, event, EVENT_TIMEOUT, async {
-                    Self::flatten(do_async!(
+                    flatten(do_async!(
                         MultisigParty::initiate_aggregation_with_call,
                         party,
                         &connection,
                         call,
-                        #[allow(clippy::useless_conversion)]
-                        true.into(),
+                        { true },
                         caller_idx
                     ))
                 })
@@ -207,7 +213,7 @@ impl Action {
             ApproveWithHash if should_finalize => {
                 let event = MultisigExecutedEvent::new(caller, party.get_account(), call_hash);
                 with_event_listening(&connection, event, EVENT_TIMEOUT, async {
-                    Self::flatten(do_async!(
+                    flatten(do_async!(
                         MultisigParty::approve,
                         party,
                         &connection,
@@ -221,19 +227,14 @@ impl Action {
             ApproveWithCall if should_finalize => {
                 let event = MultisigExecutedEvent::new(caller, party.get_account(), call_hash);
                 with_event_listening(&connection, event, EVENT_TIMEOUT, async {
-                    Self::flatten(do_async!(
+                    flatten(do_async!(
                         MultisigParty::approve_with_call,
                         party,
                         &connection,
                         caller_idx,
                         sig_agg.unwrap(),
                         call,
-                        // Here and below, we have to either put a variable or exchange
-                        // bool literal / keyword with some expression.
-                        // It originates from the fact that in macro definition we cannot
-                        // distinguish between keywords (`true`) and values.
-                        #[allow(clippy::useless_conversion)]
-                        true.into()
+                        { true }
                     ))
                 })
                 .await
@@ -242,7 +243,7 @@ impl Action {
             ApproveWithHash => {
                 let event = MultisigApprovalEvent::new(caller, party.get_account(), call_hash);
                 with_event_listening(&connection, event, EVENT_TIMEOUT, async {
-                    Self::flatten(do_async!(
+                    flatten(do_async!(
                         MultisigParty::approve,
                         party,
                         &connection,
@@ -256,15 +257,14 @@ impl Action {
             ApproveWithCall => {
                 let event = MultisigApprovalEvent::new(caller, party.get_account(), call_hash);
                 with_event_listening(&connection, event, EVENT_TIMEOUT, async {
-                    Self::flatten(do_async!(
+                    flatten(do_async!(
                         MultisigParty::approve_with_call,
                         party,
                         &connection,
                         caller_idx,
                         sig_agg.unwrap(),
                         call,
-                        #[allow(clippy::useless_conversion)]
-                        true.into()
+                        { true }
                     ))
                 })
                 .await
@@ -273,7 +273,7 @@ impl Action {
             Cancel => {
                 let event = MultisigCancelledEvent::new(caller, party.get_account(), call_hash);
                 with_event_listening(&connection, event, EVENT_TIMEOUT, async {
-                    Self::flatten(do_async!(
+                    flatten(do_async!(
                         MultisigParty::cancel,
                         party,
                         &connection,
@@ -309,7 +309,7 @@ impl Strategy {
             Optimal => InitiateWithHash,
             InAdvance => InitiateWithCall,
             Mess if random() => InitiateWithHash,
-            _ => InitiateWithCall,
+            Mess => InitiateWithCall,
         }
     }
 
@@ -317,7 +317,7 @@ impl Strategy {
         match self {
             Optimal | InAdvance => ApproveWithHash,
             Mess if random() => ApproveWithHash,
-            _ => ApproveWithCall,
+            Mess => ApproveWithCall,
         }
     }
 
@@ -326,7 +326,7 @@ impl Strategy {
             Optimal => ApproveWithCall,
             InAdvance => ApproveWithHash,
             Mess if !call_submitted || random() => ApproveWithCall,
-            _ => ApproveWithHash,
+            Mess => ApproveWithHash,
         }
     }
 }

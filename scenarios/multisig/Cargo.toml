@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 aleph_client = { git = "https://github.com/Cardinal-Cryptography/aleph-node.git", rev = "b23e4f78735361bb428bc2ea84dc30f8d5f302e8" }
 pallet-multisig = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13" }
 
 chain-support = { path = "../../chain-support" }
 common = { path = "../../common" }
