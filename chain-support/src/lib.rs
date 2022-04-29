@@ -8,8 +8,8 @@ pub use aleph_client::{
 };
 
 pub use event_listening::{
-    with_event_listening, BareEvent, Event, EventKind, ListeningError, SingleEventListener,
-    TransferEvent,
+    with_event_listening, Event, EventKind, ListeningError, SingleEventListener,
+    Transfer as TransferEvent,
 };
 
 mod event_listening;
