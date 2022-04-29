@@ -10,16 +10,17 @@ use chain_support::{Event, EventKind};
 
 use crate::{AccountId, CallHash};
 
-#[derive(Debug, Decode, Clone, Eq, PartialEq)]
-pub struct NewMultisigEvent {
+#[derive(Clone, Debug, Decode, Default, Event)]
+#[pallet = "Multisig"]
+pub struct NewMultisig {
     approving: AccountId,
     multisig: AccountId,
     call_hash: CallHash,
 }
 
-impl NewMultisigEvent {
+impl NewMultisig {
     pub fn new(approving: AccountId, multisig: AccountId, call_hash: CallHash) -> Self {
-        NewMultisigEvent {
+        NewMultisig {
             approving,
             multisig,
             call_hash,
@@ -27,45 +28,24 @@ impl NewMultisigEvent {
     }
 }
 
-impl Event for NewMultisigEvent {
-    fn kind(&self) -> EventKind {
-        ("Multisig", "NewMultisig")
-    }
-
-    fn matches(&self, other: &Self) -> bool {
-        self.eq(other)
-    }
-}
-
-#[allow(dead_code)]
-#[derive(Debug, Decode, Clone)]
-pub struct MultisigApprovalEvent {
+#[derive(Clone, Debug, Decode, Default, Event)]
+#[pallet = "Multisig"]
+pub struct MultisigApproval {
     approving: AccountId,
+    #[event_ignore]
     timepoint: Timepoint<BlockNumber>,
     multisig: AccountId,
     call_hash: CallHash,
 }
 
-impl MultisigApprovalEvent {
+impl MultisigApproval {
     pub fn new(approving: AccountId, multisig: AccountId, call_hash: CallHash) -> Self {
-        MultisigApprovalEvent {
+        MultisigApproval {
             approving,
             multisig,
-            timepoint: Default::default(),
             call_hash,
+            ..Default::default()
         }
-    }
-}
-
-impl Event for MultisigApprovalEvent {
-    fn kind(&self) -> EventKind {
-        ("Multisig", "MultisigApproval")
-    }
-
-    fn matches(&self, other: &Self) -> bool {
-        self.approving == other.approving
-            && self.multisig == other.multisig
-            && self.call_hash == other.call_hash
     }
 }
 
@@ -83,68 +63,46 @@ impl Default for DispatchResult {
     }
 }
 
-#[allow(dead_code)]
-#[derive(Debug, Decode, Clone)]
-pub struct MultisigExecutedEvent {
+#[derive(Clone, Debug, Decode, Default, Event)]
+#[pallet = "Multisig"]
+pub struct MultisigExecuted {
     approving: AccountId,
+    #[event_ignore]
     timepoint: Timepoint<BlockNumber>,
     multisig: AccountId,
     call_hash: CallHash,
+    #[event_ignore]
     result: DispatchResult,
 }
 
-impl MultisigExecutedEvent {
+impl MultisigExecuted {
     pub fn new(approving: AccountId, multisig: AccountId, call_hash: CallHash) -> Self {
-        MultisigExecutedEvent {
+        MultisigExecuted {
             approving,
-            timepoint: Default::default(),
             multisig,
             call_hash,
-            result: Default::default(),
+            ..Default::default()
         }
     }
 }
 
-impl Event for MultisigExecutedEvent {
-    fn kind(&self) -> EventKind {
-        ("Multisig", "MultisigExecuted")
-    }
-
-    fn matches(&self, other: &Self) -> bool {
-        self.approving == other.approving
-            && self.multisig == other.multisig
-            && self.call_hash == other.call_hash
-    }
-}
-
-#[allow(dead_code)]
-#[derive(Debug, Decode, Clone)]
-pub struct MultisigCancelledEvent {
+#[derive(Clone, Debug, Decode, Default, Event)]
+#[pallet = "Multisig"]
+pub struct MultisigCancelled {
     cancelling: AccountId,
+    #[event_ignore]
     timepoint: Timepoint<BlockNumber>,
     multisig: AccountId,
     call_hash: CallHash,
 }
 
-impl MultisigCancelledEvent {
+impl MultisigCancelled {
     pub fn new(cancelling: AccountId, multisig: AccountId, call_hash: CallHash) -> Self {
-        MultisigCancelledEvent {
+        MultisigCancelled {
             cancelling,
-            timepoint: Default::default(),
             multisig,
             call_hash,
+            ..Default::default()
         }
-    }
-}
-
-impl Event for MultisigCancelledEvent {
-    fn kind(&self) -> EventKind {
-        ("Multisig", "MultisigCancelled")
-    }
-
-    fn matches(&self, other: &Self) -> bool {
-        self.cancelling == other.cancelling
-            && self.multisig == other.multisig
-            && self.call_hash == other.call_hash
     }
 }

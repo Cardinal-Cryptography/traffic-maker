@@ -20,7 +20,8 @@ use Action::*;
 use Strategy::*;
 
 use crate::events::{
-    MultisigApprovalEvent, MultisigCancelledEvent, MultisigExecutedEvent, NewMultisigEvent,
+    MultisigApproval as MultisigApprovalEvent, MultisigCancelled as MultisigCancelledEvent,
+    MultisigExecuted as MultisigExecutedEvent, NewMultisig as NewMultisigEvent,
 };
 
 mod events;
