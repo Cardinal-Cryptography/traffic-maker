@@ -22,29 +22,30 @@ pub enum ListeningError {
 /// Every event is identified by two coordinates: pallet name and event name,
 /// e.g. `("Balances", "Transfer")`.
 ///
-/// For these you have to look at Substrate code. Pallet's name should be in PascalCase.
-/// The name of the particular event is the name of the corresponding variant of pallet's
-/// `Event` enum. Usually, also in PascalCase.
+/// For these you have to look at Substrate code. Pallet's name should be in PascalCase. The name
+/// of the particular event is the name of the corresponding variant of pallet's `Event` enum.
+/// Usually, also in PascalCase.
 pub type EventKind = (&'static str, &'static str);
 
-/// This trait effectively represents two concepts: identification of an event type and
-/// event filtering. When you are expecting some particular event, you have to provide
-/// corresponding implementation of `Event`.
-/// Stream of events will firstly be filtered by `kind()`. Events with identical
-/// `EventKind` will be decoded (deserialized) to the corresponding struct and then
-/// checked against `matches()` method.
+/// This trait effectively represents two concepts: identification of an event type and event
+/// filtering. When you are expecting some particular event, you have to provide corresponding
+/// implementation of `Event`.
+///
+/// Stream of events will firstly be filtered by `kind()`. Events with identical `EventKind` will be
+/// decoded (deserialized) to the corresponding struct and then checked against `matches()` method.
 ///
 /// For a reference, look below at `Transfer`.
 pub trait Event: Clone + Debug + Decode + Send + 'static {
     /// Returns corresponding `EventKind`.
     fn kind(&self) -> EventKind;
-    /// Decides whether `other` should be considered as the expected event,
-    /// i.e. whether `self` and `other` are equivalent.
+    /// Decides whether `other` should be considered as the expected event, i.e. whether `self` and
+    /// `other` are equivalent.
     fn matches(&self, other: &Self) -> bool;
 }
 
-/// Representation of the `Transfer` event from pallet `Balances`. For details
-/// look at `pallet_balances::Event::Transfer`.
+/// Representation of the `Transfer` event from pallet `Balances`.
+///
+/// For details look at `pallet_balances::Event::Transfer`.
 #[derive(Clone, Debug, Event, Decode, PartialEq, Eq)]
 #[pallet = "Balances"]
 pub struct Transfer {

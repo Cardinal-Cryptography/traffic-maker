@@ -7,9 +7,9 @@ use traffic::EventListener;
 
 use crate::data_export::DataExporter;
 
-/// A single struct realizing two important concepts: data exposure (`DataExporter` trait)
-/// and event registration (`EventListener` trait). It is the way in which the scheduler
-/// communicates with the outer world.
+/// A single struct realizing two important concepts: data exposure (`DataExporter` trait) and event
+/// registration (`EventListener` trait). It is the way in which the scheduler communicates with the
+/// outer world.
 #[derive(Clone)]
 pub struct Stats {
     details: HashMap<Ident, ScenarioDetails>,

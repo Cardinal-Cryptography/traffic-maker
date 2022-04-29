@@ -1,7 +1,9 @@
-/// `clone_args` expects non-empty sequence of arguments to be cloned.
+/// `clone_args` expects non-empty sequence of arguments to be cloned and creates their clones
+/// under corresponding names.
+///
 /// There are 5 handled types of argument:
-/// - *variable passed by value* (`$i:ident`): this one is simply cloned
-///   to a new variable with the same name, so this snippet:
+/// - *variable passed by value* (`$i:ident`): this one is simply cloned to a new variable with the
+///   same name, so this snippet:
 ///   ```no_run
 ///     use chain_support::clone_args;   
 ///
@@ -14,11 +16,11 @@
 ///     let x = x.clone();
 ///   ```
 ///
-/// - *variable passed by reference* (`& $i:ident`): this is handled exactly
-///   the same as in the previous case, no difference;
+/// - *variable passed by reference* (`& $i:ident`): this is handled exactly the same as in the
+///   previous case, no difference;
 ///
-/// - *field passed by value* (`$self:ident . $i:ident`): here we create a new
-///   variable under the field name, so this snippet:
+/// - *field passed by value* (`$self:ident . $i:ident`): here we create a new variable under the
+///   field name, so this snippet:
 ///   ```no_run
 ///     use chain_support::clone_args;    
 ///
@@ -33,11 +35,10 @@
 ///     let f = s.f.clone();
 ///   ```
 ///
-/// - *field passed by reference* (`& $self:ident . $i:ident`): this is handled
-///   exactly the same as in the previous case, no difference;
+/// - *field passed by reference* (`& $self:ident . $i:ident`): this is handled exactly the same as
+///   in the previous case, no difference;
 ///
-/// - *value or expression* (`$e:expr`): this is completely ignored; no cloning;
-///   so this snippet:
+/// - *value or expression* (`$e:expr`): this is completely ignored; no cloning; so this snippet:
 ///   ```no_run
 ///     use chain_support::clone_args;
 ///
@@ -45,9 +46,8 @@
 ///   ```
 ///   does nothing.
 ///
-/// *Note:* Of course these rules are not perfectly safe, e.g. `ident` will
-/// be matched against keyword, which will fail to compile. Please use it
-/// with the simple rules mentioned above.
+/// *Note:* Of course these rules are not perfectly safe, e.g. `ident` will be matched against
+/// keyword, which will fail to compile. Please use it with the simple rules mentioned above.
 #[macro_export]
 macro_rules! clone_args {
     // variable as a single argument
@@ -81,27 +81,28 @@ macro_rules! clone_args {
     };
 }
 
-/// This macro is intended to be used after calling `clone_args` macro.
+/// Maps elements from provided sequence with their counterparts.
 ///
-/// `exchange_args_with_cloned` expects (mainly) a sequence of arguments that should
-/// be exchanged with their counterparts created by `clone_args`. To do so,
-/// it has to perform 'output accumulation', i.e. as the first argument,
-/// `exchange_args_with_cloned` takes accumulated result, which effectively is a tuple;
-/// Hence, for the initial call you would probably pass `()` here.
+/// *Note:* This macro is intended to be used after calling `clone_args` macro.
+///
+/// `exchange_args_with_cloned` expects (mainly) a sequence of arguments that should be exchanged
+/// with their counterparts created by `clone_args`. To do so, it has to perform
+/// 'output accumulation', i.e. as the first argument, `exchange_args_with_cloned` takes accumulated
+/// result, which effectively is a tuple; Hence, for the initial call you would probably pass `()`
+/// here. The accumulator is separated with `;` from target args.
+///
 /// If a single argument is passed, the result will be a singleton tuple.
-///
-/// The accumulator is separated with `;` from target args.
 ///
 /// Similarly to `clone_args`, there are 5 categories of expected arguments:
 /// - *variable passed by value* (`$i:ident`): this one will be translated to the same name
-/// - *variable passed by reference* (`& $i:ident`): this one will be translated to the same
-///   name, however, the counterpart will be taken by reference
-/// - *field passed by value* (`$self:ident . $i:ident`): this one will be translated to the
-///   field name
-/// - *field passed by reference* (`& $self:ident . $i:ident`): this one will be translated
-///   to the field name, however, the counterpart will be taken by reference
-/// - *value or expression* (`$e:expr`): this one will be simply copied (syntactically, no
-///   real copying).
+/// - *variable passed by reference* (`& $i:ident`): this one will be translated to the same name,
+///   however, the counterpart will be taken by reference
+/// - *field passed by value* (`$self:ident . $i:ident`): this one will be translated to the field
+///   name
+/// - *field passed by reference* (`& $self:ident . $i:ident`): this one will be translated to the
+///   field name, however, the counterpart will be taken by reference
+/// - *value or expression* (`$e:expr`): this one will be simply copied (syntactically, no real
+///   copying).
 ///
 /// For example, this snippet:
 /// ```no_run
@@ -212,23 +213,24 @@ macro_rules! exchange_args_with_cloned {
 }
 
 /// `do_async` enables running blocking task within an asynchronous environment in a convenient way.
-/// It takes the target function: `action` (either function or an associated method)
-/// and its arguments. `action` is executed with `tokio::task::spawn_blocking`, so the
-/// corresponding dependency has to be included in the caller's crate.
 ///
-/// As delegating work to a new blocking thread has to capture arguments, that are expected
-/// to have possibly longer lifetime that the passed ones, firstly, we have to clone them.
-/// We do that with `clone_args` macro.
-/// Then, we pass the cloned objects to the action. The problem is that we have to pass them
-/// in a tuple (actually, there is no way of 'inlining' them into method invocation), so we have
-/// to use unstable feature `fn_traits`. Hence, you have to include `#![feature(fn_traits)]`
-/// rule in caller's crate root.
+/// It takes the target function: `action` (either function or an associated method) and its
+/// arguments. `action` is executed with `tokio::task::spawn_blocking`, so the corresponding
+/// dependency has to be included in the caller's crate.
+///
+/// As delegating work to a new blocking thread has to capture arguments, that are expected to have
+/// possibly longer lifetime that the passed ones, firstly, we have to clone them. We do that with
+/// `clone_args` macro.
+/// Then, we pass the cloned objects to the action. The problem is that we have to pass them in
+/// a tuple (actually, there is no way of 'inlining' them into method invocation), so we have to use
+/// unstable feature `fn_traits`. Hence, you have to include `#![feature(fn_traits)]` rule in
+/// the caller's crate root.
 ///
 /// Note: for now, only associated methods expecting `&self` are handled. To call such method,
 /// use `do_async!(StructName::method_name, object, args...)`.
 ///
-/// The permissible arguments are: variable, variable passed by reference, field, field
-/// passed by reference and an expression.
+/// The permissible arguments are: variable, variable passed by reference, field, field passed by
+/// reference and an expression.
 ///
 /// For example, this snippet:
 /// ```no_run

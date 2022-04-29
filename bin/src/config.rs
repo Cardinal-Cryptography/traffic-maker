@@ -8,8 +8,10 @@ use scenarios_transfer::{
     SimpleTransferConfig,
 };
 
-/// This struct combines both the execution environment (including hosts and chain address),
-/// as well as the scenario configurations. It should be read from `Timetable.toml`.
+/// This struct combines both the execution environment (including hosts and chain address), as well
+/// as the scenario configurations.
+///
+/// It should be read from `Timetable.toml`.
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
     environment: Environment,

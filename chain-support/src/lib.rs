@@ -16,6 +16,7 @@ mod event_listening;
 mod macros;
 
 /// Creates a new derived `KeyPair` from provided `seed` as a derivation path.
+/// 
 /// The base seed is empty by default, but can be overridden with env `SECRET_PHRASE_SEED`.
 /// Assumes that `seed` is already prefixed with a derivation delimiter (either `/` or `//`).
 pub fn keypair_derived_from_seed<S: AsRef<str> + Display>(seed: S) -> KeyPair {

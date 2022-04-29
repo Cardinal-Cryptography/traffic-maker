@@ -14,12 +14,12 @@ use scenarios_support::parse_interval;
 
 use crate::{Action, Cancel, PartySize, Strategy, Threshold};
 
-/// We operate on an account pool based on this seed. The final seeds will have
-/// a form of `MULTISIG_SEED{i: usize}`.
+/// We operate on an account pool based on this seed. The final seeds will have a form of
+/// `MULTISIG_SEED{i: usize}`.
 const MULTISIG_SEED: &str = "//Multisig";
 
-/// We expect that there are as many endowed accounts (of seed phrases: `MULTISIG_SEED{i}`,
-/// where `i` is from 0 to this value (exclusively)).
+/// We expect that there are as many endowed accounts (of seed phrases: `MULTISIG_SEED{i}`, where
+/// `i` is from 0 to this value (exclusively)).
 const AVAILABLE_ACCOUNTS: usize = 50;
 
 /// Returns keypair of the common account with index `idx`.
@@ -37,8 +37,8 @@ pub struct MultisigConfig {
     /// Periodicity of launching.
     #[serde(deserialize_with = "parse_interval")]
     interval: Duration,
-    /// Multisig party will be derived from `party_size` and `threshold`. Each time
-    /// scenario is launched, these parameters will potentially be different.
+    /// Multisig party will be derived from `party_size` and `threshold`. Each time scenario is
+    /// launched, these parameters will potentially be different.
     party_size: PartySize,
     threshold: Threshold,
     /// How to conduct aggregation.
@@ -81,11 +81,12 @@ impl Multisig {
             .collect()
     }
 
-    /// Returns a sequence of actions. There will be either
-    /// - `threshold` actions starting with an initiating one and `threshold - 1`
-    ///   further approvals
-    /// - or one initiating action and `< threshold - 1` other approvals with `Cancel`
-    ///   action at the end; this case is true iff `self.cancel`
+    /// Returns a sequence of actions.
+    ///
+    /// There will be either
+    /// - `threshold` actions starting with an initiating one and `threshold - 1` further approvals,
+    /// - or one initiating action and `< threshold - 1` other approvals with `Cancel` action at the
+    ///   end; this case is true iff `self.cancel`
     ///
     /// The precise form of actions (with call or with hash only) depends on `self.strategy`.
     fn prepare_actions(&self, threshold: usize) -> Vec<Action> {
@@ -108,22 +109,25 @@ impl Multisig {
         actions
     }
 
-    /// Dummy extrinsic to be executed after reaching threshold. We use simple money
-    /// transfer which will always fail, but this does not matter at all in context
-    /// of scenario success.
+    /// Dummy extrinsic to be executed after reaching threshold.
+    ///
+    /// We use simple money transfer which will always fail, but this does not matter at all in
+    /// context of scenario success.
     fn prepare_call(&self) -> Call {
         self.connection
             .balance_transfer(GenericAddress::Address32(Default::default()), 0)
     }
 
-    /// Due to the problems described in `crate::Action::perform` we have to create
-    /// party for each call. Fortunately it is not so expensive.
+    /// Due to the problems described in `crate::Action::perform` we have to create party for each
+    /// call.
+    ///
+    /// Fortunately it is not so expensive.
     fn get_party(members: &[KeyPair], threshold: usize) -> AnyResult<MultisigParty> {
         MultisigParty::new(members.to_vec(), threshold as u16)
     }
 
-    /// Executes `actions`. `i`th action will be performed by `members[i]` (unless
-    /// this is `Cancel` which should be performed by `members[0]`.
+    /// Executes `actions`. `i`th action will be performed by `members[i]` (unless this is `Cancel`
+    /// which should be performed by `members[0]`).
     async fn perform_multisig(
         &self,
         members: Vec<KeyPair>,

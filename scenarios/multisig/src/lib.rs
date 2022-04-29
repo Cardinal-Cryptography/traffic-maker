@@ -45,12 +45,14 @@ pub enum MultisigError {
     SizeTooHigh(usize),
 }
 
-/// Way to express desired multisig party size. The final value is obtainable
-/// through consuming getter `get(upper_bound: usize)`. Use:
+/// Way to express desired multisig party size. The final value is obtainable through consuming
+/// getter `get(upper_bound: usize)`.
+///
+/// Use:
 /// - `Small` for a random size between 2 and 5 members
 /// - `Medium` for a random size between 6 and 14 members
 /// - `Large` for a random size between 15 and `upper_bound`
-/// - `Precise(s)` for a fixed size of `s` members
+/// - `Precise(s)` for a fixed size of `s` members; `s` should not be greater than `upper_bound`
 #[derive(Clone, Debug, Deserialize)]
 pub enum PartySize {
     Small,
@@ -76,11 +78,13 @@ impl PartySize {
     }
 }
 
-/// Way to express desired threshold. The final value is obtainable
-/// through consuming getter `get(party_size: usize)`. Use:
+/// Way to express desired threshold. The final value is obtainable through consuming getter
+/// `get(party_size: usize)`.
+///
+/// Use:
 /// - `Random`: for a random threshold between 2 and `party_size`
-/// - `Precise(t)`: for a fixed threshold of `t`; beware that when `t` is less than 2
-///   or greater than `party_size`, the getter will return suitable error `Err(_)`
+/// - `Precise(t)`: for a fixed threshold of `t`; beware that when `t` is less than 2 or greater
+///   than `party_size`, the getter will return suitable error `Err(_)`
 #[derive(Clone, Debug, Deserialize)]
 pub enum Threshold {
     Random,
@@ -112,8 +116,9 @@ enum Action {
     Cancel,
 }
 
-/// Auxiliary function flattening result of result. Highly useful for results
-/// being returned from within `do_async!`.
+/// Auxiliary function flattening result of result.
+///
+/// Highly useful for results being returned from within `do_async!`.
 fn flatten<T, E: Into<anyhow::Error>>(result: Result<AnyResult<T>, E>) -> AnyResult<T> {
     match result {
         Ok(Ok(r)) => Ok(r),
@@ -138,21 +143,20 @@ impl Action {
         matches!(self, InitiateWithCall | InitiateWithHash)
     }
 
-    /// Effectively performs the semantics behind `Action`. Calls corresponding methods
-    /// of `party`.
+    /// Effectively performs the semantics behind `Action`. Calls corresponding methods of `party`.
     ///
-    /// Unfortunately, `party` has to be passed by value here, as `MultisigParty` does
-    /// not implement `Clone` trait, and passing a reference would require `'static` lifetime
-    /// from the calling code.
+    /// Unfortunately, `party` has to be passed by value here, as `MultisigParty` does not implement
+    /// `Clone` trait, and passing a reference would require `'static` lifetime from the calling
+    /// code.
     ///
     /// `sig_agg` should be `None` iff `self.is_initial()`.
     ///
-    /// `should_finalize` is a flag indicating whether this approval should result in
-    /// executing `call`.
+    /// `should_finalize` is a flag indicating whether this approval should result in executing
+    /// `call`.
     ///
     /// Note: if the action is `InitiateWithCall` or `ApproveWithCall`, `call` will be stored
-    /// (unless this is the final approval). In other words, the pallet call flag `store_call`
-    /// is always set to `true`.
+    /// (unless this is the final approval). In other words, the pallet call flag `store_call` is
+    /// always set to `true`.
     pub async fn perform<CallDetails: Encode + Clone + Send + 'static>(
         &self,
         connection: &Connection,
@@ -171,15 +175,16 @@ impl Action {
         let caller_idx = party.get_member_index(caller.clone())?;
         let call_hash = compute_call_hash(&call);
 
-        // The schema is common for all the cases. Firstly, we build an `event` we expect
-        // to confirm the action. Then we call corresponding method from `MultisigParty`
-        // wrapped with `with_event_listening`. This part is done asynchronously and
-        // non-blocking due to `do_async!`.
-        // When succeeded, we return new `SignatureAggregation` (in case of `Cancel`,
-        // this will be unchanged `sig_agg`).
+        // The schema is common for all the cases. Firstly, we build an `event` we expect to confirm
+        // the action. Then we call corresponding method from `MultisigParty` wrapped with
+        // `with_event_listening`. This part is done asynchronously and non-blocking due to
+        // `do_async!`.
         //
-        // As for similar code: since `event` object is different, we cannot easily (without
-        // some ugly boxing) extract common schema.
+        // When succeeded, we return new `SignatureAggregation` (in case of `Cancel`, this will be
+        // unchanged `sig_agg`).
+        //
+        // As for similar code: since `event` object is different, we cannot easily (without some
+        // ugly boxing) extract common schema.
         match self {
             InitiateWithHash => {
                 let event = NewMultisigEvent::new(caller, party.get_account(), call_hash);
@@ -288,9 +293,9 @@ impl Action {
     }
 }
 
-/// Describes how the signature aggregation should be carried:
-/// - `Optimal`: everyone except the last one reports their approval only with hash
-///   (this includes the initiator); only the last member passes call within their extrinsic;
+/// Describes how the signature aggregation should be carried out:
+/// - `Optimal`: everyone except the last one reports their approval only with hash (this includes
+///   the initiator); only the last member passes call within their extrinsic;
 /// - `Mess`: everyone randomly reports approval only with hash or with a call; it is guaranteed
 ///   that at least one approval comes with the call
 /// - `InAdvance`: the initiator saves the call; everyone else approves with only hash
