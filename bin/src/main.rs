@@ -16,14 +16,18 @@ mod data_export;
 mod stats;
 
 async fn serve_details<DE: DataExporter>(data: web::Data<DE>) -> impl Responder {
-    HttpResponse::Ok().body(data.export_details())
+    HttpResponse::Ok()
+        .content_type("application/json")
+        .body(data.export_details())
 }
 
 async fn serve_logs<DE: DataExporter>(
     data: web::Data<DE>,
     scenario_ident: web::Path<String>,
 ) -> impl Responder {
-    HttpResponse::Ok().body(data.export_logs(scenario_ident.into_inner().into()))
+    HttpResponse::Ok()
+        .content_type("application/json")
+        .body(data.export_logs(scenario_ident.into_inner().into()))
 }
 
 fn parse_config() -> Config {
