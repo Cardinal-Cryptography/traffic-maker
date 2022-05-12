@@ -1,5 +1,6 @@
 use aleph_client::{
-    balances_batch_transfer, create_connection, keypair_from_string, send_xt, Connection,
+    balances_batch_transfer, create_connection, keypair_from_string, send_xt, substrate_api_client,
+    Connection,
 };
 use codec::Compact;
 use serde::Deserialize;

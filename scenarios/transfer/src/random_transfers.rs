@@ -1,17 +1,19 @@
 use std::{collections::HashMap, time::Duration};
 
-use aleph_client::{get_free_balance, try_send_xt, Connection, KeyPair};
+use aleph_client::{get_free_balance, substrate_api_client, try_send_xt, Connection, KeyPair};
 use anyhow::Result as AnyResult;
-use chain_support::{do_async, keypair_derived_from_seed, Event, SingleEventListener};
 use codec::{Compact, Decode};
-use common::{Ident, Scenario, ScenarioError, ScenarioLogging};
 use rand::{prelude::IteratorRandom, thread_rng, Rng};
 use serde::Deserialize;
 use substrate_api_client::{
     compose_call, compose_extrinsic, AccountId, GenericAddress, Pair, XtStatus,
 };
 
-use crate::{parse_interval, try_transfer};
+use chain_support::{do_async, keypair_derived_from_seed, with_event_listening, Event};
+use common::{Ident, Scenario, ScenarioError, ScenarioLogging};
+use scenarios_support::parse_interval;
+
+use crate::try_transfer;
 
 /// We operate on an account pool based on this seed. The final seeds will have
 /// a form of `RANDOM_TRANSFER_SEED{i: usize}`.
@@ -240,19 +242,21 @@ impl RandomTransfers {
         let connection = self.connection.clone().set_signer(pairs[0].sender.clone());
         let xt = compose_extrinsic!(connection, "Utility", "batch", xts);
 
-        let sel = SingleEventListener::new(&connection, BatchCompleted {}).await?;
-        let batch_result = try_send_xt(
+        let batch_result = with_event_listening(
             &connection,
-            xt,
-            Some("Sending transfers in batch"),
-            XtStatus::Finalized,
+            BatchCompleted {},
+            Duration::from_secs(1),
+            async {
+                try_send_xt(
+                    &connection,
+                    xt,
+                    Some("Sending transfers in batch"),
+                    XtStatus::Finalized,
+                )
+                .map_err(|_| ScenarioError::CannotSendExtrinsic.into())
+            },
         )
-        .map_err(|_| ScenarioError::CannotSendExtrinsic.into());
-
-        let batch_result = sel
-            .expect_event_if_ok(Duration::from_secs(1), batch_result)
-            .await
-            .map(|_| ());
+        .await;
 
         self.handle(batch_result)?;
 

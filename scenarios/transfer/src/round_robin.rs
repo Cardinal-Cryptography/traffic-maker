@@ -1,15 +1,16 @@
 use std::time::Duration;
 
-use aleph_client::{Connection, KeyPair};
+use aleph_client::{account_from_keypair, substrate_api_client, Connection, KeyPair};
 use anyhow::Result as AnyResult;
 use rand::random;
 use serde::Deserialize;
-use substrate_api_client::{AccountId, Pair};
+use substrate_api_client::AccountId;
 
 use chain_support::{keypair_derived_from_seed, real_amount};
 use common::{Ident, Scenario, ScenarioLogging};
+use scenarios_support::parse_interval;
 
-use crate::{parse_interval, try_transfer};
+use crate::try_transfer;
 
 const ROUND_ROBIN_SEED: &str = "//RoundRobin";
 
@@ -72,7 +73,7 @@ impl Scenario for RoundRobin {
             let receiver_idx = (sender_idx + 1) % n;
             let (sender, receiver) = (&self.accounts[sender_idx], &self.accounts[receiver_idx]);
 
-            self.pass_robin(sender.clone(), AccountId::from(receiver.public()))
+            self.pass_robin(sender.clone(), account_from_keypair(receiver))
                 .await?;
 
             self.debug(&*format!("Completed {}/{} passes.", sender_idx + 1, n));

@@ -1,10 +1,12 @@
 [package]
-name = "scenarios-transfer"
+name = "scenarios-multisig"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 aleph_client = { git = "https://github.com/Cardinal-Cryptography/aleph-node.git", rev = "b23e4f78735361bb428bc2ea84dc30f8d5f302e8" }
+pallet-multisig = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13" }
 
 chain-support = { path = "../../chain-support" }
 common = { path = "../../common" }
@@ -13,8 +15,7 @@ scenarios-support = { path = "../support" }
 anyhow = "1.0"
 async-trait = "0.1"
 codec = { package = 'parity-scale-codec', version = "2.0.0", default-features = false,  features = ['derive']}
-log = "0.4"
-parse_duration = "2.1.1"
-serde = { version = "1.0", features = ["derive"] }
 rand = { version = "0.8.5", features = ["alloc"] }
+serde = { version = "1.0", features = ["derive"] }
+thiserror = "1.0"
 tokio = { version = "1.17.0", features = ["rt-multi-thread"] }

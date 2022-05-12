@@ -5,7 +5,9 @@ members = [
     "traffic",
     "chain-support",
     "common",
-    "scenarios/transfer"
+    "scenarios/support",
+    "scenarios/transfer",
+    "scenarios/multisig",
 ]
 
 exclude = [

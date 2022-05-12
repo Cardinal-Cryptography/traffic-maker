@@ -6,6 +6,7 @@ amount = 30_000
 accounts = [
     { name = "//SimpleTransferSender" },
     { name = "//RoundRobin", copies = 20 },
+    { name = "//Multisig", copies = 50 }
 ]
 
 [[endowments]]

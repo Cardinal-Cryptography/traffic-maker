@@ -2,14 +2,12 @@
 
 use std::time::Duration;
 
-use aleph_client::{try_send_xt, Connection, KeyPair};
+use aleph_client::{substrate_api_client, try_send_xt, Connection, KeyPair};
 use anyhow::Result as AnyResult;
-use parse_duration::parse;
-use serde::de::{Deserialize, Deserializer};
 use substrate_api_client::{AccountId, GenericAddress, XtStatus};
 use tokio::time::sleep;
 
-use chain_support::{SingleEventListener, TransferEvent};
+use chain_support::{with_event_listening, TransferEvent};
 use common::ScenarioError;
 pub use random_transfers::{Direction, Granularity, RandomTransfers, RandomTransfersConfig};
 pub use round_robin::{RoundRobin, RoundRobinConfig};
@@ -18,14 +16,6 @@ pub use simple_transfer::{SimpleTransfer, SimpleTransferConfig};
 mod random_transfers;
 mod round_robin;
 mod simple_transfer;
-
-fn parse_interval<'de, D>(deserializer: D) -> Result<Duration, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let s: &str = Deserialize::deserialize(deserializer)?;
-    parse(s).map_err(serde::de::Error::custom)
-}
 
 async fn loop_transfer(connection: &Connection, target: &AccountId, amount: u128) -> AnyResult<()> {
     for _ in 0..5 {
@@ -47,9 +37,10 @@ pub async fn try_transfer(
 ) -> AnyResult<()> {
     let connection = connection.clone().set_signer(source.clone());
     let expected_event = TransferEvent::new(source, target, amount);
-    let sel = SingleEventListener::new(&connection, expected_event).await?;
-    let transfer_result = loop_transfer(&connection, target, amount).await;
-    sel.expect_event_if_ok(Duration::from_secs(1), transfer_result)
-        .await
-        .map(|_| ())
+
+    with_event_listening(&connection, expected_event, Duration::from_secs(1), async {
+        loop_transfer(&connection, target, amount).await
+    })
+    .await
+    .map(|_| ())
 }

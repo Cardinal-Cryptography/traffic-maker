@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 chain-support = { path = "../chain-support" }
 scenarios-transfer = { path = "../scenarios/transfer" }
+scenarios-multisig = { path = "../scenarios/multisig" }
 traffic = { path = "../traffic" }
 common = { path = "../common" }
 
