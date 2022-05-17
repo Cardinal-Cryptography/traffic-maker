@@ -4,9 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-aleph_client = { git = "https://github.com/Cardinal-Cryptography/aleph-node.git", rev = "b23e4f78735361bb428bc2ea84dc30f8d5f302e8" }
-pallet-multisig = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13", default-features = false }
-sp-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13" }
+aleph_client = { git = "https://github.com/Cardinal-Cryptography/aleph-node.git", rev = "5ef598067548df82028855e652e660f9ca8c555b" }
+pallet-multisig = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19", default-features = false }
 
 chain-support = { path = "../../chain-support" }
 common = { path = "../../common" }
@@ -14,7 +14,7 @@ scenarios-support = { path = "../support" }
 
 anyhow = "1.0"
 async-trait = "0.1"
-codec = { package = 'parity-scale-codec', version = "2.0.0", default-features = false,  features = ['derive']}
+codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive"] }
 rand = { version = "0.8.5", features = ["alloc"] }
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "1.0"
