@@ -68,7 +68,7 @@ impl MultisigExecuted {
             _timepoint: Default::default(),
             multisig,
             call_hash,
-            _result: Ok(()),
+            _result: Default::default(),
         }
     }
 }

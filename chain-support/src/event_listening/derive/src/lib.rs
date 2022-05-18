@@ -48,6 +48,52 @@ fn check_pallet(input: &DeriveInput) -> SynResult<String> {
     }
 }
 
+mod private {
+    use proc_macro2::Span;
+    use syn::{Attribute, Ident, Type};
+
+    #[derive(Clone, Debug)]
+    pub struct Field {
+        pub span: Span,
+        pub name: Ident,
+        pub ty: Type,
+        pub attrs: Vec<Attribute>,
+    }
+
+    #[derive(Clone, Debug)]
+    pub struct Fields {
+        pub relevant: Vec<Field>,
+        pub ignored: Vec<Field>,
+    }
+}
+
+fn get_fields(ast: &DeriveInput) -> AnyResult<private::Fields> {
+    let fields = match ast.data {
+        Data::Struct(ref data) => &data.fields,
+        _ => return Err(DeriveError::UnexpectedData.into()),
+    };
+
+    match fields {
+        Fields::Named(ref fields) => {
+            let fields = fields.named.iter().map(|f| private::Field {
+                span: f.span(),
+                name: f.ident.clone().expect("This is a named field"),
+                ty: f.ty.clone(),
+                attrs: f.attrs.clone(),
+            });
+
+            let (ignored, relevant) = fields
+                .partition(|field| field.attrs.iter().any(|a| a.path.is_ident("event_ignore")));
+            Ok(private::Fields { ignored, relevant })
+        }
+        Fields::Unit => Ok(private::Fields {
+            ignored: vec![],
+            relevant: vec![],
+        }),
+        Fields::Unnamed(_) => Err(DeriveError::UnnamedFields.into()),
+    }
+}
+
 /// Produces boolean 'equality' formula for the struct represented by `ast`. The formula is supposed
 /// to be used within a function with a signature:
 /// ```no_run
@@ -70,27 +116,16 @@ fn check_pallet(input: &DeriveInput) -> SynResult<String> {
 ///
 /// If `ast` does not represent `struct`, `Err(DeriveError::UnexpectedData)` is returned.
 fn derive_match(ast: &DeriveInput, other_instance: &TokenStream2) -> AnyResult<TokenStream2> {
-    let fields = match ast.data {
-        Data::Struct(ref data) => &data.fields,
-        _ => return Err(DeriveError::UnexpectedData.into()),
-    };
+    let private::Fields { relevant, .. } = get_fields(ast)?;
 
-    match fields {
-        Fields::Named(ref fields) => {
-            let relevant = fields
-                .named
-                .iter()
-                .filter(|f| !f.attrs.iter().any(|a| a.path.is_ident("event_ignore")));
-
-            let paired = relevant.map(|f| {
-                let name = f.ident.clone().expect("This is a named field");
-                quote_spanned!(f.span()=> self.#name == #other_instance.#name)
-            });
-
-            Ok(quote! {#(#paired)&&*})
-        }
-        Fields::Unit => Ok(quote! {true}),
-        Fields::Unnamed(_) => Err(DeriveError::UnnamedFields.into()),
+    if relevant.is_empty() {
+        Ok(quote! {true})
+    } else {
+        let paired = relevant
+            .into_iter()
+            .map(|private::Field{span, name, ..}| quote_spanned!(span=> self.#name == #other_instance.#name))
+            .collect::<Vec<_>>();
+        Ok(quote! {#(#paired)&&*})
     }
 }
 
@@ -114,14 +149,43 @@ fn impl_event(ast: &DeriveInput, pallet: String) -> AnyResult<TokenStream> {
             fn matches(&self, #other_instance_name: &Self) -> bool {
                 #derived_match
             }
+        }
+    })
+    .into())
+}
 
+/// Generate `from_relevant_fields`: a constructor over fields *without* `#[event_ignore]`
+/// annotation.
+fn impl_constructor(ast: &DeriveInput) -> AnyResult<TokenStream> {
+    let name = &ast.ident;
+
+    let private::Fields { ignored, relevant } = get_fields(ast)?;
+
+    let declaration_list = relevant
+        .clone()
+        .into_iter()
+        .map(|private::Field { span, name, ty, .. }| quote_spanned!(span=> #name: #ty));
+    let declaration_list = quote! {#(#declaration_list),*};
+
+    let initialization_list = ignored
+        .into_iter()
+        .chain(relevant.into_iter())
+        .map(|private::Field { span, name, .. }| quote_spanned!(span=> #name));
+    let initialization_list = quote! {#(#initialization_list),*};
+
+    Ok((quote! {
+        impl #name {
+            fn from_relevant_fields(#declaration_list) -> Self {
+                Self { #initialization_list }
+            }
         }
     })
     .into())
 }
 
 /// Derives `Event` trait for the type represented by `input`. For now, we only allow
-/// such a derivation for structs.
+/// such a derivation for structs. Additionally, provides `Self::from_relevant-fields` method
+/// which serves as a constructor (over unignored fields).
 ///
 /// The struct has to be annotated with an appropriate attribute: `#[pallet = "..."]`, which
 /// indicates the origin of the event. Struct name should be identical to the event name
@@ -220,10 +284,23 @@ pub fn event_derive(input: TokenStream) -> TokenStream {
     };
 
     // Build the trait implementation.
-    match impl_event(&ast, pallet) {
+    let trait_impl = match impl_event(&ast, pallet) {
         Ok(implementation) => implementation,
-        Err(e) => SynError::new(ast.span(), e.to_string())
-            .to_compile_error()
-            .into(),
-    }
+        Err(e) => {
+            return SynError::new(ast.span(), e.to_string())
+                .to_compile_error()
+                .into()
+        }
+    };
+
+    let constructor_impl = match impl_constructor(&ast) {
+        Ok(constructor) => constructor,
+        Err(e) => {
+            return SynError::new(ast.span(), e.to_string())
+                .to_compile_error()
+                .into()
+        }
+    };
+
+    TokenStream::from_iter(vec![trait_impl, constructor_impl])
 }
