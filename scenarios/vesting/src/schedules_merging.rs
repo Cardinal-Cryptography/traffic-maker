@@ -1,11 +1,12 @@
 use std::time::Duration;
 
 use aleph_client::{
-    account_from_keypair, get_schedules, merge_schedules,
+    account_from_keypair, merge_schedules,
     substrate_api_client::{AccountId, Balance},
     vested_transfer, BlockNumber, Connection, KeyPair, VestingSchedule,
 };
 use anyhow::{ensure, Result as AnyResult};
+use codec::Decode;
 use rand::random;
 use serde::Deserialize;
 use thiserror::Error;
@@ -22,6 +23,8 @@ const ACCOUNT_SEED: &str = "//VestingSchedulesMerging";
 
 /// We expect that there are as many endowed accounts (of seed phrases: `ACCOUNT_SEED{i}`, where
 /// `i` is from 0 to this value (exclusively)).
+///
+/// This should not be less than `MAX_VESTING_SCHEDULES` constant (of pallet vesting).
 const AVAILABLE_ACCOUNTS: usize = 50;
 
 /// Returns keypair of the common account with index `idx`.
@@ -69,28 +72,39 @@ pub struct SchedulesMergingConfig {
 
 /// Scenario that performs merging vesting schedules. This happens as follows:
 ///  1. We choose a random receiver account.
-///  2. We perform `MAX_VESTING_SCHEDULES` vested transfers to receiver so that no other vested
-///     transfer can succeed.
+///  2. We perform at most `MaxVestingSchedules` vested transfers to receiver so that no other
+///     vested transfer can succeed. If receiver already had some schedules, we just meet the limit.
 ///  3. Receiver merges all current schedules, exposing itself for further transfers.
 #[derive(Clone)]
 pub struct SchedulesMerging {
+    /// Unique string identifier for the scenario.
     ident: Ident,
+    /// Periodicity of launching.
     interval: Duration,
+    /// Corresponds to `MaxVestingSchedules` constant.
     schedules_limit: usize,
+    /// Corresponds to `MinVestedTransfer` constant.
     transfer_value: Balance,
+    /// Base connection for node interaction.
     connection: Connection,
 }
 
 impl SchedulesMerging {
-    pub fn new(connection: &Connection, config: SchedulesMergingConfig) -> AnyResult<Self> {
-        let schedules_limit = connection
-            .get_constant::<u32>("Vesting", "MaxVestingSchedules")
-            .expect("Constant Vesting::MaxVestingSchedules should be present");
-        ensure!(schedules_limit >= 2, SchedulesMergingError::LimitTooLow);
+    /// Auxiliary method for reading pallet constant `constant` from `connection` metadata.
+    fn get_pallet_constant<T: Decode>(connection: &Connection, constant: &'static str) -> T {
+        connection
+            .get_constant::<T>("Vesting", constant)
+            .unwrap_or_else(|_| panic!("Constant `Vesting::{}` should be present", constant))
+    }
 
-        let transfer_value = connection
-            .get_constant::<Balance>("Vesting", "MinVestedTransfer")
-            .expect("Constant Vesting::MinVestedTransfer should be present");
+    /// Constructs new `SchedulesMerging` object.
+    ///
+    /// Fails if either `MaxVestingSchedules` or `MinVestedTransfer` cannot be read from metadata,
+    /// or `MaxVestingSchedules` is less than 2.
+    pub fn new(connection: &Connection, config: SchedulesMergingConfig) -> AnyResult<Self> {
+        let schedules_limit: u32 = Self::get_pallet_constant(connection, "MaxVestingSchedules");
+        ensure!(schedules_limit >= 2, SchedulesMergingError::LimitTooLow);
+        let transfer_value = Self::get_pallet_constant(connection, "MinVestedTransfer");
 
         Ok(Self {
             ident: config.ident,
@@ -101,10 +115,13 @@ impl SchedulesMerging {
         })
     }
 
+    /// Every vested transfer will be of this form, i.e. the minimum amount of balance
+    /// (`MinVestedTransfer`) will start unblocking by 1 unit at `BlockNumber::MAX` height.
     fn get_common_schedule(&self) -> VestingSchedule {
         VestingSchedule::new(self.transfer_value, 1u128, BlockNumber::MAX)
     }
 
+    /// Performs vested transfer from `ACCOUNT_SEED{sender_idx}` to `receiver`.
     async fn transfer(&self, receiver: &AccountId, sender_idx: usize) -> AnyResult<()> {
         let sender = compute_keypair(sender_idx);
         let connection = self.connection.clone().set_signer(sender);
@@ -112,6 +129,10 @@ impl SchedulesMerging {
         do_async!(vested_transfer, connection, receiver, schedule)?
     }
 
+    /// Reads how many vesting schedules `receiver` has and how much balance there is in summary.
+    ///
+    /// Currently, there is a typo in `aleph-client::get_schedules`, so the call to storage is
+    /// inlined here.
     fn get_vesting_info(&self, receiver: &AccountId) -> AnyResult<(usize, Balance)> {
         let schedules = self
             .connection
@@ -130,11 +151,15 @@ impl SchedulesMerging {
                     .fold(0u128, |acc, schedule| acc + schedule.locked());
                 Ok((num_of_schedules, locked))
             }
-            // meh
+            // Unfortunately, we cannot say here whether the error was `VestingError::NotVesting`
+            // or the storage couldn't be decoded. In any case we return `(0, 0)` as indicator
+            // that the account has no active vesting schedules. However, this may not be true.
             None => Ok((0, 0)),
         }
     }
 
+    /// Performs as many vested transfers to `receiver` as it is needed to meet limit of
+    /// `self.schedules_limit` active vesting schedules.
     async fn reach_limit(&self, receiver: &AccountId) -> AnyResult<Balance> {
         self.info(format!(
             "Start making vested transfers to {:?} in order to reach vesting schedules limit",
@@ -147,6 +172,7 @@ impl SchedulesMerging {
             SchedulesMergingError::LimitAlreadyReached(receiver.clone())
         );
         let locked_lowerbound = self.transfer_value * (num_of_schedules as u128);
+        // Needed for mathematics below (for `expected_locked_after`).
         ensure!(
             locked >= locked_lowerbound,
             SchedulesMergingError::UnexpectedLockedBalances {
@@ -165,7 +191,7 @@ impl SchedulesMerging {
             with_event_listening(
                 &self.connection,
                 expected_event,
-                Duration::from_secs(1),
+                Duration::from_secs(2),
                 async { self.transfer(receiver, i).await },
             )
             .await
@@ -191,6 +217,10 @@ impl SchedulesMerging {
         Ok(locked)
     }
 
+    /// Merges all active vesting schedules for `receiver` into a single one.
+    ///
+    /// `total_locked` is the sum of all locked balances across all active vesting schedules.
+    /// It is passed here to save requesting the storage.
     async fn merge_schedules(&self, receiver: &KeyPair, total_locked: Balance) -> AnyResult<()> {
         let receiver_account = account_from_keypair(receiver);
         self.info(format!(
@@ -199,7 +229,7 @@ impl SchedulesMerging {
         ));
 
         let expected_event = VestingUpdated::new(receiver_account.clone(), total_locked);
-        let timeout = Duration::from_secs(1);
+        let timeout = Duration::from_secs(2);
 
         let connection = self.connection.clone().set_signer(receiver.clone());
         for i in 1..self.schedules_limit {
