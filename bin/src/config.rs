@@ -7,6 +7,10 @@ use scenarios_transfer::{
     RandomTransfers, RandomTransfersConfig, RoundRobin, RoundRobinConfig, SimpleTransfer,
     SimpleTransferConfig,
 };
+use scenarios_vesting::{
+    SchedulesMerging as VestingSchedulesMerging,
+    SchedulesMergingConfig as VestingSchedulesMergingConfig,
+};
 
 /// This struct combines both the execution environment (including hosts and chain address), as well
 /// as the scenario configurations.
@@ -59,6 +63,7 @@ enum ScenarioConfig {
     RoundRobin(RoundRobinConfig),
     RandomTransfers(RandomTransfersConfig),
     Multisig(MultisigConfig),
+    VestingSchedulesMerging(VestingSchedulesMergingConfig),
 }
 
 impl ScenarioConfig {
@@ -74,6 +79,9 @@ impl ScenarioConfig {
                 Box::new(RandomTransfers::new(connection, config.clone()))
             }
             ScenarioConfig::Multisig(config) => Box::new(Multisig::new(connection, config.clone())),
+            ScenarioConfig::VestingSchedulesMerging(config) => {
+                Box::new(VestingSchedulesMerging::new(connection, config.clone()).unwrap())
+            }
         }
     }
 }
