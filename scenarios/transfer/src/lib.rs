@@ -2,7 +2,7 @@
 
 use std::time::Duration;
 
-use aleph_client::{substrate_api_client, try_send_xt, Connection, KeyPair};
+use aleph_client::{account_from_keypair, substrate_api_client, try_send_xt, Connection, KeyPair};
 use anyhow::Result as AnyResult;
 use substrate_api_client::{AccountId, GenericAddress, XtStatus};
 use tokio::time::sleep;
@@ -36,7 +36,8 @@ pub async fn try_transfer(
     amount: u128,
 ) -> AnyResult<()> {
     let connection = connection.clone().set_signer(source.clone());
-    let expected_event = TransferEvent::new(source, target, amount);
+    let expected_event =
+        TransferEvent::from_relevant_fields(account_from_keypair(source), target.clone(), amount);
 
     with_event_listening(&connection, expected_event, Duration::from_secs(1), async {
         loop_transfer(&connection, target, amount).await

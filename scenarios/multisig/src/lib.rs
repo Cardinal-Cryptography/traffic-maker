@@ -187,7 +187,8 @@ impl Action {
         // ugly boxing) extract common schema.
         match self {
             InitiateWithHash => {
-                let event = NewMultisigEvent::new(caller, party.get_account(), call_hash);
+                let event =
+                    NewMultisigEvent::from_relevant_fields(caller, party.get_account(), call_hash);
                 with_event_listening(&connection, event, EVENT_TIMEOUT, async {
                     flatten(do_async!(
                         MultisigParty::initiate_aggregation_with_hash,
@@ -201,7 +202,8 @@ impl Action {
                 .map(|(sig_agg, _event)| Some(sig_agg))
             }
             InitiateWithCall => {
-                let event = NewMultisigEvent::new(caller, party.get_account(), call_hash);
+                let event =
+                    NewMultisigEvent::from_relevant_fields(caller, party.get_account(), call_hash);
                 with_event_listening(&connection, event, EVENT_TIMEOUT, async {
                     flatten(do_async!(
                         MultisigParty::initiate_aggregation_with_call,
@@ -216,7 +218,11 @@ impl Action {
                 .map(|(sig_agg, _event)| Some(sig_agg))
             }
             ApproveWithHash if should_finalize => {
-                let event = MultisigExecutedEvent::new(caller, party.get_account(), call_hash);
+                let event = MultisigExecutedEvent::from_relevant_fields(
+                    caller,
+                    party.get_account(),
+                    call_hash,
+                );
                 with_event_listening(&connection, event, EVENT_TIMEOUT, async {
                     flatten(do_async!(
                         MultisigParty::approve,
@@ -230,7 +236,11 @@ impl Action {
                 .map(|(sig_agg, _event)| Some(sig_agg))
             }
             ApproveWithCall if should_finalize => {
-                let event = MultisigExecutedEvent::new(caller, party.get_account(), call_hash);
+                let event = MultisigExecutedEvent::from_relevant_fields(
+                    caller,
+                    party.get_account(),
+                    call_hash,
+                );
                 with_event_listening(&connection, event, EVENT_TIMEOUT, async {
                     flatten(do_async!(
                         MultisigParty::approve_with_call,
@@ -246,7 +256,11 @@ impl Action {
                 .map(|(sig_agg, _event)| Some(sig_agg))
             }
             ApproveWithHash => {
-                let event = MultisigApprovalEvent::new(caller, party.get_account(), call_hash);
+                let event = MultisigApprovalEvent::from_relevant_fields(
+                    caller,
+                    party.get_account(),
+                    call_hash,
+                );
                 with_event_listening(&connection, event, EVENT_TIMEOUT, async {
                     flatten(do_async!(
                         MultisigParty::approve,
@@ -260,7 +274,11 @@ impl Action {
                 .map(|(sig_agg, _event)| Some(sig_agg))
             }
             ApproveWithCall => {
-                let event = MultisigApprovalEvent::new(caller, party.get_account(), call_hash);
+                let event = MultisigApprovalEvent::from_relevant_fields(
+                    caller,
+                    party.get_account(),
+                    call_hash,
+                );
                 with_event_listening(&connection, event, EVENT_TIMEOUT, async {
                     flatten(do_async!(
                         MultisigParty::approve_with_call,
@@ -276,7 +294,11 @@ impl Action {
                 .map(|(sig_agg, _event)| Some(sig_agg))
             }
             Cancel => {
-                let event = MultisigCancelledEvent::new(caller, party.get_account(), call_hash);
+                let event = MultisigCancelledEvent::from_relevant_fields(
+                    caller,
+                    party.get_account(),
+                    call_hash,
+                );
                 with_event_listening(&connection, event, EVENT_TIMEOUT, async {
                     flatten(do_async!(
                         MultisigParty::cancel,
