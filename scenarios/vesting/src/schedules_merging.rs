@@ -273,8 +273,14 @@ impl Scenario for SchedulesMerging {
         let receiver = get_random_keypair();
         let receiver_account = account_from_keypair(&receiver);
 
-        let locked = self.handle(self.reach_limit(&receiver_account).await)?;
-        self.handle(self.merge_schedules(&receiver, locked).await)?;
+        let locked_before_merging = self.handle(self.reach_limit(&receiver_account).await)?;
+        self.handle(self.merge_schedules(&receiver, locked_before_merging).await)?;
+
+        let (_, locked_after_merging) = self.handle(self.get_vesting_info(&receiver_account))?;
+        ensure!(
+            locked_before_merging == locked_after_merging,
+            "Merging schedules has led to changing overall locked balance amount"
+        );
 
         self.info("Successfully finished scenario");
         Ok(())
