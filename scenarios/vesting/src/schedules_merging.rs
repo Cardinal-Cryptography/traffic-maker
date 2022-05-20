@@ -133,6 +133,9 @@ impl SchedulesMerging {
     ///
     /// Currently, there is a typo in `aleph-client::get_schedules`, so the call to storage is
     /// inlined here.
+    ///
+    /// Returns `Err(_)` only if the read call didn't succeed. In case when the account has no
+    /// active schedules or the storage couldn't be decoded, it returns `Ok((0, 0))`.
     fn get_vesting_info(&self, receiver: &AccountId) -> AnyResult<(usize, Balance)> {
         let schedules = self
             .connection
