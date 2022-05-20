@@ -57,7 +57,16 @@ pub enum SchedulesMergingError {
         account: AccountId,
     },
     #[error("🦺❌ Couldn't merge all active schedules for the account `{0:?}`.")]
-    MergingFailure(AccountId),
+    MergingFailureNumber(AccountId),
+    #[error(
+        "🦺❌ Merging schedules for the account `{account:?}` has led to changing overall locked \
+        balance amount from {locked_before_merging} to {locked_after_merging}"
+    )]
+    MergingFailureLocked {
+        locked_before_merging: Balance,
+        locked_after_merging: Balance,
+        account: AccountId,
+    },
 }
 
 /// Configuration for `SchedulesMerging` scenario.
@@ -253,12 +262,6 @@ impl SchedulesMerging {
             ));
         }
 
-        let (num_of_schedules, _) = self.get_vesting_info(&receiver_account)?;
-        ensure!(
-            num_of_schedules == 1,
-            SchedulesMergingError::MergingFailure(receiver_account.clone())
-        );
-
         self.info(format!("Merged all schedules for {:?}", receiver_account));
         Ok(())
     }
@@ -279,10 +282,18 @@ impl Scenario for SchedulesMerging {
         let locked_before_merging = self.handle(self.reach_limit(&receiver_account).await)?;
         self.handle(self.merge_schedules(&receiver, locked_before_merging).await)?;
 
-        let (_, locked_after_merging) = self.handle(self.get_vesting_info(&receiver_account))?;
+        let (num_of_schedules, locked_after_merging) = self.get_vesting_info(&receiver_account)?;
+        ensure!(
+            num_of_schedules == 1,
+            SchedulesMergingError::MergingFailureNumber(receiver_account.clone())
+        );
         ensure!(
             locked_before_merging == locked_after_merging,
-            "Merging schedules has led to changing overall locked balance amount"
+            SchedulesMergingError::MergingFailureLocked {
+                account: receiver_account.clone(),
+                locked_before_merging,
+                locked_after_merging,
+            }
         );
 
         self.info("Successfully finished scenario");
