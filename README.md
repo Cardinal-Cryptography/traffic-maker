@@ -8,7 +8,6 @@ The code in this repository aims at filling two objectives:
 
 Apart from Rust version specified in `rust-toolchain` you do not need anything more.
 
-
 To run the default scenario suite, you need a running chain with some node accessible via ws port.
 
 To set up test accounts with funds run:
@@ -33,6 +32,14 @@ endowments. The second one is `Timetable.toml`. There you can specify:
 
 Statistics are exposed at `expose_host` address, which by default is `127.0.0.1:8080`.
 Data is served at two endpoints: `/details` (brief information about every launched scenario) and `/logs` (logs from particular scenario).
+
+You can use the provided GUI to browse the statistics by running:
+
+```shell
+$ make monitoring
+```
+
+This will start a `trunk` server with the GUI and open a new browser tab to take you there.
 
 ## Development
 

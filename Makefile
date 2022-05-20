@@ -1,9 +1,12 @@
-.PHONY: setup run
+.PHONY: setup run monitoring
 
 run:
-	cargo build --release
-	target/release/bin
+	cargo run --release
 
 setup:
-	cd set_up; cargo build --release
-	set_up/target/release/set-up --config-file set_up/Config.toml
+	cd set_up; cargo run --release
+
+monitoring:
+	rustup target add wasm32-unknown-unknown
+	cargo install --locked trunk
+	cd monitoring; trunk serve --open
