@@ -48,7 +48,7 @@ fn check_pallet(input: &DeriveInput) -> SynResult<String> {
     }
 }
 
-/// Our inner representation of struct fields.
+/// Internal representation of struct fields for the purpose of implementing the macro transform.
 mod private {
     use crate::TokenStream2;
     use proc_macro2::Span;
