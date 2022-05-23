@@ -53,7 +53,7 @@ struct MultisigExecuted {
     timepoint: Timepoint,
     multisig: AccountId,
     call_hash: CallHash,
-    #[event_match_ignore = "Ok(())"]
+    #[event_match_ignore(default = "Ok(())")]
     result: DispatchResult,
 }
 

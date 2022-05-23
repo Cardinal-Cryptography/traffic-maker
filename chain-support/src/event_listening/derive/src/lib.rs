@@ -10,7 +10,7 @@ use proc_macro2::TokenStream as TokenStream2;
 use quote::{quote, quote_spanned};
 use syn::{
     self, spanned::Spanned, Attribute, Data, DeriveInput, Error as SynError, Fields, Lit, Meta,
-    MetaNameValue, Result as SynResult,
+    MetaNameValue, NestedMeta, Result as SynResult,
 };
 use thiserror::Error;
 
@@ -71,11 +71,40 @@ mod private {
     }
 }
 
+/// If `attr` is of form `#[xxx(default = "yyy")]`, where `xxx` is some identifier, then this
+/// function returns `Some("yyy")` as `TokenStream2`. Otherwise it returns `None`.
+fn get_default_value(attr: &Attribute) -> Option<TokenStream2> {
+    match attr.parse_meta().ok()? {
+        Meta::List(meta) => {
+            match meta
+                .nested
+                .into_iter()
+                .next()
+                .expect("List should not be empty")
+            {
+                NestedMeta::Meta(Meta::NameValue(MetaNameValue {
+                    path,
+                    lit: Lit::Str(lit_str),
+                    ..
+                })) => {
+                    if path.is_ident("default") {
+                        Some(TokenStream2::from_str(lit_str.value().as_str()).ok()?)
+                    } else {
+                        None
+                    }
+                }
+                _ => None,
+            }
+        }
+        _ => None,
+    }
+}
+
 /// Returns all fields of the struct represented by `ast` divided into two sets (according to
 /// `private::Fields`): relevant fields and ignored fields.
 ///
 /// Additionally, if an ignored field has a default value specified through the
-/// `#[event_match_ignore = "..."]` attribute, then it is read and saved.
+/// `#[event_match_ignore(default = "...")]` attribute, then it is read and saved.
 fn get_fields(ast: &DeriveInput) -> AnyResult<private::Fields> {
     let fields = match ast.data {
         Data::Struct(ref data) => &data.fields,
@@ -89,13 +118,7 @@ fn get_fields(ast: &DeriveInput) -> AnyResult<private::Fields> {
                     .attrs
                     .iter()
                     .find(|a| a.path.is_ident("event_match_ignore"));
-                let default = ignore_attr.and_then(|attr| match attr.parse_meta().ok()? {
-                    Meta::NameValue(MetaNameValue {
-                        lit: Lit::Str(lit_str),
-                        ..
-                    }) => Some(TokenStream2::from_str(lit_str.value().as_str()).ok()?),
-                    _ => None,
-                });
+                let default = ignore_attr.and_then(get_default_value);
 
                 private::Field {
                     span: f.span(),
@@ -308,7 +331,7 @@ fn impl_constructor(ast: &DeriveInput) -> AnyResult<TokenStream> {
 ///         timepoint: Timepoint<BlockNumber>,
 ///         multisig: AccountId,
 ///         call_hash: CallHash,
-///         #[event_match_ignore = "Ok(())"]
+///         #[event_match_ignore(default = "Ok(())")]
 ///         result: DispatchResult,
 ///     }
 /// ```

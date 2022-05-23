@@ -36,7 +36,7 @@ pub struct MultisigExecuted {
     _timepoint: Timepoint<BlockNumber>,
     multisig: AccountId,
     call_hash: CallHash,
-    #[event_match_ignore = "Ok(())"]
+    #[event_match_ignore(default = "Ok(())")]
     _result: Result<(), sp_runtime::DispatchError>,
 }
 
