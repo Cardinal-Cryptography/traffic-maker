@@ -1,10 +1,11 @@
 [package]
-name = "scenarios-transfer"
+name = "scenarios-vesting"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 aleph_client = { git = "https://github.com/Cardinal-Cryptography/aleph-node.git", rev = "5ef598067548df82028855e652e660f9ca8c555b" }
+pallet-vesting = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19", default-features = false }
 
 chain-support = { path = "../../chain-support" }
 common = { path = "../../common" }
@@ -13,8 +14,7 @@ scenarios-support = { path = "../support" }
 anyhow = "1.0"
 async-trait = "0.1"
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false,  features = ["derive"]}
-log = "0.4"
-parse_duration = "2.1.1"
-serde = { version = "1.0", features = ["derive"] }
 rand = { version = "0.8.5", features = ["alloc"] }
+serde = { version = "1.0", features = ["derive"] }
+thiserror = "1.0"
 tokio = { version = "1.17.0", features = ["rt-multi-thread"] }
