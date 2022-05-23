@@ -198,7 +198,8 @@ impl SchedulesMerging {
         for i in num_of_schedules..self.schedules_limit {
             let expected_locked_after =
                 locked + self.transfer_value * (1 + i - num_of_schedules) as u128;
-            let expected_event = VestingUpdated::new(receiver.clone(), expected_locked_after);
+            let expected_event =
+                VestingUpdated::from_relevant_fields(receiver.clone(), expected_locked_after);
 
             with_event_listening(
                 &self.connection,
@@ -240,7 +241,8 @@ impl SchedulesMerging {
             receiver_account.clone()
         ));
 
-        let expected_event = VestingUpdated::new(receiver_account.clone(), total_locked);
+        let expected_event =
+            VestingUpdated::from_relevant_fields(receiver_account.clone(), total_locked);
         let timeout = Duration::from_secs(2);
 
         let connection = self.connection.clone().set_signer(receiver.clone());

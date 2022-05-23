@@ -11,9 +11,3 @@ pub struct VestingUpdated {
     account: AccountId,
     unvested: Balance,
 }
-
-impl VestingUpdated {
-    pub fn new(account: AccountId, unvested: Balance) -> Self {
-        Self { account, unvested }
-    }
-}
