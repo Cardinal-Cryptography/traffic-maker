@@ -186,10 +186,6 @@ fn impl_constructor(ast: &DeriveInput) -> AnyResult<TokenStream> {
 
     let Fields { relevant, ignored } = get_fields(ast)?;
 
-    if relevant.is_empty() && ignored.is_empty() {
-        return Ok(TokenStream::new());
-    }
-
     let declaration_list = relevant
         .clone()
         .into_iter()
@@ -291,8 +287,12 @@ fn impl_constructor(ast: &DeriveInput) -> AnyResult<TokenStream> {
 ///             true
 ///         }
 ///     }
+///     impl BatchCompleted {
+///         pub fn from_relevant_fields() -> Self {
+///             Self {}
+///         }
+///     }
 /// ```
-/// Note that `from_relevant_fields` would not be generated.
 ///
 /// As mentioned, you can also ignore some irrelevant fields:
 /// ```
