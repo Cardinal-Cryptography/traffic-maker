@@ -71,7 +71,7 @@ mod private {
 }
 
 /// Returns all fields of the struct represented by `ast` divided into two sets (according to
-/// `private::Fields`): ignored fields and relevant fields.
+/// `private::Fields`): relevant fields and ignored fields.
 ///
 /// Additionally, if an ignored field has a default value specified through the
 /// `#[event_ignore = "..."]` attribute, then it is read and saved.
@@ -104,11 +104,11 @@ fn get_fields(ast: &DeriveInput) -> AnyResult<private::Fields> {
             });
 
             let (ignored, relevant) = fields.partition(|field| field.ignored);
-            Ok(private::Fields { ignored, relevant })
+            Ok(private::Fields { relevant, ignored })
         }
         Fields::Unit => Ok(private::Fields {
-            ignored: vec![],
             relevant: vec![],
+            ignored: vec![],
         }),
         Fields::Unnamed(_) => Err(DeriveError::UnnamedFields.into()),
     }
@@ -184,9 +184,9 @@ fn impl_constructor(ast: &DeriveInput) -> AnyResult<TokenStream> {
 
     let name = &ast.ident;
 
-    let Fields { ignored, relevant } = get_fields(ast)?;
+    let Fields { relevant, ignored } = get_fields(ast)?;
 
-    if ignored.is_empty() && relevant.is_empty() {
+    if relevant.is_empty() && ignored.is_empty() {
         return Ok(TokenStream::new());
     }
 
