@@ -75,7 +75,7 @@ mod private {
 /// `private::Fields`): relevant fields and ignored fields.
 ///
 /// Additionally, if an ignored field has a default value specified through the
-/// `#[event_ignore = "..."]` attribute, then it is read and saved.
+/// `#[event_match_ignore = "..."]` attribute, then it is read and saved.
 fn get_fields(ast: &DeriveInput) -> AnyResult<private::Fields> {
     let fields = match ast.data {
         Data::Struct(ref data) => &data.fields,
@@ -85,8 +85,10 @@ fn get_fields(ast: &DeriveInput) -> AnyResult<private::Fields> {
     match fields {
         Fields::Named(ref fields) => {
             let fields = fields.named.iter().map(|f| {
-                let ignore_attr: Option<&Attribute> =
-                    f.attrs.iter().find(|a| a.path.is_ident("event_ignore"));
+                let ignore_attr: Option<&Attribute> = f
+                    .attrs
+                    .iter()
+                    .find(|a| a.path.is_ident("event_match_ignore"));
                 let default = ignore_attr.and_then(|attr| match attr.parse_meta().ok()? {
                     Meta::NameValue(MetaNameValue {
                         lit: Lit::Str(lit_str),
@@ -132,7 +134,7 @@ fn get_fields(ast: &DeriveInput) -> AnyResult<private::Fields> {
 /// no usage for them.
 ///
 /// Structs with named fields are compared field-wise using standard equality operator. However,
-/// fields annotated with `#[event_ignore]` attribute are ignored.
+/// fields annotated with `#[event_match_ignore]` attribute are ignored.
 /// Note that all other fields must implement `Eq` trait.
 ///
 /// If `ast` does not represent `struct`, `Err(DeriveError::UnexpectedData)` is returned.
@@ -175,11 +177,11 @@ fn impl_event(ast: &DeriveInput, pallet: String) -> AnyResult<TokenStream> {
     .into())
 }
 
-/// Generate `from_relevant_fields`: a constructor over fields *without* `#[event_ignore]`
+/// Generate `from_relevant_fields`: a constructor over fields *without* `#[event_match_ignore]`
 /// attribute.
 ///
 /// The ignored fields are initialized using `Default::default` or the expression passed in
-/// `#[event_ignore = "..."]` attribute.
+/// `#[event_match_ignore = "..."]` attribute.
 fn impl_constructor(ast: &DeriveInput) -> AnyResult<TokenStream> {
     use private::*;
 
@@ -231,11 +233,12 @@ fn impl_constructor(ast: &DeriveInput) -> AnyResult<TokenStream> {
 /// (corresponding enum variant from Substrate code).
 ///
 /// The `matches` method is by default an equality test between two instances. However,
-/// one can exclude some fields from being taken into account with the attribute `#[event_ignore]`.
-/// Thus, the whole struct does not have to implement `Eq`, but its included fields must.
+/// one can exclude some fields from being taken into account with the attribute
+/// `#[event_match_ignore]`. Thus, the whole struct does not have to implement `Eq`, but its
+/// included fields must.
 ///
 /// The `from_relevant_fields` constructor requires that the ignored fields either implement
-/// `Default` trait or their default value is specified with `#[event_ignore]` attribute.
+/// `Default` trait or their default value is specified with `#[event_match_ignore]` attribute.
 ///
 /// For example, `Balances::Transfer` event can be declared like this:
 /// ```
@@ -301,11 +304,11 @@ fn impl_constructor(ast: &DeriveInput) -> AnyResult<TokenStream> {
 ///     #[pallet = "Multisig"]
 ///     struct MultisigExecuted {
 ///         approving: AccountId,
-///         #[event_ignore]
+///         #[event_match_ignore]
 ///         timepoint: Timepoint<BlockNumber>,
 ///         multisig: AccountId,
 ///         call_hash: CallHash,
-///         #[event_ignore = "Ok(())"]
+///         #[event_match_ignore = "Ok(())"]
 ///         result: DispatchResult,
 ///     }
 /// ```
@@ -337,7 +340,7 @@ fn impl_constructor(ast: &DeriveInput) -> AnyResult<TokenStream> {
 ///         }
 ///     }
 /// ```
-#[proc_macro_derive(Event, attributes(pallet, event_ignore))]
+#[proc_macro_derive(Event, attributes(pallet, event_match_ignore))]
 pub fn event_derive(input: TokenStream) -> TokenStream {
     // Construct a representation of Rust code as a syntax tree that we can manipulate.
     let ast = match syn::parse(input) {

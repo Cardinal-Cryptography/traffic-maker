@@ -49,11 +49,11 @@ impl Transfer {
 #[pallet = "Multisig"]
 struct MultisigExecuted {
     approving: AccountId,
-    #[event_ignore]
+    #[event_match_ignore]
     timepoint: Timepoint,
     multisig: AccountId,
     call_hash: CallHash,
-    #[event_ignore = "Ok(())"]
+    #[event_match_ignore = "Ok(())"]
     result: DispatchResult,
 }
 

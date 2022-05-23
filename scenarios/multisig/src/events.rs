@@ -22,7 +22,7 @@ pub struct NewMultisig {
 #[pallet = "Multisig"]
 pub struct MultisigApproval {
     approving: AccountId,
-    #[event_ignore]
+    #[event_match_ignore]
     _timepoint: Timepoint<BlockNumber>,
     multisig: AccountId,
     call_hash: CallHash,
@@ -32,11 +32,11 @@ pub struct MultisigApproval {
 #[pallet = "Multisig"]
 pub struct MultisigExecuted {
     approving: AccountId,
-    #[event_ignore]
+    #[event_match_ignore]
     _timepoint: Timepoint<BlockNumber>,
     multisig: AccountId,
     call_hash: CallHash,
-    #[event_ignore = "Ok(())"]
+    #[event_match_ignore = "Ok(())"]
     _result: Result<(), sp_runtime::DispatchError>,
 }
 
@@ -44,7 +44,7 @@ pub struct MultisigExecuted {
 #[pallet = "Multisig"]
 pub struct MultisigCancelled {
     cancelling: AccountId,
-    #[event_ignore]
+    #[event_match_ignore]
     _timepoint: Timepoint<BlockNumber>,
     multisig: AccountId,
     call_hash: CallHash,
