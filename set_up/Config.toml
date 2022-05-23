@@ -12,5 +12,6 @@ accounts = [
 [[endowments]]
 amount = 1_000
 accounts = [
-    { name = "//RandomTransfer", copies = 100 }
+    { name = "//RandomTransfer", copies = 100 },
+    { name = "//VestingSchedulesMerging", copies = 50 }
 ]

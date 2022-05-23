@@ -8,6 +8,7 @@ members = [
     "scenarios/support",
     "scenarios/transfer",
     "scenarios/multisig",
+    "scenarios/vesting",
 ]
 
 exclude = [
