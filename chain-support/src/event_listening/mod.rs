@@ -8,6 +8,8 @@ use thiserror::Error;
 pub use event_derive::Event;
 pub use single_event::{with_event_listening, SingleEventListener};
 
+#[cfg(test)]
+mod macro_tests;
 mod single_event;
 
 /// Gathers all possible errors from this module.

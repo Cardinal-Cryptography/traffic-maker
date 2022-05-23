@@ -50,11 +50,12 @@ fn check_pallet(input: &DeriveInput) -> SynResult<String> {
 
 /// Internal representation of struct fields for the purpose of implementing the macro transform.
 mod private {
-    use crate::TokenStream2;
     use proc_macro2::Span;
     use syn::{Ident, Type};
 
-    #[derive(Clone, Debug)]
+    use crate::TokenStream2;
+
+    #[derive(Clone)]
     pub struct Field {
         pub span: Span,
         pub name: Ident,
@@ -63,7 +64,7 @@ mod private {
         pub default: Option<TokenStream2>,
     }
 
-    #[derive(Clone, Debug)]
+    #[derive(Clone)]
     pub struct Fields {
         pub relevant: Vec<Field>,
         pub ignored: Vec<Field>,
@@ -240,7 +241,7 @@ fn impl_constructor(ast: &DeriveInput) -> AnyResult<TokenStream> {
 /// ```
 ///     #[derive(Clone, Debug, Event, Decode, PartialEq, Eq)]
 ///     #[pallet = "Balances"]
-///     pub struct Transfer {
+///     struct Transfer {
 ///         from: AccountId,
 ///         to: AccountId,
 ///         amount: u128,
@@ -248,7 +249,7 @@ fn impl_constructor(ast: &DeriveInput) -> AnyResult<TokenStream> {
 /// ```
 /// which will be expanded to:
 /// ```
-///     pub struct Transfer {
+///     struct Transfer {
 ///         from: AccountId,
 ///         to: AccountId,
 ///         amount: u128,
@@ -298,7 +299,7 @@ fn impl_constructor(ast: &DeriveInput) -> AnyResult<TokenStream> {
 /// ```
 ///     #[derive(Debug, Clone, Event, Decode)]
 ///     #[pallet = "Multisig"]
-///     pub struct MultisigExecuted {
+///     struct MultisigExecuted {
 ///         approving: AccountId,
 ///         #[event_ignore]
 ///         timepoint: Timepoint<BlockNumber>,
