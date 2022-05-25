@@ -13,5 +13,7 @@ accounts = [
 amount = 1_000
 accounts = [
     { name = "//RandomTransfer", copies = 100 },
-    { name = "//VestingSchedulesMerging", copies = 50 }
+    { name = "//VestingSchedulesMerging", copies = 50 },
+    { name = "//Vest/Source/Vest" },
+    { name = "//Vest/Source/VestOther" },
 ]
