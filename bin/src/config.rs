@@ -9,7 +9,8 @@ use scenarios_transfer::{
 };
 use scenarios_vesting::{
     SchedulesMerging as VestingSchedulesMerging,
-    SchedulesMergingConfig as VestingSchedulesMergingConfig,
+    SchedulesMergingConfig as VestingSchedulesMergingConfig, Vest as VestingVest,
+    VestConfig as VestingVestConfig,
 };
 
 /// This struct combines both the execution environment (including hosts and chain address), as well
@@ -64,6 +65,7 @@ enum ScenarioConfig {
     RandomTransfers(RandomTransfersConfig),
     Multisig(MultisigConfig),
     VestingSchedulesMerging(VestingSchedulesMergingConfig),
+    VestingVest(VestingVestConfig),
 }
 
 impl ScenarioConfig {
@@ -81,6 +83,9 @@ impl ScenarioConfig {
             ScenarioConfig::Multisig(config) => Box::new(Multisig::new(connection, config.clone())),
             ScenarioConfig::VestingSchedulesMerging(config) => {
                 Box::new(VestingSchedulesMerging::new(connection, config.clone()).unwrap())
+            }
+            ScenarioConfig::VestingVest(config) => {
+                Box::new(VestingVest::new(connection, config).unwrap())
             }
         }
     }
