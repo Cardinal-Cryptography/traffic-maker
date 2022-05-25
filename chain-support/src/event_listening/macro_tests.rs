@@ -83,7 +83,7 @@ fn generates_matches_for_complex_event_positive_check_with_identical_args() {
 }
 
 #[test]
-fn generates_matches_for_complex_event_positive_check_with_almost_identical_args() {
+fn generates_matches_for_complex_event_positive_check_with_difference_in_irrelevant_args() {
     let event1 = ComplexEvent::new(1, 2, 3, Ok(()));
     let event2 = ComplexEvent::new(1, 2, 4, Ok(()));
 
