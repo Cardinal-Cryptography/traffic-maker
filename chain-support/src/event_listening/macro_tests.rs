@@ -1,183 +1,116 @@
-use anyhow::Result as AnyResult;
 use codec::Decode;
-
-use types::*;
 
 use crate::Event;
 
-/// Internal type mocks representing those from Substrate world.
-mod types {
-    use codec::Decode;
-
-    #[derive(Clone, Debug, Decode, Eq, PartialEq)]
-    pub struct AccountId(pub String);
-
-    #[derive(Clone, Debug, Decode, Default, Eq, PartialEq)]
-    pub struct Timepoint {
-        pub height: u32,
-        pub index: u32,
-    }
-
-    pub type CallHash = [u8; 32];
-
-    pub type DispatchResult = Result<(), String>;
-}
-
 #[derive(Clone, Debug, Decode, Event)]
-#[pallet = "Utility"]
-struct BatchCompleted;
+#[pallet = "Pallet_1"]
+struct UnitEvent;
 
 #[derive(Clone, Debug, Decode, Event, PartialEq)]
-#[pallet = "Balances"]
-struct Transfer {
-    from: AccountId,
-    to: AccountId,
-    amount: u128,
+#[pallet = "Pallet_2"]
+struct SimpleEvent {
+    f1: String,
+    f2: u128,
 }
 
-impl Transfer {
-    pub fn new(from: &str, to: &str, amount: u128) -> Self {
+impl SimpleEvent {
+    pub fn new(f1: &str, f2: u128) -> Self {
         Self {
-            from: AccountId(String::from(from)),
-            to: AccountId(String::from(to)),
-            amount,
+            f1: String::from(f1),
+            f2,
         }
     }
 }
 
 #[derive(Clone, Debug, Decode, Event, PartialEq)]
-#[pallet = "Multisig"]
-struct MultisigExecuted {
-    approving: AccountId,
+#[pallet = "Pallet_3"]
+struct ComplexEvent {
+    f1: u32,
+    f2: u32,
     #[event_match_ignore]
-    timepoint: Timepoint,
-    multisig: AccountId,
-    call_hash: CallHash,
+    f3: u32,
     #[event_match_ignore(default = "Ok(())")]
-    result: DispatchResult,
+    result: Result<(), ()>,
 }
 
-impl MultisigExecuted {
-    pub fn new(
-        approving: &str,
-        timepoint: Timepoint,
-        multisig: &str,
-        call_hash: CallHash,
-        result: DispatchResult,
-    ) -> Self {
-        Self {
-            approving: AccountId(String::from(approving)),
-            timepoint,
-            multisig: AccountId(String::from(multisig)),
-            call_hash,
-            result,
-        }
+impl ComplexEvent {
+    pub fn new(f1: u32, f2: u32, f3: u32, result: Result<(), ()>) -> Self {
+        Self { f1, f2, f3, result }
     }
 }
 
 #[test]
-fn generates_kind_properly() -> AnyResult<()> {
-    let event = BatchCompleted {};
-    assert_eq!(("Utility", "BatchCompleted"), event.kind());
+fn generates_kind_properly() {
+    let event = UnitEvent {};
+    assert_eq!(("Pallet_1", "UnitEvent"), event.kind());
 
-    let event = Transfer::new("", "", 0);
-    assert_eq!(("Balances", "Transfer"), event.kind());
+    let event = SimpleEvent::new("", 0);
+    assert_eq!(("Pallet_2", "SimpleEvent"), event.kind());
 
-    let event = MultisigExecuted::new("", Default::default(), "", Default::default(), Ok(()));
-    assert_eq!(("Multisig", "MultisigExecuted"), event.kind());
-
-    Ok(())
+    let event = ComplexEvent::new(1, 2, 3, Ok(()));
+    assert_eq!(("Pallet_3", "ComplexEvent"), event.kind());
 }
 
 #[test]
-fn generates_matches_for_unit_struct() -> AnyResult<()> {
-    let event = BatchCompleted {};
-    let event2 = BatchCompleted {};
-    assert!(event.matches(&event2));
-
-    Ok(())
+fn generates_matches_for_unit_event() {
+    let event1 = UnitEvent {};
+    let event2 = UnitEvent {};
+    assert!(event1.matches(&event2));
 }
 
 #[test]
-fn generates_matches_for_normal_struct() -> AnyResult<()> {
-    let event1 = Transfer::new("a", "b", 10);
-    let event2 = Transfer::new("a", "b", 10);
-    let event3 = Transfer::new("b", "b", 10);
-    let event4 = Transfer::new("a", "b", 11);
+fn generates_matches_for_simple_event_positive_check() {
+    let event1 = SimpleEvent::new("a", 10);
+    let event2 = SimpleEvent::new("a", 10);
 
     assert!(event1.matches(&event2));
-    assert!(!event1.matches(&event3));
-    assert!(!event1.matches(&event4));
-
-    Ok(())
 }
 
 #[test]
-fn generates_matches_for_struct_with_ignored_fields() -> AnyResult<()> {
-    let event1 = MultisigExecuted::new("a", Default::default(), "b", Default::default(), Ok(()));
-    let event2 = MultisigExecuted::new("a", Default::default(), "b", Default::default(), Ok(()));
-    let event3 = MultisigExecuted::new("a", Default::default(), "a", Default::default(), Ok(()));
-    let event4 = MultisigExecuted::new("a", Default::default(), "a", [1; 32], Ok(()));
-    let event5 = MultisigExecuted::new(
-        "a",
-        Default::default(),
-        "b",
-        Default::default(),
-        Err(String::new()),
-    );
-    let event6 = MultisigExecuted::new(
-        "a",
-        Timepoint {
-            height: 1,
-            index: 2,
-        },
-        "b",
-        Default::default(),
-        Ok(()),
-    );
+fn generates_matches_for_simple_event_negative_check() {
+    let event1 = SimpleEvent::new("a", 10);
+    let event2 = SimpleEvent::new("a", 11);
+
+    assert!(!event1.matches(&event2));
+}
+
+#[test]
+fn generates_matches_for_complex_event_positive_check_with_identical_args() {
+    let event1 = ComplexEvent::new(1, 2, 3, Ok(()));
+    let event2 = ComplexEvent::new(1, 2, 3, Ok(()));
 
     assert!(event1.matches(&event2));
+}
+
+#[test]
+fn generates_matches_for_complex_event_positive_check_with_almost_identical_args() {
+    let event1 = ComplexEvent::new(1, 2, 3, Ok(()));
+    let event2 = ComplexEvent::new(1, 2, 4, Ok(()));
+
     assert!(event1.matches(&event2));
-    assert!(event1.matches(&event5));
-    assert!(event1.matches(&event6));
-
-    assert!(!event1.matches(&event3));
-    assert!(!event1.matches(&event4));
-
-    Ok(())
 }
 
 #[test]
-fn generates_constructor_for_unit_struct() -> AnyResult<()> {
-    let _ = BatchCompleted::from_relevant_fields();
-    Ok(())
+fn generates_matches_for_complex_event_negative_check() {
+    let event1 = ComplexEvent::new(1, 2, 3, Ok(()));
+    let event2 = ComplexEvent::new(0, 2, 3, Ok(()));
+
+    assert!(!event1.matches(&event2));
 }
 
 #[test]
-fn generates_constructor_for_normal_struct() -> AnyResult<()> {
-    let event = Transfer::from_relevant_fields(
-        AccountId(String::from("a")),
-        AccountId(String::from("b")),
-        10,
-    );
-
-    assert_eq!(event, Transfer::new("a", "b", 10));
-
-    Ok(())
+fn generates_constructor_for_unit_event() {
+    let _ = UnitEvent::from_relevant_fields();
 }
 
 #[test]
-fn generates_constructor_for_struct_with_ignored_fields() -> AnyResult<()> {
-    let event = MultisigExecuted::from_relevant_fields(
-        AccountId(String::from("a")),
-        AccountId(String::from("b")),
-        [1; 32],
-    );
+fn generates_constructor_for_simple_event() {
+    let event = SimpleEvent::from_relevant_fields(String::from("b"), 10);
+    assert_eq!(event, SimpleEvent::new("b", 10));
+}
 
-    assert_eq!(
-        event,
-        MultisigExecuted::new("a", Default::default(), "b", [1; 32], Ok(()))
-    );
-
-    Ok(())
+#[test]
+fn generates_constructor_for_complex_event() {
+    let event = ComplexEvent::from_relevant_fields(1, 2);
+    assert_eq!(event, ComplexEvent::new(1, 2, 0, Ok(())));
 }
