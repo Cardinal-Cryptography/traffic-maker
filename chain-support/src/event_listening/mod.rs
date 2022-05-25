@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use aleph_client::{account_from_keypair, substrate_api_client, KeyPair};
+use aleph_client::substrate_api_client;
 use codec::Decode;
 use substrate_api_client::AccountId;
 use thiserror::Error;
@@ -8,6 +8,8 @@ use thiserror::Error;
 pub use event_derive::Event;
 pub use single_event::{with_event_listening, SingleEventListener};
 
+#[cfg(test)]
+mod macro_tests;
 mod single_event;
 
 /// Gathers all possible errors from this module.
@@ -52,14 +54,4 @@ pub struct Transfer {
     from: AccountId,
     to: AccountId,
     amount: u128,
-}
-
-impl Transfer {
-    pub fn new(from: &KeyPair, to: &AccountId, amount: u128) -> Self {
-        Transfer {
-            from: account_from_keypair(from),
-            to: to.clone(),
-            amount,
-        }
-    }
 }

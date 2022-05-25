@@ -18,78 +18,34 @@ pub struct NewMultisig {
     call_hash: CallHash,
 }
 
-impl NewMultisig {
-    pub fn new(approving: AccountId, multisig: AccountId, call_hash: CallHash) -> Self {
-        NewMultisig {
-            approving,
-            multisig,
-            call_hash,
-        }
-    }
-}
-
 #[derive(Clone, Debug, Decode, Event)]
 #[pallet = "Multisig"]
 pub struct MultisigApproval {
     approving: AccountId,
-    #[event_ignore]
+    #[event_match_ignore]
     _timepoint: Timepoint<BlockNumber>,
     multisig: AccountId,
     call_hash: CallHash,
-}
-
-impl MultisigApproval {
-    pub fn new(approving: AccountId, multisig: AccountId, call_hash: CallHash) -> Self {
-        MultisigApproval {
-            approving,
-            _timepoint: Default::default(),
-            multisig,
-            call_hash,
-        }
-    }
 }
 
 #[derive(Clone, Debug, Decode, Event)]
 #[pallet = "Multisig"]
 pub struct MultisigExecuted {
     approving: AccountId,
-    #[event_ignore]
+    #[event_match_ignore]
     _timepoint: Timepoint<BlockNumber>,
     multisig: AccountId,
     call_hash: CallHash,
-    #[event_ignore]
+    #[event_match_ignore(default = "Ok(())")]
     _result: Result<(), sp_runtime::DispatchError>,
-}
-
-impl MultisigExecuted {
-    pub fn new(approving: AccountId, multisig: AccountId, call_hash: CallHash) -> Self {
-        MultisigExecuted {
-            approving,
-            _timepoint: Default::default(),
-            multisig,
-            call_hash,
-            _result: Ok(()),
-        }
-    }
 }
 
 #[derive(Clone, Debug, Decode, Event)]
 #[pallet = "Multisig"]
 pub struct MultisigCancelled {
     cancelling: AccountId,
-    #[event_ignore]
+    #[event_match_ignore]
     _timepoint: Timepoint<BlockNumber>,
     multisig: AccountId,
     call_hash: CallHash,
-}
-
-impl MultisigCancelled {
-    pub fn new(cancelling: AccountId, multisig: AccountId, call_hash: CallHash) -> Self {
-        MultisigCancelled {
-            cancelling,
-            _timepoint: Default::default(),
-            multisig,
-            call_hash,
-        }
-    }
 }
