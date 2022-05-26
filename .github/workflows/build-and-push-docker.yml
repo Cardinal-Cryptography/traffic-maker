@@ -150,5 +150,5 @@ jobs:
           IMAGE_TAG: $(git rev-parse --short HEAD)
           TRAFFIC_MAKER_REGISTRY: 573243519133.dkr.ecr.us-east-1.amazonaws.com/traffic-maker
         run: |
-          docker tag ${{ LOCAL_IMAGE }} ${{ env.TRAFFIC_MAKER_REGISTRY }}:${{ env.IMAGE_TAG }}
+          docker tag ${{ env.LOCAL_IMAGE }} ${{ env.TRAFFIC_MAKER_REGISTRY }}:${{ env.IMAGE_TAG }}
           docker push ${{ env.TRAFFIC_MAKER_REGISTRY }}:${{ env.IMAGE_TAG }}
