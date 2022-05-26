@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   build-targets:
-    name: Build and upload backend and frontend
+    name: Build and upload backend
     runs-on: ubuntu-latest
     env:
       CARGO_INCREMENTAL: 0
@@ -34,13 +34,6 @@ jobs:
       - name: Install WASM target
         run: rustup target add wasm32-unknown-unknown
 
-      # We want to avoid installing trunk every time when any Cargo.lock changes.
-      - name: Restore trunk
-        uses: actions/cache@v2
-        with:
-          path: ~/.cargo/bin/trunk
-          key: ${{ runner.os }}-trunk
-
       - name: Restore cargo cache
         uses: actions/cache@v2
         with:
@@ -50,8 +43,6 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-            monitoring/target/
-            monitoring/dist/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Install sccache for ubuntu-latest
@@ -74,13 +65,6 @@ jobs:
       - name: Start sccache server
         run: sccache --start-server
 
-      - name: Install trunk
-        # Since we are restoring cargo files, normally, `trunk` will be already installed.
-        run: |
-          if ! [ -x "$(command -v trunk)" ]; then
-            cargo install --locked trunk
-          fi
-
       - name: Build backend
         run: cargo build --release
 
@@ -89,22 +73,6 @@ jobs:
         with:
           name: backend
           path: target/release/bin
-          if-no-files-found: error
-          retention-days: 1
-
-      - name: Build frontend
-        run: |
-          cd monitoring/
-          trunk build --release
-
-      - name: Compress frontend target files
-        run: tar -czvf frontend.tar.gz monitoring/
-
-      - name: Upload frontend
-        uses: actions/upload-artifact@v2
-        with:
-          name: frontend
-          path: frontend.tar.gz
           if-no-files-found: error
           retention-days: 1
 
@@ -124,19 +92,6 @@ jobs:
         with:
           name: backend
           path: target/release/
-
-      - name: Download frontend
-        uses: actions/download-artifact@v2
-        with:
-          name: frontend
-          path: frontend.tar.gz
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v1
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build docker image
         run: |
