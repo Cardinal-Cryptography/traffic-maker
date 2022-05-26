@@ -41,7 +41,8 @@ pub trait Event: Clone + Debug + Decode + Send + 'static {
     /// Returns corresponding `EventKind`.
     fn kind() -> EventKind;
     /// Decides whether `other` should be considered as the expected event, i.e. whether `self` and
-    /// `other` are equivalent.
+    /// `other` are equivalent. Should behave like a good equivalence - be reflexive, symmetric, and
+    /// transitive.
     fn matches(&self, other: &Self) -> bool;
 }
 

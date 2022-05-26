@@ -19,7 +19,7 @@ type EventsOut = std::sync::mpsc::Receiver<String>;
 
 /// `SingleEventListener` lets you set up listening for a single event. It is completely
 /// non-blocking and asynchronous.
-pub struct SingleEventListener<E: Event + Send> {
+pub struct SingleEventListener<E: Event> {
     /// The listening itself is performed in another thread. When the expected event is observed, it
     /// will be sent through this one-shot channel.
     receive_event: Receiver<E>,
@@ -51,14 +51,11 @@ impl<E: Event> SingleEventListener<E> {
     /// Returns `Err(_)` if there was problem with reading `encoded_batch` or
     /// `ListeningError::NoEventSpotted` if the batch was properly decoded, but none of the events
     /// was satisfying.
-    fn handle_new_events_batch<M>(
+    fn handle_new_events_batch<M: Fn(&E) -> bool>(
         matcher: &M,
         encoded_batch: String,
         events_decoder: &EventsDecoder,
-    ) -> AnyResult<E>
-    where
-        M: Fn(&E) -> bool,
-    {
+    ) -> AnyResult<E> {
         let encoded_batch = encoded_batch.replace("0x", "");
         let raw_events =
             events_decoder.decode_events(&mut Vec::from_hex(encoded_batch)?.as_slice())?;
@@ -77,24 +74,22 @@ impl<E: Event> SingleEventListener<E> {
         Err(ListeningError::NoEventSpotted.into())
     }
 
-    /// Asynchronously receives new events through `events_out` and check them against `event`.
+    /// Asynchronously receives new events through `events_out` and checks them against `matcher`.
     /// Occasionally checks whether cancellation signal has been sent through `cancel`. When there
     /// is nothing to do yields the control for some time.
     ///
-    /// A spotted event that satisfies `event.matches()` method will be sent through
-    /// `event_received` and the whole process will end.
+    /// A spotted event that satisfies `matcher` will be sent through `event_received` and the whole
+    /// process will end.
     ///
     /// Since events from `events_out` are encoded to `String`, we expect here also `events_decoder`
     /// which is able to decode them.
-    async fn listen_for_event<M>(
+    async fn listen_for_event<M: Fn(&E) -> bool>(
         matcher: M,
         event_received: Sender<E>,
         mut cancel: Receiver<()>,
         events_out: EventsOut,
         events_decoder: EventsDecoder,
-    ) where
-        M: Fn(&E) -> bool,
-    {
+    ) {
         // Listen in a loop, until either satisfying event comes or the cancel signal has been sent.
         loop {
             // Check in a non-blocking manner whether there are some events ready for processing.
@@ -121,10 +116,10 @@ impl<E: Event> SingleEventListener<E> {
     ///
     /// Can fail (returns `ListeningError::CannotSubscribe`) only if subscribing to a node was
     /// unsuccessful.
-    pub async fn new<M>(connection: &Connection, matcher: M) -> AnyResult<Self>
-    where
-        M: Fn(&E) -> bool + Send + 'static,
-    {
+    pub async fn new<M: Fn(&E) -> bool + Send + 'static>(
+        connection: &Connection,
+        matcher: M,
+    ) -> AnyResult<Self> {
         let (event_tx, event_rx) = channel::<E>();
         let (cancel_tx, cancel_rx) = channel();
 
@@ -159,9 +154,9 @@ impl<E: Event> SingleEventListener<E> {
 
     /// For at most `duration` wait (no blocking) for the event to be observed.
     ///
-    /// Returns `Ok(event)` if an event matching `matcher` has been emitted, observed and satisfied
-    /// requirements before the deadline. Otherwise, returns `ListeningError::NoEventSpotted`. In
-    /// any case, the auxiliary thread will be shut down.
+    /// Returns `Ok(event)` if an event matching `matcher` has been emitted and observed.
+    /// Otherwise, returns `ListeningError::NoEventSpotted`. In any case, the auxiliary thread will
+    /// be shut down.
     pub async fn expect_event(self, duration: Duration) -> AnyResult<E> {
         match timeout(duration, self.receive_event).await {
             Ok(Ok(event)) => Ok(event),
