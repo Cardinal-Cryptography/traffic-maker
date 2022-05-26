@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   clippy-and-fmt:
-    name: Clippy and formatting
+    name: Clippy + formatting + cargo test
     runs-on: ubuntu-latest
     env:
       CARGO_INCREMENTAL: 0
@@ -48,6 +48,8 @@ jobs:
             ~/.cargo/git/db/
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
 
       - name: Install sccache for ubuntu-latest
         run: |
@@ -65,9 +67,17 @@ jobs:
         with:
           path: /home/runner/.cache/sccache
           key: ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-sccache-
 
       - name: Start sccache server
         run: sccache --start-server
+
+      - name: Install cargo-cache
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: cargo-cache
 
       - name: Run Format Checks
         uses: actions-rs/cargo@v1
@@ -89,6 +99,12 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
+
+      - name: Prune unused packages from cache
+        uses: actions-rs/cargo@v1
+        with:
+          command: cache
+          args: clean-unref
 
       - name: Stop sccache server
         run: sccache --stop-server || true
