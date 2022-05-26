@@ -6,7 +6,7 @@ use substrate_api_client::AccountId;
 use thiserror::Error;
 
 pub use event_derive::Event;
-pub use single_event::{with_event_listening, SingleEventListener};
+pub use single_event::{with_event_listening, with_event_matching, SingleEventListener};
 
 #[cfg(test)]
 mod macro_tests;
@@ -39,9 +39,10 @@ pub type EventKind = (&'static str, &'static str);
 /// For a reference, look below at `Transfer`.
 pub trait Event: Clone + Debug + Decode + Send + 'static {
     /// Returns corresponding `EventKind`.
-    fn kind(&self) -> EventKind;
+    fn kind() -> EventKind;
     /// Decides whether `other` should be considered as the expected event, i.e. whether `self` and
-    /// `other` are equivalent.
+    /// `other` are equivalent. Should behave like a good equivalence - be reflexive, symmetric, and
+    /// transitive.
     fn matches(&self, other: &Self) -> bool;
 }
 
