@@ -1,15 +1,20 @@
-# Traffic Maker 🚦
+[![rustfmt &amp; clippy](https://github.com/Cardinal-Cryptography/traffic-maker/actions/workflows/clippy-and-fmt.yml/badge.svg)](https://github.com/Cardinal-Cryptography/traffic-maker/actions/workflows/clippy-and-fmt.yml)
+
+# Traffic Maker
 
 The code in this repository aims at filling two objectives:
-1. real-world **traffic simulation** on a blockchain - obviously in a simplified way
+1. real-world **traffic simulation** on a blockchain - obviously, in a simplified way
 2. **comprehensive testing** of all available features and functionalities - kinda E2E-tests on steroids
 
 ## Installation and usage
 
-Apart from Rust version specified in `rust-toolchain` you do not need anything more.
+Apart from Rust version specified in `rust-toolchain` you do not need anything more installed.
+
+#### Launching the default setting
 
 To run the default scenario suite, you need a running chain with some node accessible via ws port.
 
+For most actions, bots will need some tokens to pay fees.
 To set up test accounts with funds run:
 
 ```shell
@@ -21,6 +26,15 @@ Afterwards, to start the test worker run:
 ```shell
 $ make run
 ```
+
+#### Launching the default setting (docker)
+
+If you prefer running bots in a docker container, you can call:
+
+```shell
+$ make 
+```
+
 
 Two configuration files control this. The first one is `set_up/Config.toml`, where you can configure the initial
 endowments. The second one is `Timetable.toml`. There you can specify:
