@@ -18,4 +18,7 @@ build-docker: build-backup
 	docker build --tag traffic-maker -f ./docker/Dockerfile .
 
 run-docker: build-docker
-	docker run --network host traffic-maker
+	docker run \
+		--network host \
+		--mount type=bind,src=`pwd`/Timetable.toml,dst=/traffic-maker/Timetable.toml \
+		traffic-maker
