@@ -1,7 +1,14 @@
 name: Clippy + formatting + cargo test
 
 on:
-  pull_request
+  pull_request:
+    branches:
+      - "**"
+  push:
+    # Build on push to main to populate caches - caches are isolated by branch,
+    # but the main cache is available to other branches
+    branches:
+      - main
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
