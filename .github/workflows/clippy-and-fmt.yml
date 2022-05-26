@@ -1,7 +1,9 @@
 name: Clippy and formatting
 
 on:
-  pull_request
+  pull_request:
+  push:
+    branches: [ main ]
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
