@@ -3,6 +3,11 @@ name: Build artifacts
 on:
   pull_request:
   workflow_dispatch:
+    inputs:
+      deploy:
+        description: Whether to perform deployment step
+        required: false
+        type: boolean
   push:
     branches: [ main ]
 
@@ -11,7 +16,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-targets:
+  build-backend:
     name: Build and upload backend
     runs-on: ubuntu-latest
     env:
@@ -80,8 +85,8 @@ jobs:
         run: sccache --stop-server || true
 
   build-docker:
-    name: Build and upload docker image
-    needs: [ build-targets ]
+    name: Build docker image
+    needs: [ build-backend ]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Source code
@@ -105,3 +110,45 @@ jobs:
           path: traffic-maker.tar
           if-no-files-found: error
           retention-days: 1
+
+  push-docker:
+    name: Push Docker image to ECR
+    needs: [ build-docker ]
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'workflow_dispatch' && github.event.inputs.deploy ||
+      github.event_name == 'push'
+    steps:
+      - name: Checkout Source code
+        uses: actions/checkout@v2
+
+      - name: Download docker image artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: traffic-maker-docker
+
+      - name: Load node docker image
+        run: docker load -i traffic-maker.tar
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Login to ECR
+        uses: docker/login-action@v1
+        with:
+          registry: 573243519133.dkr.ecr.us-east-1.amazonaws.com
+          username: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
+          password: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
+
+      - name: Push traffic-maker image to the private registry
+        env:
+          LOCAL_IMAGE: traffic-maker
+          IMAGE_TAG: $(git rev-parse --short HEAD)
+          TRAFFIC_MAKER_REGISTRY: 573243519133.dkr.ecr.us-east-1.amazonaws.com/traffic-maker
+        run: |
+          docker tag ${{ traffic-maker }} ${{ env.TRAFFIC_MAKER_REGISTRY }}:${{ env.IMAGE_TAG }}
+          docker push ${{ env.TRAFFIC_MAKER_REGISTRY }}:${{ env.IMAGE_TAG }}
