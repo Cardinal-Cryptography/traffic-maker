@@ -188,7 +188,7 @@ fn impl_event(ast: &DeriveInput, pallet: String) -> AnyResult<TokenStream> {
 
     Ok((quote! {
         impl Event for #name {
-            fn kind(&self) -> (&'static str, &'static str) {
+            fn kind() -> (&'static str, &'static str) {
                 (#pallet, #variant)
             }
 
