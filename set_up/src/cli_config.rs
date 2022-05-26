@@ -7,9 +7,10 @@ pub struct CliConfig {
     #[clap(long, default_value = "ws://127.0.0.1:9944")]
     pub node: String,
 
-    /// Seed phrase of the Sudo account.
+    /// Seed phrase of the account performing actions. If `transfer` is `false`, then it must be
+    /// the sudo seed.
     #[clap(long, default_value = "//Alice")]
-    pub sudo_phrase: String,
+    pub phrase: String,
 
     /// Path to the config file.
     #[clap(long, default_value = "Config.toml")]
