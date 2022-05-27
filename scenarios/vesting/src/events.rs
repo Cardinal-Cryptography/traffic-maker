@@ -8,6 +8,6 @@ use chain_support::Event;
 #[derive(Clone, Debug, Decode, Event)]
 #[pallet = "Vesting"]
 pub struct VestingUpdated {
-    account: AccountId,
-    unvested: Balance,
+    pub account: AccountId,
+    pub unvested: Balance,
 }
