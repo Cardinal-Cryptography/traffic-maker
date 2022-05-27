@@ -5,9 +5,9 @@ This tool provides support for initializing local environment and adjusting chai
 ## Endowing accounts
 
 Accounts that are used in scenarios are supposed to already have sufficient balances.
-Through [`Config.toml`](Config.toml) file we can specify starting balance for any needed account.
-While deploying on Testnet, most probably you will need a sudo help for doing this.
-However, for a local development and tests, we can do it ourselves, as usually, `//Alice` is the sudoer, and we have full freedom.
+Through the [`Config.toml`](Config.toml) file we can specify a starting balance for any needed account.
+While deploying on Testnet, most probably you will need to have a sudo privileges help for doing this.
+However, for local development and tests, we can do it ourselves, as usual, `//Alice` is the sudoer, and we have full freedom.
 
 ### Usage
 

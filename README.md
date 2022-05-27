@@ -4,8 +4,8 @@
 # Traffic Maker
 
 The code in this repository aims at filling two objectives:
-1. real-world **traffic simulation** on a blockchain - obviously, in a simplified way
-2. **comprehensive testing** of all available features and functionalities - kinda E2E-tests on steroids
+  1. real-world **traffic simulation** on a blockchain - obviously, in a simplified way
+  2. **comprehensive testing** of all available features and functionalities - kinda E2E-tests on steroids
 
 ## Installation and usage
 
@@ -15,7 +15,7 @@ Apart from Rust version specified in [`rust-toolchain`](rust-toolchain) you do n
 
 To run the default scenario suite, you need a running chain with some node accessible via ws port.
 By default, bots will try communicating with `127.0.0.1:9944`.
-In order to change that, see [Adjusting configuration](#Adjusting configuration) section.
+In order to change that, see the [Adjusting configuration](#Adjusting configuration) section.
 
 For most actions, bots will need some tokens to pay fees.
 To set up test accounts with funds run:
@@ -30,7 +30,7 @@ Afterwards, to start the test worker run:
 $ make run
 ```
 
-### Launching the default setting (docker)
+### Launching with default settings (docker)
 
 If you prefer running bots in a docker container, you can call:
 
@@ -43,21 +43,22 @@ Obviously, the requirement of an accessible running chain is still in force.
 
 ### Adjusting configuration
 
-#### Scenarios configuration and scheduling
+#### Scenario configuration and scheduling
 
 The main file is [`Timetable.toml`](Timetable.toml). There you can specify:
 
- - `node` (by default `127.0.0.1:9944`): it is the web socket address to which bots will connect
- - `expose_host` (by default `127.0.0.1:8080`): address where statistics are published
- - which bots to launch and their parameters
+  - `node` (by default `127.0.0.1:9944`): it is the web socket address to which bots will connect
+  - `expose_host` (by default `127.0.0.1:8080`): address where statistics are published
+  - which bots to launch and their parameters
 
-Statistics are exposed at two endpoints extending`expose_host` address.
-Main data is served at `/details` (brief information about every launched scenario) and logs from particular scenario are displayed at `/logs/<scenario identifier>`.
+Statistics are exposed at two endpoints under the `expose_host` address.
+Main data is served at `/details` (brief information about every launched scenario) and logs from particular scenarios are displayed at `/logs/<scenario identifier>`.
 
 Each scenario configuration contains three obligatory fields:
- - `kind` - this specifies which scenario to run
- - `ident` - a unique identifier of this particular bot (you can launch multiple bots of the same `kind`, but they have to be distinguishable with `ident`)
- - `interval` - (human-readable) amount of time that should pass between finishing a run and the subsequent launch
+
+  - `kind` - this specifies which scenario to run
+  - `ident` - a unique identifier of this particular bot (you can launch multiple bots of the same `kind`, but they have to be distinguishable by `ident`)
+  - `interval` - (human-readable) amount of time that should pass between finishing a run and the subsequent launch
 
 Apart from that, most scenarios have some parameters (like strategy or scale) which you can tweak.
 
@@ -89,16 +90,16 @@ For more details consult [`monitoring/README.md`](monitoring/README.md).
 
 ### Project structure
 
-- [`common`](common) (lib crate): contains a heart of this repo, i.e. `Scenario` trait together with some useful utilities around it
-- [`chain-support`](chain-support) (lib crate): is a library providing functionality for chain interaction, useful in scenario development;
+  - [`common`](common) (lib crate): contains the heart of this repo, i.e. the `Scenario` trait together with some useful utilities around it
+  - [`chain-support`](chain-support) (lib crate): is a library providing functionality for chain interaction, useful in scenario development;
 serves as a wrapper around [`aleph-client`](https://github.com/Cardinal-Cryptography/aleph-node/tree/main/aleph-client) and [`substrate-api-client`](https://github.com/scs/substrate-api-client)
-- [`traffic`](traffic) (lib crate): is responsible for scheduling and launching scenarios
-- [`scenarios`](scenarios) (collection of lib crates): gathers independent crates, each focusing on different testing aspect; 
-something like [`frame`](https://github.com/paritytech/substrate/tree/master/frame) directory for pallets crates in Substrate repository
-- [`bin`](bin) (binary crate): serves for launching the application from command line and providing environment configuration;
+  - [`traffic`](traffic) (lib crate): is responsible for scheduling and launching scenarios
+  - [`scenarios`](scenarios) (collection of lib crates): gathers independent crates, each focusing on testing a different aspect; 
+something like [`frame`](https://github.com/paritytech/substrate/tree/master/frame) directory for pallets crates in the Substrate repository
+  - [`bin`](bin) (binary crate): serves for launching the application from command line and providing environment configuration;
 additionally starts a web server exposing statistics
-- [`monitoring`](monitoring) (bin crate): (web) frontend part of application
-- [`set_up`](set_up) (bin crate): is responsible for endowing bot accounts
+  - [`monitoring`](monitoring) (bin crate): (web) frontend part of application
+  - [`set_up`](set_up) (bin crate): is responsible for endowing bot accounts
  
 ### Building docker image
 
@@ -111,19 +112,19 @@ $ make build-docker
 
 In order to implement a new scenario, follow these steps:
 
-1. If its scope fits into any existing subdirectories (crates) in [`scenarios`](scenarios), add a new module there (and register it in a corresponding `lib.rs`)
+  1. If its scope fits into any existing subdirectories (crates) in [`scenarios`](scenarios), add a new module there (and register it in a corresponding `lib.rs`)
 Otherwise, you will need to create a new crate.
 It will need to be registered in the default workspace ([`Cargo.toml`](Cargo.toml)).
 Also, you will have to add it as a dependency to [`bin/Cargo.toml`](bin/Cargo.toml)
-2. Implement your scenario by filling trait `Scenario` from [`common`](common) crate.
-Instantiating object of your class should be done in an analogous way to other scenarios (through a mirror data structure, see e.g. [`scenarios/transfer/src/simple_transfer.rs`](scenarios/transfer/src/simple_transfer.rs)).
-3. Enable creating your scenario from a configuration file.
+  2. Write your scenario by implementing `Scenario` from the [`common`](common) crate.
+Instantiating an object of your class should be done in an analogous way to other scenarios (through a mirror data structure, see e.g. [`scenarios/transfer/src/simple_transfer.rs`](scenarios/transfer/src/simple_transfer.rs)).
+  3. Enable creating your scenario from a configuration file.
 For this, extend `enum ScenarioConfig` in [`bin/src/config.rs`](bin/src/config.rs) and a corresponding method there (`construct_scenario`).
 You should just follow the existing code and prepare very similar handling.
-4. If you need some accounts to have initial balance, see [Account endowments](#Account endowments) section.
+  4. If you need some accounts to have an initial balance, see the [Account endowments](#Account endowments) section.
 
 ### Deploying to Testnet
 
 After your PR is merged into main, a new docker image (containing only backend part) will be built and pushed to a private registry (AWS ECR).
-To launch it on a server (we have a dedicated EC2 instance for that), you will need to ssh there and run new image manually.
+To launch it on a server (we have a dedicated EC2 instance for that), you will need to ssh there and run the new image manually.
 For details contact @pmikolajczyk41 or @skrolikowski-10c.
