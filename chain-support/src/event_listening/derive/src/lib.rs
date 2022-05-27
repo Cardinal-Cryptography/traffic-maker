@@ -142,7 +142,7 @@ fn get_fields(ast: &DeriveInput) -> AnyResult<private::Fields> {
 
 /// Produces boolean 'equality' formula for the struct represented by `ast`. The formula is supposed
 /// to be used within a function with a signature:
-/// ```
+/// ```no_run
 ///     struct Foo {
 ///         // ...
 ///     };
@@ -264,8 +264,12 @@ fn impl_constructor(ast: &DeriveInput) -> AnyResult<TokenStream> {
 /// `Default` trait or their default value is specified with `#[event_match_ignore]` attribute.
 ///
 /// For example, `Balances::Transfer` event can be declared like this:
-/// ```
-///     #[derive(Clone, Debug, Event, Decode, PartialEq, Eq)]
+/// ```no_run
+///     # use chain_support::Event;
+///     # use codec::Decode;
+///     # type AccountId = ();
+///
+///     #[derive(Clone, Debug, Event, Decode)]
 ///     #[pallet = "Balances"]
 ///     struct Transfer {
 ///         from: AccountId,
@@ -274,21 +278,27 @@ fn impl_constructor(ast: &DeriveInput) -> AnyResult<TokenStream> {
 ///     }
 /// ```
 /// which will be expanded to:
-/// ```
+/// ```no_run
+///     # use chain_support::Event;
+///     # use codec::Decode;
+///     # type AccountId = u128;
+///
+///     #[derive(Clone, Debug, Decode)]
 ///     struct Transfer {
 ///         from: AccountId,
 ///         to: AccountId,
 ///         amount: u128,
 ///     }
-///     //...
+///
 ///     impl Event for Transfer {
-///         fn kind(&self) -> (&'static str, &'static str) {
+///         fn kind() -> (&'static str, &'static str) {
 ///             ("Balances", "Transfer")
 ///         }
 ///         fn matches(&self, other: &Self) -> bool {
 ///             self.from == other.from && self.to == other.to && self.amount == other.amount
 ///         }
 ///     }
+///
 ///     impl Transfer {
 ///         pub fn from_relevant_fields(from: AccountId, to: AccountId, amount: u128) -> Self {
 ///             Self { from, to, amount }
@@ -297,23 +307,33 @@ fn impl_constructor(ast: &DeriveInput) -> AnyResult<TokenStream> {
 /// ```
 ///
 /// Unit structs:
-/// ```
+///
+/// ```no_run
+///     # use chain_support::Event;
+///     # use codec::Decode;
+///
 ///     #[derive(Debug, Clone, Event, Decode)]
 ///     #[pallet = "Utility"]
 ///     struct BatchCompleted;
 /// ```
+///
 /// are expanded like:
-/// ```
+/// ```no_run
+///     # use chain_support::Event;
+///     # use codec::Decode;
+///
+///     #[derive(Debug, Clone, Decode)]
 ///     struct BatchCompleted;
-///     //...
+///
 ///     impl Event for BatchCompleted {
-///         fn kind(&self) -> (&'static str, &'static str) {
+///         fn kind() -> (&'static str, &'static str) {
 ///             ("Utility", "BatchCompleted")
 ///         }
 ///         fn matches(&self, other: &Self) -> bool {
 ///             true
 ///         }
 ///     }
+///
 ///     impl BatchCompleted {
 ///         pub fn from_relevant_fields() -> Self {
 ///             Self {}
@@ -322,13 +342,20 @@ fn impl_constructor(ast: &DeriveInput) -> AnyResult<TokenStream> {
 /// ```
 ///
 /// As mentioned, you can also ignore some irrelevant fields:
-/// ```
+/// ```no_run
+///     # use chain_support::Event;
+///     # use codec::Decode;
+///     # type AccountId = ();
+///     # type CallHash = ();
+///     # type DispatchResult = Result<(), ()>;
+///     # type Timepoint = ();
+///
 ///     #[derive(Debug, Clone, Event, Decode)]
 ///     #[pallet = "Multisig"]
 ///     struct MultisigExecuted {
 ///         approving: AccountId,
 ///         #[event_match_ignore]
-///         timepoint: Timepoint<BlockNumber>,
+///         timepoint: Timepoint,
 ///         multisig: AccountId,
 ///         call_hash: CallHash,
 ///         #[event_match_ignore(default = "Ok(())")]
@@ -336,17 +363,35 @@ fn impl_constructor(ast: &DeriveInput) -> AnyResult<TokenStream> {
 ///     }
 /// ```
 /// to obtain:
-/// ```
+/// ```no_run
+///     # use chain_support::Event;
+///     # use codec::Decode;
+///     # type AccountId = ();
+///     # type CallHash = ();
+///     # type DispatchResult = Result<(), ()>;
+///     # type Timepoint = ();
+///
+///     #[derive(Debug, Clone, Decode)]
+///     struct MultisigExecuted {
+///         approving: AccountId,
+///         timepoint: Timepoint,
+///         multisig: AccountId,
+///         call_hash: CallHash,
+///         result: DispatchResult,
+///     }
+///
 ///     impl Event for MultisigExecuted {
-///         fn kind(&self) -> (&'static str, &'static str) {
+///         fn kind() -> (&'static str, &'static str) {
 ///             ("Multisig", "MultisigExecuted")
 ///         }
+///
 ///         fn matches(&self, other: &Self) -> bool {
 ///             self.approving == other.approving
 ///                 && self.multisig == other.multisig
 ///                 && self.call_hash == other.call_hash
 ///         }
 ///     }
+///
 ///     impl MultisigExecuted {
 ///         pub fn from_relevant_fields(
 ///             approving: AccountId,
@@ -357,8 +402,8 @@ fn impl_constructor(ast: &DeriveInput) -> AnyResult<TokenStream> {
 ///                 approving,
 ///                 multisig,
 ///                 call_hash,
-///                 _timepoint: Default::default(),
-///                 _result: Ok(()),
+///                 timepoint: Default::default(),
+///                 result: Ok(()),
 ///             }
 ///         }
 ///     }

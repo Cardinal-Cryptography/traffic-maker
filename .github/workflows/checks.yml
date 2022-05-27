@@ -1,9 +1,14 @@
-name: Clippy and formatting
+name: Clippy + formatting + cargo test
 
 on:
   pull_request:
+    branches:
+      - "**"
   push:
-    branches: [ main ]
+    # Build on push to main to (among other things) populate caches - caches are isolated by branch,
+    # but the main cache is available to other branches
+    branches:
+      - main
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
@@ -79,6 +84,11 @@ jobs:
         with:
           command: clippy
           args: -- --no-deps -D warnings
+
+      - name: Run tests
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
 
       - name: Stop sccache server
         run: sccache --stop-server || true
