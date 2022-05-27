@@ -12,3 +12,7 @@ proc-macro2 = "1.0"
 syn = { version = "1.0", features = ["full"] }
 thiserror = "1.0"
 quote = "1.0"
+
+[dev-dependencies]
+chain-support = { path = "../../.." }
+codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive"] }

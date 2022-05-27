@@ -234,6 +234,9 @@ macro_rules! exchange_args_with_cloned {
 ///
 /// For example, this snippet:
 /// ```no_run
+/// # #![feature(fn_traits)]
+/// # use anyhow::Result;
+/// # async fn example() -> Result<()> {
 ///     use chain_support::do_async;    
 ///
 ///     fn fun(a: u8, b: usize, c: &usize) {}
@@ -241,11 +244,17 @@ macro_rules! exchange_args_with_cloned {
 ///     struct S { f1: usize, f2: usize }
 ///     let s = S { f1: 1, f2: 2 };
 ///     let x = 3u8;
-///     
-///     do_async!(f, x, s.f1, &s.f2)?;
+///
+///     do_async!(fun, x, s.f1, &s.f2)?;
+///
+/// #   Ok(())
+/// # }
 /// ```
 /// is equivalent to:
 /// ```no_run
+/// # #![feature(fn_traits)]
+/// # use anyhow::Result;
+/// # async fn example() -> Result<()> {
 ///     fn fun(a: u8, b: usize, c: &usize) {}
 ///
 ///     struct S { f1: usize, f2: usize }
@@ -258,28 +267,40 @@ macro_rules! exchange_args_with_cloned {
 ///          let x = x.clone();
 ///          let f1 = s.f1.clone();
 ///          let f2 = s.f2.clone();
-///          spawn_blocking(move || f.call((x, f1, &f2))).await
-///     }?
+///          spawn_blocking(move || fun.call((x, f1, &f2))).await
+///     }?;
+///
+/// #   Ok(())
+/// # }
 /// ```
 /// Similarly, this snippet:
 /// ```no_run
+/// # #![feature(fn_traits)]
+/// # use anyhow::Result;
+/// # async fn example() -> Result<()> {
 ///     use chain_support::do_async;
 ///
 ///     struct S { f: usize }
 ///     impl S {
-///         pub fn g(&self, bool) {}
+///         pub fn g(&self, b: bool) {}
 ///     }
 ///     
 ///     let s = S { f: 1 };
 ///     let x = Some(true);
 ///
 ///     do_async!(S::g, s, x.unwrap())?;
+///
+/// #   Ok(())
+/// # }
 /// ```
 /// is equivalent to:
 /// ```no_run
+/// # #![feature(fn_traits)]
+/// # use anyhow::Result;
+/// # async fn example() -> Result<()> {
 ///     struct S { f: usize }
 ///     impl S {
-///         fn g(&self) {}
+///         fn g(&self, b: bool) {}
 ///     }
 ///     
 ///     let s = S { f: 1 };
@@ -289,6 +310,9 @@ macro_rules! exchange_args_with_cloned {
 ///         use tokio::task::spawn_blocking;
 ///         spawn_blocking(move || S::g.call((&s, (x.unwrap()), ))).await
 ///     };
+///
+/// #   Ok(())
+/// }
 /// ```
 ///
 /// Returns `tokio::runtime::task::Result<T>`, where `T` is the return type for `action`.
