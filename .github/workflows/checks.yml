@@ -5,7 +5,7 @@ on:
     branches:
       - "**"
   push:
-    # Build on push to main to populate caches - caches are isolated by branch,
+    # Build on push to main to (among other things) populate caches - caches are isolated by branch,
     # but the main cache is available to other branches
     branches:
       - main

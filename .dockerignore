@@ -1,8 +1,4 @@
 **
 !docker
 
-!monitoring
-!frontend.tar.gz
-
 !target/release/bin
-!Timetable.toml
