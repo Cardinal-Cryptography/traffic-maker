@@ -5,7 +5,9 @@ scenarios = [
     { kind = "RandomTransfers", ident = "OneToMany (10s)", interval = "10 seconds", direction = "OneToMany", granularity = "Batched", transfers = 7, transfer_fraction = 3 },
     { kind = "Multisig", ident = "Multisig (optimal)", interval = "12 seconds", party_size = { "Precise" = 4 }, threshold = { "Precise" = 3 }, strategy = "Optimal", cancel = false },
     { kind = "Multisig", ident = "Multisig (cancel)", interval = "15 seconds", party_size = "Large", threshold = { "Precise" = 3 }, strategy = "Optimal", cancel = true },
-    { kind = "VestingSchedulesMerging", ident = "Vest", interval = "60 seconds" },
+    { kind = "VestingSchedulesMerging", ident = "VestingSchedulesMerging", interval = "60 seconds" },
+    { kind = "VestingVest", ident = "VestingVest", interval = "10 seconds", vest_kind = "Vest" },
+    { kind = "VestingVest", ident = "VestingVestOther", interval = "10 seconds", vest_kind = "VestOther" },
 ]
 
 [environment]
