@@ -41,14 +41,9 @@ impl ComplexEvent {
 
 #[test]
 fn generates_kind_properly() {
-    let event = UnitEvent {};
-    assert_eq!(("Pallet_1", "UnitEvent"), event.kind());
-
-    let event = SimpleEvent::new("", 0);
-    assert_eq!(("Pallet_2", "SimpleEvent"), event.kind());
-
-    let event = ComplexEvent::new(1, 2, 3, Ok(()));
-    assert_eq!(("Pallet_3", "ComplexEvent"), event.kind());
+    assert_eq!(("Pallet_1", "UnitEvent"), UnitEvent::kind());
+    assert_eq!(("Pallet_2", "SimpleEvent"), SimpleEvent::kind());
+    assert_eq!(("Pallet_3", "ComplexEvent"), ComplexEvent::kind());
 }
 
 #[test]
