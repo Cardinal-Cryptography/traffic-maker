@@ -45,10 +45,17 @@ jobs:
           path: |
             ~/.cargo
             !~/.cargo/registry/src
-            target/
-          key: ${{ runner.os }}-cargo-v2-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-v4-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-cargo-v2
+            ${{ runner.os }}-cargo-v4
+
+      - name: Restore target/release cache
+        uses: actions/cache@v2
+        with:
+          path: target/release
+          key: ${{ runner.os }}-target-release-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-target-release
 
       - name: Install sccache for ubuntu-latest
         run: |
@@ -65,18 +72,19 @@ jobs:
         uses: actions/cache@v2
         with:
           path: /home/runner/.cache/sccache
-          key: ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-sccache-release-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
+            ${{ runner.os }}-sccache-release
             ${{ runner.os }}-sccache
+
+      - name: Start sccache server
+        run: sccache --start-server
 
       - name: Install cargo-cache
         uses: actions-rs/cargo@v1
         with:
           command: install
           args: cargo-cache
-
-      - name: Start sccache server
-        run: sccache --start-server
 
       - name: Build backend
         run: cargo build --release
