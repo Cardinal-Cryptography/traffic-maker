@@ -16,6 +16,10 @@ use tokio::{task::spawn_blocking, time::sleep};
 const SOURCE_VEST_SEED: &str = "//Vest/Source/Vest";
 const SOURCE_VEST_OTHER_SEED: &str = "//Vest/Source/VestOther";
 const RECIPIENT_SEED: &str = "//Vest/Recipient";
+const INITIAL_VESTED: u128 = 1_000_000_000;
+const PER_BLOCK: u128 = 1_000_000;
+const WAIT_BLOCKS: u64 = 20;
+const WAIT_PERIOD: Duration = Duration::from_secs(WAIT_BLOCKS);
 
 #[derive(Clone, Copy, Debug, Deserialize)]
 pub enum VestKind {
@@ -33,6 +37,7 @@ fn random_recipient() -> KeyPair {
     keypair_derived_from_seed(format!("{}/{}", RECIPIENT_SEED, random::<u128>()).as_str())
 }
 
+/// Configuration for the [Vest] scenario.
 #[derive(Clone, Debug, Deserialize)]
 pub struct VestConfig {
     ident: Ident,
@@ -41,6 +46,12 @@ pub struct VestConfig {
     vest_kind: VestKind,
 }
 
+/// A scenario that goes through the vesting process.
+///
+/// The scenario sets up a new account, sending it some funds via a `vested_transfer`. Then it waits
+/// some time (currently 20 seconds), and verifies that some of the funds have been unlocked.
+/// Depending on `vest_kind` it either uses `vest` signed by the recipient of the `vested_transfer`
+/// or `vest_other` signed by the sender of the `vested_transfer`.
 pub struct Vest {
     ident: Ident,
     interval: Duration,
@@ -49,13 +60,13 @@ pub struct Vest {
 }
 
 impl Vest {
-    pub fn new(connection: &Connection, config: &VestConfig) -> AnyResult<Self> {
-        Ok(Vest {
+    pub fn new(connection: &Connection, config: &VestConfig) -> Self {
+        Vest {
             ident: config.ident.clone(),
             interval: config.interval,
             connection: connection.clone(),
             vest_kind: config.vest_kind,
-        })
+        }
     }
 
     fn source(&self) -> KeyPair {
@@ -107,20 +118,18 @@ impl Vest {
         let current_block = self.current_block().await?;
         let recipient = random_recipient();
         let recipient_copy = recipient.clone();
-        let initial_vested = 1000000000;
-        let per_block = 1000000;
 
         self.info("Setting up with vested_transfer");
 
         self.vested_transfer(
             &account_from_keypair(&recipient),
-            VestingSchedule::new(initial_vested, per_block, current_block + 10),
+            VestingSchedule::new(INITIAL_VESTED, PER_BLOCK, current_block + 10),
         )
         .await?;
 
         self.info("Waiting for some of the funds to unlock");
 
-        sleep(Duration::from_secs(20)).await;
+        sleep(WAIT_PERIOD).await;
 
         self.info(format!("Calling {:?}", self.vest_kind));
 
@@ -128,11 +137,11 @@ impl Vest {
         with_event_matching(
             &self.connection,
             move |event: &VestingUpdated| {
-                let unlocked = initial_vested - event.unvested;
+                let unlocked = INITIAL_VESTED - event.unvested;
 
                 event.account == account_from_keypair(&recipient_copy)
-                    && unlocked > 10 * per_block
-                    && unlocked < 100 * per_block
+                    && unlocked > PER_BLOCK * (WAIT_BLOCKS as u128) / 2
+                    && unlocked < PER_BLOCK * (WAIT_BLOCKS as u128) * 5
             },
             Duration::from_secs(2),
             self.vest_action(&recipient),

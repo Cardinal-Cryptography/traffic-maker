@@ -84,9 +84,7 @@ impl ScenarioConfig {
             ScenarioConfig::VestingSchedulesMerging(config) => {
                 Box::new(VestingSchedulesMerging::new(connection, config.clone()).unwrap())
             }
-            ScenarioConfig::VestingVest(config) => {
-                Box::new(VestingVest::new(connection, config).unwrap())
-            }
+            ScenarioConfig::VestingVest(config) => Box::new(VestingVest::new(connection, config)),
         }
     }
 }
