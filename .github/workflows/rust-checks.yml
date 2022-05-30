@@ -16,14 +16,12 @@ concurrency:
 
 jobs:
   clippy-and-fmt:
-    name: Clippy and formatting
+    name: Clippy + formatting + cargo test
     runs-on: ubuntu-latest
     env:
       CARGO_INCREMENTAL: 0
       RUST_BACKTRACE: full
       RUSTC_WRAPPER: sccache
-      SCCACHE_VERSION: 0.2.13
-      SCCACHE_CACHE_SIZE: 2G
     steps:
       - name: Checkout Source code
         uses: actions/checkout@v2
@@ -38,36 +36,11 @@ jobs:
       - name: Install clippy and fmt
         run: rustup component add clippy rustfmt
 
-      - name: Restore cargo cache
-        uses: actions/cache@v2
+      - name: Restore cache
+        uses: ./.github/actions/rust-cache
         with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Install sccache for ubuntu-latest
-        run: |
-          LINK=https://github.com/mozilla/sccache/releases/download
-          SCCACHE_FILE=sccache-$SCCACHE_VERSION-x86_64-unknown-linux-musl
-
-          mkdir -p $HOME/.local/bin
-          curl -L "$LINK/$SCCACHE_VERSION/$SCCACHE_FILE.tar.gz" | tar xz
-          mv -f $SCCACHE_FILE/sccache $HOME/.local/bin/sccache
-
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-      - name: Restore sccache
-        uses: actions/cache@v2
-        with:
-          path: /home/runner/.cache/sccache
-          key: ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Start sccache server
-        run: sccache --start-server
+          target_key: debug
+          cache_version: v1
 
       - name: Run Format Checks
         uses: actions-rs/cargo@v1
@@ -90,5 +63,5 @@ jobs:
         with:
           command: test
 
-      - name: Stop sccache server
-        run: sccache --stop-server || true
+      - name: Cleanup cache
+        uses: ./.github/actions/rust-cache-post
