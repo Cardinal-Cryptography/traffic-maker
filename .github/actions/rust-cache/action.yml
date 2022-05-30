@@ -21,7 +21,7 @@ inputs:
       If you have multiple workflows that generate different contents of the target directory, then you can set this key
       differently for them, so that they don't interfere with each other.
     required: false
-    default: "target"
+    default: ""
   sccache_version:
     description: "Version number of sccache to use."
     required: false
