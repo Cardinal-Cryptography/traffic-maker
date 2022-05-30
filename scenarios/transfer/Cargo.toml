@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-aleph_client = { git = "https://github.com/Cardinal-Cryptography/aleph-node.git", rev = "5ef598067548df82028855e652e660f9ca8c555b" }
+aleph_client = { git = "https://github.com/Cardinal-Cryptography/aleph-node.git", rev = "928fdf1fa0c16855d7d31f59766646562fcbf3f2" }
 
 chain-support = { path = "../../chain-support" }
 common = { path = "../../common" }
