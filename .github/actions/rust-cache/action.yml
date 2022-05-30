@@ -8,8 +8,8 @@ description: |
     2. The ./target cache
     3. The sccache cache along with starting the sccache server
   
-  All caches are keyed with cache_version along with a hash of Cargo.lock. As a fallback they take a cache with any hash
-  of the Cargo.lock to rebuild from a partial cache in case of a Cargo.lock change.
+  All caches are keyed with cache_version along with a hash of all Cargo.lock files in the project. As a fallback they
+  take the newest cache with any hash of Cargo.lock files to rebuild from a partial cache in case of a Cargo.lock change.
 
 inputs:
   cache_version:

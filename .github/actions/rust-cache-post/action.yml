@@ -15,7 +15,7 @@ runs:
       uses: actions-rs/cargo@v1
       with:
         command: cache
-        args: clean-unref
+        args: --autoclean
 
     - name: Stop sccache server
       run: sccache --stop-server || true
