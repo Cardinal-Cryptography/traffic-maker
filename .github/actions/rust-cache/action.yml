@@ -1,0 +1,85 @@
+name: "Restore rust cache"
+description: |
+  Restore/save rust caches.
+  
+  This action combines 3 caches:
+  
+    1. The ~/.cargo cache
+    2. The ./target cache
+    3. The sccache cache along with starting the sccache server
+  
+  All caches are keyed with cache_version along with a hash of Cargo.lock. As a fallback they take a cache with any hash
+  of the Cargo.lock to rebuild from a partial cache in case of a Cargo.lock change.
+
+inputs:
+  cache_version:
+    description: "String indicating the version of the caches, change it to clean caches."
+    required: false
+    default: "v1"
+  target_key:
+    description: >
+      If you have multiple workflows that generate different contents of the target directory, then you can set this key
+      differently for them, so that they don't interfere with each other.
+    required: false
+    default: "target"
+  sccache_version:
+    description: "Version number of sccache to use."
+    required: false
+    default: 0.2.13
+  sccache_size:
+    description: "Size specifier for scache's cache"
+    required: false
+    default: "1G"
+
+runs:
+  using: "composite"
+
+  steps:
+    - name: Restore cargo cache
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo
+        key: ${{ runner.os }}-cargo-${{ inputs.cache_version }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-${{ inputs.cache_version }}
+
+    - name: Restore target cache
+      uses: actions/cache@v3
+      with:
+        path: target
+        key: ${{ runner.os }}-target-${{ inputs.target_key }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-target-${{ inputs.target_key }}
+
+    - name: Install sccache for ubuntu-latest
+      shell: bash
+      run: |
+        LINK=https://github.com/mozilla/sccache/releases/download
+        SCCACHE_FILE=sccache-${{ inputs.sccache_version }}-x86_64-unknown-linux-musl
+        
+        mkdir -p $HOME/.local/bin
+        curl -L "$LINK/${{ inputs.sccache_version }}/$SCCACHE_FILE.tar.gz" | tar xz
+        mv -f $SCCACHE_FILE/sccache $HOME/.local/bin/sccache
+        
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: Restore sccache
+      uses: actions/cache@v2
+      with:
+        path: /home/runner/.cache/sccache
+        key: ${{ runner.os }}-sccache-${{ inputs.target_key }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-sccache-${{ inputs.target_key }}
+
+    - name: Start sccache server
+      env:
+        SCCACHE_CACHE_SIZE: ${{ inputs.sccache_size }}
+      shell: bash
+      run: sccache --start-server
+
+    - name: Install cargo-cache
+      uses: actions-rs/cargo@v1
+      with:
+        command: install
+        args: cargo-cache
