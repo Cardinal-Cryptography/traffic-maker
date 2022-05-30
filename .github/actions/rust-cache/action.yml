@@ -48,9 +48,9 @@ runs:
       uses: actions/cache@v3
       with:
         path: target
-        key: ${{ runner.os }}-target-${{ inputs.target_key }}-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.os }}-target-${{ inputs.target_key }}-${{ inputs.cache_version }}-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: |
-          ${{ runner.os }}-target-${{ inputs.target_key }}
+          ${{ runner.os }}-target-${{ inputs.target_key }}-${{ inputs.cache_version }}
 
     - name: Install sccache for ubuntu-latest
       shell: bash
@@ -68,9 +68,9 @@ runs:
       uses: actions/cache@v3
       with:
         path: /home/runner/.cache/sccache
-        key: ${{ runner.os }}-sccache-${{ inputs.target_key }}-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.os }}-sccache-${{ inputs.target_key }}-${{ inputs.cache_version }}-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: |
-          ${{ runner.os }}-sccache-${{ inputs.target_key }}
+          ${{ runner.os }}-sccache-${{ inputs.target_key }}-${{ inputs.cache_version }}
 
     - name: Start sccache server
       env:
