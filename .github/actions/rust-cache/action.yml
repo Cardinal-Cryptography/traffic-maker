@@ -65,7 +65,7 @@ runs:
         echo "$HOME/.local/bin" >> $GITHUB_PATH
 
     - name: Restore sccache
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: /home/runner/.cache/sccache
         key: ${{ runner.os }}-sccache-${{ inputs.target_key }}-${{ hashFiles('**/Cargo.lock') }}
