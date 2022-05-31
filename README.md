@@ -15,7 +15,7 @@ Apart from Rust version specified in [`rust-toolchain`](rust-toolchain) you do n
 
 To run the default scenario suite, you need a running chain with some node accessible via ws port.
 By default, bots will try communicating with `127.0.0.1:9944`.
-In order to change that, see the [Adjusting configuration](#Adjusting configuration) section.
+In order to change that, see the [Adjusting configuration](#adjusting-configuration) section.
 
 For most actions, bots will need some tokens to pay fees.
 To set up test accounts with funds run:
@@ -121,7 +121,7 @@ Instantiating an object of your class should be done in an analogous way to othe
   3. Enable creating your scenario from a configuration file.
 For this, extend `enum ScenarioConfig` in [`bin/src/config.rs`](bin/src/config.rs) and a corresponding method there (`construct_scenario`).
 You should just follow the existing code and prepare very similar handling.
-  4. If you need some accounts to have an initial balance, see the [Account endowments](#Account endowments) section.
+  4. If you need some accounts to have an initial balance, see the [Account endowments](#account-endowments) section.
 
 ### Deploying to Testnet
 
