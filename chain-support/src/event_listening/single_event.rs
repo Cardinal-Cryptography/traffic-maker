@@ -125,7 +125,7 @@ impl<E: Event> SingleEventListener<E> {
         let (cancel_tx, cancel_rx) = channel();
 
         let events_out = do_async!(subscribe_for_events, &connection)??;
-        let decoder = EventsDecoder::new(connection.as_connection().metadata.clone());
+        let decoder = EventsDecoder::new(connection.as_connection().metadata);
         let listening_handle = tokio::spawn(Self::listen_for_event(
             matcher, event_tx, cancel_rx, events_out, decoder,
         ));
