@@ -1,5 +1,5 @@
-# As `toml` does not support deserializing to `u128` type,
-# all amounts here are supposed to be already scaled down by 10^12.
+# As `toml` does not support deserializing to `u128`, all amounts here are supposed to be already scaled down by 10^12:
+# our token has 12 decimals.
 
 [[endowments]]
 amount = 30_000

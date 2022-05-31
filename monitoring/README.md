@@ -13,11 +13,11 @@ This part of repository provides a primitive and basic overview.
 
 The code uses mainly `iced` framework (see: https://iced.rs/). It is neither most popular Rust frontend library nor 
 is very stable, but it has some advantages:
- - it is extremely simple
- - you write 100% Rust code without any unholy macros (like `yew`'s `html!`) or inline tags
- - is under active development, so there is a  hope for enhancements and support
- - can be quite pleasant to look at after some (not a lot of) work with styles (also in pure Rust, no (s)css needed) -- see for yourself by looking at their examples 
- - for web development it builds WebAssembly runtime on top, which is compatible with the recent trends and tools (like `trunk`)
+  - it is extremely simple
+  - you write 100% Rust code without any unholy macros (like `yew`'s `html!`) or inline tags
+  - is under active development, so there is a  hope for enhancements and support
+  - can be quite pleasant to look at after some (not a lot of) work with styles (also in pure Rust, no (s)css needed) -- see for yourself by looking at their examples 
+  - for web development it builds WebAssembly runtime on top, which is compatible with the recent trends and tools (like `trunk`)
 
 We use here the latest (as for now) code from their main branch (the newest release is quite old).
 
@@ -34,6 +34,9 @@ And you launch it with `trunk serve` (by default it will serve at `localhost:808
 Alternatively (however not recommended), you can avoid using `trunk` and instead work only with `iced`. 
 This is described in details here: https://github.com/iced-rs/iced_web.
 Most probably installing `trunk` will take you less time.
+
+By default, it will be served at `127.0.0.1:8081`.
+If you need to change this, consult [`Trunk.toml`](Trunk.toml).
 
 ## Launching in production
 

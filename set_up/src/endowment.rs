@@ -66,16 +66,16 @@ fn flatten_accounts(accounts: &[Account]) -> Vec<AccountId> {
 }
 
 pub fn perform_endowments(cli_config: &CliConfig, endowments: &[Endowment]) {
-    let sudo = keypair_from_string(&*cli_config.sudo_phrase);
-    let sudo_connection = create_connection(&cli_config.node).set_signer(sudo);
+    let performer = keypair_from_string(&*cli_config.phrase);
+    let connection = create_connection(&cli_config.node).set_signer(performer);
 
     for Endowment { amount, accounts } in endowments {
         let accounts = flatten_accounts(accounts);
 
         if cli_config.transfer {
-            balances_batch_transfer(&sudo_connection, accounts, real_amount(amount));
+            balances_batch_transfer(&connection, accounts, real_amount(amount));
         } else {
-            batch_set_endowment(&sudo_connection, accounts, real_amount(amount));
+            batch_set_endowment(&connection, accounts, real_amount(amount));
         }
     }
 }
