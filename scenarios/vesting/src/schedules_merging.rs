@@ -3,7 +3,8 @@ use std::time::Duration;
 use aleph_client::{
     account_from_keypair, merge_schedules,
     substrate_api_client::{AccountId, Balance},
-    vested_transfer, BlockNumber, Connection, KeyPair, VestingSchedule,
+    vested_transfer, AnyConnection, BlockNumber, Connection, KeyPair, SignedConnection,
+    VestingSchedule,
 };
 use anyhow::{ensure, Result as AnyResult};
 use codec::Decode;
@@ -100,8 +101,12 @@ pub struct SchedulesMerging {
 
 impl SchedulesMerging {
     /// Auxiliary method for reading pallet constant `constant` from `connection` metadata.
-    fn get_pallet_constant<T: Decode>(connection: &Connection, constant: &'static str) -> T {
+    fn get_pallet_constant<C: AnyConnection, T: Decode>(
+        connection: &C,
+        constant: &'static str,
+    ) -> T {
         connection
+            .as_connection()
             .get_constant::<T>("Vesting", constant)
             .unwrap_or_else(|_| panic!("Constant `Vesting::{}` should be present", constant))
     }
@@ -110,7 +115,10 @@ impl SchedulesMerging {
     ///
     /// Fails if either `MaxVestingSchedules` or `MinVestedTransfer` cannot be read from metadata,
     /// or `MaxVestingSchedules` is less than 2.
-    pub fn new(connection: &Connection, config: SchedulesMergingConfig) -> AnyResult<Self> {
+    pub fn new<C: AnyConnection>(
+        connection: &C,
+        config: SchedulesMergingConfig,
+    ) -> AnyResult<Self> {
         let schedules_limit: u32 = Self::get_pallet_constant(connection, "MaxVestingSchedules");
         ensure!(schedules_limit >= 2, SchedulesMergingError::LimitTooLow);
         let transfer_value = Self::get_pallet_constant(connection, "MinVestedTransfer");
@@ -120,7 +128,7 @@ impl SchedulesMerging {
             interval: config.interval,
             schedules_limit: schedules_limit as usize,
             transfer_value,
-            connection: connection.clone(),
+            connection: connection.as_connection(),
         })
     }
 
@@ -133,7 +141,7 @@ impl SchedulesMerging {
     /// Performs vested transfer from `ACCOUNT_SEED{sender_idx}` to `receiver`.
     async fn transfer(&self, receiver: &AccountId, sender_idx: usize) -> AnyResult<()> {
         let sender = compute_keypair(sender_idx);
-        let connection = self.connection.clone().set_signer(sender);
+        let connection = SignedConnection::from_any_connection(self.connection.clone(), sender);
         let schedule = self.get_common_schedule();
         do_async!(vested_transfer, connection, receiver, schedule)?
     }
@@ -245,7 +253,8 @@ impl SchedulesMerging {
             VestingUpdated::from_relevant_fields(receiver_account.clone(), total_locked);
         let timeout = Duration::from_secs(2);
 
-        let connection = self.connection.clone().set_signer(receiver.clone());
+        let connection =
+            SignedConnection::from_any_connection(self.connection.clone(), receiver.clone());
         for i in 1..self.schedules_limit {
             with_event_listening(&self.connection, expected_event.clone(), timeout, async {
                 match do_async!(merge_schedules, connection, 0, 1) {

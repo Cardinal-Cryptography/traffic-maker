@@ -1,6 +1,9 @@
 use std::{collections::HashMap, time::Duration};
 
-use aleph_client::{get_free_balance, substrate_api_client, try_send_xt, Connection, KeyPair};
+use aleph_client::{
+    get_free_balance, substrate_api_client, try_send_xt, AnyConnection, Connection, KeyPair,
+    SignedConnection,
+};
 use anyhow::Result as AnyResult;
 use codec::{Compact, Decode};
 use rand::{prelude::IteratorRandom, thread_rng, Rng};
@@ -106,7 +109,7 @@ struct TransferPair {
 }
 
 impl RandomTransfers {
-    pub fn new(connection: &Connection, config: RandomTransfersConfig) -> Self {
+    pub fn new<C: AnyConnection>(connection: &C, config: RandomTransfersConfig) -> Self {
         RandomTransfers {
             ident: config.ident,
             interval: config.interval,
@@ -114,7 +117,7 @@ impl RandomTransfers {
             granularity: config.granularity,
             transfer_fraction: config.transfer_fraction,
             transfers: config.transfers,
-            connection: connection.clone(),
+            connection: connection.as_connection(),
         }
     }
 
@@ -195,10 +198,8 @@ impl RandomTransfers {
             ));
 
             let transfer_value = self.compute_transfer_value(&sender).await?;
-            let connection = self.connection.clone().set_signer(sender.clone());
-
             let transfer_result =
-                try_transfer(&connection, &sender, &receiver, transfer_value).await;
+                try_transfer(&self.connection, &sender, &receiver, transfer_value).await;
             self.handle(transfer_result)?;
 
             self.debug(format!(
@@ -228,9 +229,11 @@ impl RandomTransfers {
             ));
 
             let transfer_value = self.compute_transfer_value(&sender).await?;
-            let connection = self.connection.clone().set_signer(sender);
+            let metadata = SignedConnection::from_any_connection(self.connection.clone(), sender)
+                .as_connection()
+                .metadata;
             xts.push(compose_call!(
-                connection.metadata,
+                metadata,
                 "Balances",
                 "transfer",
                 GenericAddress::Id(receiver),
@@ -239,8 +242,9 @@ impl RandomTransfers {
         }
 
         // `self.connection` may not be signed, but somebody has to pay for submitting
-        let connection = self.connection.clone().set_signer(pairs[0].sender.clone());
-        let xt = compose_extrinsic!(connection, "Utility", "batch", xts);
+        let connection =
+            SignedConnection::from_any_connection(self.connection.clone(), pairs[0].sender.clone());
+        let xt = compose_extrinsic!(connection.as_connection(), "Utility", "batch", xts);
 
         let batch_result = with_event_listening(
             &connection,

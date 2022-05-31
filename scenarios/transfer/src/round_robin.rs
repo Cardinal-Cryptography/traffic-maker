@@ -1,6 +1,8 @@
 use std::time::Duration;
 
-use aleph_client::{account_from_keypair, substrate_api_client, Connection, KeyPair};
+use aleph_client::{
+    account_from_keypair, substrate_api_client, AnyConnection, Connection, KeyPair,
+};
 use anyhow::Result as AnyResult;
 use rand::random;
 use serde::Deserialize;
@@ -33,7 +35,7 @@ pub struct RoundRobinConfig {
 }
 
 impl RoundRobin {
-    pub fn new(connection: &Connection, config: RoundRobinConfig) -> Self {
+    pub fn new<C: AnyConnection>(connection: &C, config: RoundRobinConfig) -> Self {
         let accounts = (0..config.passes)
             .map(|i| keypair_derived_from_seed(&*format!("{}{}", ROUND_ROBIN_SEED, i)))
             .collect();
@@ -41,7 +43,7 @@ impl RoundRobin {
             ident: config.ident,
             accounts,
             interval: config.interval,
-            connection: connection.clone(),
+            connection: connection.as_connection(),
             robin_value: real_amount(&config.robin_value),
         }
     }

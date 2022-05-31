@@ -4,7 +4,8 @@
 use std::fmt::Display;
 
 pub use aleph_client::{
-    create_connection, keypair_from_string, send_xt, try_send_xt, Connection, KeyPair,
+    create_connection, keypair_from_string, send_xt, try_send_xt, AnyConnection, Connection,
+    KeyPair, RootConnection, SignedConnection,
 };
 
 pub use event_listening::{

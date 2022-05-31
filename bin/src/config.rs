@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use chain_support::{create_connection, Connection};
+use chain_support::{create_connection, AnyConnection, Connection};
 use common::Scenario;
 use scenarios_multisig::{Multisig, MultisigConfig};
 use scenarios_transfer::{
@@ -69,7 +69,7 @@ enum ScenarioConfig {
 }
 
 impl ScenarioConfig {
-    pub fn construct_scenario(&self, connection: &Connection) -> Box<dyn Scenario> {
+    pub fn construct_scenario<C: AnyConnection>(&self, connection: &C) -> Box<dyn Scenario> {
         match self {
             ScenarioConfig::SimpleTransfer(config) => {
                 Box::new(SimpleTransfer::new(connection, config.clone()))

@@ -1,6 +1,8 @@
 use std::time::Duration;
 
-use aleph_client::{account_from_keypair, substrate_api_client, Connection, KeyPair};
+use aleph_client::{
+    account_from_keypair, substrate_api_client, AnyConnection, Connection, KeyPair,
+};
 use anyhow::Result as AnyResult;
 use rand::random;
 use serde::Deserialize;
@@ -36,10 +38,8 @@ pub struct SimpleTransfer {
 }
 
 impl SimpleTransfer {
-    pub fn new(connection: &Connection, config: SimpleTransferConfig) -> Self {
+    pub fn new<C: AnyConnection>(connection: &C, config: SimpleTransferConfig) -> Self {
         let sender = keypair_derived_from_seed(SENDER_SEED);
-        let connection = connection.clone().set_signer(sender.clone());
-
         let receiver = account_from_keypair(&keypair_derived_from_seed(RECEIVER_SEED));
 
         SimpleTransfer {
@@ -47,7 +47,7 @@ impl SimpleTransfer {
             interval: config.interval,
             sender,
             receiver,
-            connection,
+            connection: connection.as_connection(),
             transfer_value: real_amount(&config.transfer_value) + random::<u32>() as u128,
         }
     }

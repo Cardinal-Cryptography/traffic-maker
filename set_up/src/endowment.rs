@@ -1,6 +1,6 @@
 use aleph_client::{
-    balances_batch_transfer, create_connection, keypair_from_string, send_xt, substrate_api_client,
-    Connection,
+    balances_batch_transfer, keypair_from_string, send_xt, substrate_api_client, AnyConnection,
+    RootConnection, SignedConnection,
 };
 use codec::Compact;
 use serde::Deserialize;
@@ -26,25 +26,24 @@ pub struct Endowment {
     pub accounts: Vec<Account>,
 }
 
-type SudoConnection = Connection;
-
-fn batch_set_endowment(sudo_connection: &SudoConnection, accounts: Vec<AccountId>, amount: u128) {
+fn batch_set_endowment(connection: &RootConnection, accounts: Vec<AccountId>, amount: u128) {
+    let metadata = connection.as_connection().metadata;
     let xts = accounts
         .iter()
         .map(|account| {
             let endowment_call = compose_call!(
-                sudo_connection.metadata,
+                metadata,
                 "Balances",
                 "set_balance",
                 GenericAddress::Id(account.clone()),
                 Compact(amount), // free balance
                 Compact(0u128)   // reserved balance
             );
-            compose_call!(sudo_connection.metadata, "Sudo", "sudo", endowment_call)
+            compose_call!(metadata, "Sudo", "sudo", endowment_call)
         })
         .collect::<Vec<_>>();
-    let xt = compose_extrinsic!(sudo_connection, "Utility", "batch", xts);
-    send_xt(sudo_connection, xt, Some("Set endowment"), Finalized);
+    let xt = compose_extrinsic!(connection.as_connection(), "Utility", "batch", xts);
+    send_xt(connection, xt, Some("Set endowment"), Finalized);
 }
 
 fn flatten_accounts(accounts: &[Account]) -> Vec<AccountId> {
@@ -66,16 +65,20 @@ fn flatten_accounts(accounts: &[Account]) -> Vec<AccountId> {
 }
 
 pub fn perform_endowments(cli_config: &CliConfig, endowments: &[Endowment]) {
+    let endowments = endowments
+        .iter()
+        .map(|Endowment { amount, accounts }| (real_amount(amount), flatten_accounts(accounts)));
     let performer = keypair_from_string(&*cli_config.phrase);
-    let connection = create_connection(&cli_config.node).set_signer(performer);
 
-    for Endowment { amount, accounts } in endowments {
-        let accounts = flatten_accounts(accounts);
-
-        if cli_config.transfer {
-            balances_batch_transfer(&connection, accounts, real_amount(amount));
-        } else {
-            batch_set_endowment(&connection, accounts, real_amount(amount));
+    if cli_config.transfer {
+        let connection = SignedConnection::new(&cli_config.node, performer);
+        for (amount, accounts) in endowments {
+            balances_batch_transfer(&connection, accounts, amount);
+        }
+    } else {
+        let connection = RootConnection::new(&cli_config.node, performer);
+        for (amount, accounts) in endowments {
+            batch_set_endowment(&connection, accounts, amount);
         }
     }
 }
