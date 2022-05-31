@@ -96,13 +96,12 @@ impl Vest {
     }
 
     async fn vest_other(&self, signer: KeyPair, target: &AccountId) -> AnyResult<()> {
-        let connection = SignedConnection::from_any_connection(self.connection.clone(), signer);
+        let connection = SignedConnection::from_any_connection(&self.connection, signer);
         do_async!(vest_other, connection, target)?
     }
 
     async fn vest(&self, account: &KeyPair) -> AnyResult<()> {
-        let connection =
-            SignedConnection::from_any_connection(self.connection.clone(), account.clone());
+        let connection = SignedConnection::from_any_connection(&self.connection, account.clone());
         do_async!(vest, connection)?
     }
 
@@ -111,8 +110,7 @@ impl Vest {
         receiver: &AccountId,
         schedule: VestingSchedule,
     ) -> AnyResult<()> {
-        let connection =
-            SignedConnection::from_any_connection(self.connection.clone(), self.source());
+        let connection = SignedConnection::from_any_connection(&self.connection, self.source());
         do_async!(vested_transfer, connection, receiver, schedule)?
     }
 

@@ -307,8 +307,8 @@ dependencies = [
 
 [[package]]
 name = "aleph_client"
-version = "1.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/aleph-node.git?rev=928fdf1fa0c16855d7d31f59766646562fcbf3f2#928fdf1fa0c16855d7d31f59766646562fcbf3f2"
+version = "1.1.0"
+source = "git+https://github.com/Cardinal-Cryptography/aleph-node.git?branch=aleph-client-minor-changes#dd82d7886f3cb6b2d45a94615f938e84d381d8d2"
 dependencies = [
  "anyhow",
  "hex",
@@ -2059,7 +2059,7 @@ dependencies = [
 [[package]]
 name = "pallet-aleph"
 version = "0.2.0"
-source = "git+https://github.com/Cardinal-Cryptography/aleph-node.git?rev=928fdf1fa0c16855d7d31f59766646562fcbf3f2#928fdf1fa0c16855d7d31f59766646562fcbf3f2"
+source = "git+https://github.com/Cardinal-Cryptography/aleph-node.git?branch=aleph-client-minor-changes#dd82d7886f3cb6b2d45a94615f938e84d381d8d2"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -2385,7 +2385,7 @@ dependencies = [
 [[package]]
 name = "primitives"
 version = "0.3.0"
-source = "git+https://github.com/Cardinal-Cryptography/aleph-node.git?rev=928fdf1fa0c16855d7d31f59766646562fcbf3f2#928fdf1fa0c16855d7d31f59766646562fcbf3f2"
+source = "git+https://github.com/Cardinal-Cryptography/aleph-node.git?branch=aleph-client-minor-changes#dd82d7886f3cb6b2d45a94615f938e84d381d8d2"
 dependencies = [
  "parity-scale-codec",
  "scale-info",

@@ -229,7 +229,7 @@ impl RandomTransfers {
             ));
 
             let transfer_value = self.compute_transfer_value(&sender).await?;
-            let metadata = SignedConnection::from_any_connection(self.connection.clone(), sender)
+            let metadata = SignedConnection::from_any_connection(&self.connection, sender)
                 .as_connection()
                 .metadata;
             xts.push(compose_call!(
@@ -243,7 +243,7 @@ impl RandomTransfers {
 
         // `self.connection` may not be signed, but somebody has to pay for submitting
         let connection =
-            SignedConnection::from_any_connection(self.connection.clone(), pairs[0].sender.clone());
+            SignedConnection::from_any_connection(&self.connection, pairs[0].sender.clone());
         let xt = compose_extrinsic!(connection.as_connection(), "Utility", "batch", xts);
 
         let batch_result = with_event_listening(

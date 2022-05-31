@@ -117,16 +117,15 @@ impl<E: Event> SingleEventListener<E> {
     ///
     /// Can fail (returns `ListeningError::CannotSubscribe`) only if subscribing to a node was
     /// unsuccessful.
-    pub async fn new<C: AnyConnection, M: Fn(&E) -> bool + Send + 'static>(
+    pub async fn new<C: 'static + AnyConnection, M: Fn(&E) -> bool + Send + 'static>(
         connection: &C,
         matcher: M,
     ) -> AnyResult<Self> {
         let (event_tx, event_rx) = channel::<E>();
         let (cancel_tx, cancel_rx) = channel();
 
-        let connection = connection.as_connection();
         let events_out = do_async!(subscribe_for_events, &connection)??;
-        let decoder = EventsDecoder::new(connection.metadata.clone());
+        let decoder = EventsDecoder::new(connection.as_connection().metadata.clone());
         let listening_handle = tokio::spawn(Self::listen_for_event(
             matcher, event_tx, cancel_rx, events_out, decoder,
         ));
@@ -173,7 +172,7 @@ impl<E: Event> SingleEventListener<E> {
 /// Like [with_event_matching] but looks for an event matching a specific struct instead of using a
 /// closure to perform the match.
 pub async fn with_event_listening<
-    C: AnyConnection,
+    C: 'static + AnyConnection,
     E: Event,
     R: Debug,
     F: Future<Output = AnyResult<R>>,
@@ -202,7 +201,7 @@ pub async fn with_event_listening<
 ///        returns either `(result, received_event)` if listening succeeded or `Err(_)` otherwise.
 ///     - `Err(e)`: cancels listening and returns `Err(e)`.
 pub async fn with_event_matching<
-    C: AnyConnection,
+    C: 'static + AnyConnection,
     E: Event,
     R: Debug,
     F: Future<Output = AnyResult<R>>,

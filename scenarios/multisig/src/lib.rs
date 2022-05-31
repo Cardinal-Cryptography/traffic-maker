@@ -170,7 +170,7 @@ impl Action {
             return Err(MultisigError::InvalidAggregation.into());
         }
 
-        let connection = SignedConnection::from_any_connection(connection.clone(), caller.clone());
+        let connection = SignedConnection::from_any_connection(connection, caller.clone());
         let caller = account_from_keypair(caller);
         let caller_idx = party.get_member_index(caller.clone())?;
         let call_hash = compute_call_hash(&call);

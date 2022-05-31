@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use aleph_client::{
-    account_from_keypair, merge_schedules,
+    account_from_keypair, get_schedules, merge_schedules,
     substrate_api_client::{AccountId, Balance},
     vested_transfer, AnyConnection, BlockNumber, Connection, KeyPair, SignedConnection,
     VestingSchedule,
@@ -141,41 +141,22 @@ impl SchedulesMerging {
     /// Performs vested transfer from `ACCOUNT_SEED{sender_idx}` to `receiver`.
     async fn transfer(&self, receiver: &AccountId, sender_idx: usize) -> AnyResult<()> {
         let sender = compute_keypair(sender_idx);
-        let connection = SignedConnection::from_any_connection(self.connection.clone(), sender);
+        let connection = SignedConnection::from_any_connection(&self.connection, sender);
         let schedule = self.get_common_schedule();
         do_async!(vested_transfer, connection, receiver, schedule)?
     }
 
     /// Reads how many vesting schedules `receiver` has and how much balance there is in summary.
     ///
-    /// Currently, there is a typo in `aleph-client::get_schedules`, so the call to storage is
-    /// inlined here.
-    ///
     /// Returns `Err(_)` only if the read call didn't succeed. In case when the account has no
     /// active schedules or the storage couldn't be decoded, it returns `Ok((0, 0))`.
     fn get_vesting_info(&self, receiver: &AccountId) -> AnyResult<(usize, Balance)> {
-        let schedules = self
-            .connection
-            .get_storage_map::<AccountId, Vec<VestingSchedule>>(
-                "Vesting",
-                "Vesting",
-                receiver.clone(),
-                None,
-            )?;
-
-        match schedules {
-            Some(schedules) => {
-                let num_of_schedules = schedules.len();
-                let locked = schedules
-                    .iter()
-                    .fold(0u128, |acc, schedule| acc + schedule.locked());
-                Ok((num_of_schedules, locked))
-            }
-            // Unfortunately, we cannot say here whether the error was `VestingError::NotVesting`
-            // or the storage couldn't be decoded. In any case we return `(0, 0)` as indicator
-            // that the account has no active vesting schedules. However, this may not be true.
-            None => Ok((0, 0)),
-        }
+        let schedules = get_schedules(&self.connection, receiver.clone())?;
+        let num_of_schedules = schedules.len();
+        let locked = schedules
+            .iter()
+            .fold(0u128, |acc, schedule| acc + schedule.locked());
+        Ok((num_of_schedules, locked))
     }
 
     /// Performs as many vested transfers to `receiver` as it is needed to meet limit of
@@ -253,8 +234,7 @@ impl SchedulesMerging {
             VestingUpdated::from_relevant_fields(receiver_account.clone(), total_locked);
         let timeout = Duration::from_secs(2);
 
-        let connection =
-            SignedConnection::from_any_connection(self.connection.clone(), receiver.clone());
+        let connection = SignedConnection::from_any_connection(&self.connection, receiver.clone());
         for i in 1..self.schedules_limit {
             with_event_listening(&self.connection, expected_event.clone(), timeout, async {
                 match do_async!(merge_schedules, connection, 0, 1) {

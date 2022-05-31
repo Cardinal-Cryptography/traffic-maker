@@ -44,7 +44,7 @@ pub async fn try_transfer<C: AnyConnection>(
     target: &AccountId,
     amount: u128,
 ) -> AnyResult<()> {
-    let connection = SignedConnection::from_any_connection(connection.clone(), source.clone());
+    let connection = SignedConnection::from_any_connection(connection, source.clone());
     let expected_event =
         TransferEvent::from_relevant_fields(account_from_keypair(source), target.clone(), amount);
 

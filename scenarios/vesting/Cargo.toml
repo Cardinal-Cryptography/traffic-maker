@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-aleph_client = { git = "https://github.com/Cardinal-Cryptography/aleph-node.git", rev = "928fdf1fa0c16855d7d31f59766646562fcbf3f2" }
+aleph_client = { git = "https://github.com/Cardinal-Cryptography/aleph-node.git", branch = "aleph-client-minor-changes" }
 pallet-vesting = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19", default-features = false }
 
 chain-support = { path = "../../chain-support" }
