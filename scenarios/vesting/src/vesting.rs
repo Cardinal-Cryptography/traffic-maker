@@ -1,7 +1,7 @@
 use crate::events::VestingUpdated;
 use aleph_client::{
     account_from_keypair, substrate_api_client::AccountId, vest, vest_other, vested_transfer,
-    Connection, KeyPair, VestingSchedule,
+    AnyConnection, Connection, KeyPair, SignedConnection, VestingSchedule,
 };
 use anyhow::Result as AnyResult;
 use chain_support::{do_async, keypair_derived_from_seed, with_event_matching};
@@ -60,11 +60,11 @@ pub struct Vest {
 }
 
 impl Vest {
-    pub fn new(connection: &Connection, config: &VestConfig) -> Self {
+    pub fn new<C: AnyConnection>(connection: &C, config: &VestConfig) -> Self {
         Vest {
             ident: config.ident.clone(),
             interval: config.interval,
-            connection: connection.clone(),
+            connection: connection.as_connection(),
             vest_kind: config.vest_kind,
         }
     }
@@ -96,12 +96,12 @@ impl Vest {
     }
 
     async fn vest_other(&self, signer: KeyPair, target: &AccountId) -> AnyResult<()> {
-        let connection = self.connection.clone().set_signer(signer);
+        let connection = SignedConnection::from_any_connection(&self.connection, signer);
         do_async!(vest_other, connection, target)?
     }
 
     async fn vest(&self, account: &KeyPair) -> AnyResult<()> {
-        let connection = self.connection.clone().set_signer(account.clone());
+        let connection = SignedConnection::from_any_connection(&self.connection, account.clone());
         do_async!(vest, connection)?
     }
 
@@ -110,7 +110,7 @@ impl Vest {
         receiver: &AccountId,
         schedule: VestingSchedule,
     ) -> AnyResult<()> {
-        let connection = self.connection.clone().set_signer(self.source());
+        let connection = SignedConnection::from_any_connection(&self.connection, self.source());
         do_async!(vested_transfer, connection, receiver, schedule)?
     }
 

@@ -6,7 +6,7 @@ use std::{fmt::Debug, time::Duration};
 use aleph_client::{
     account_from_keypair, compute_call_hash,
     substrate_api_client::{AccountId, UncheckedExtrinsicV4},
-    Connection, KeyPair, MultisigParty, SignatureAggregation,
+    AnyConnection, KeyPair, MultisigParty, SignatureAggregation, SignedConnection,
 };
 use anyhow::Result as AnyResult;
 use codec::Encode;
@@ -157,9 +157,9 @@ impl Action {
     /// Note: if the action is `InitiateWithCall` or `ApproveWithCall`, `call` will be stored
     /// (unless this is the final approval). In other words, the pallet call flag `store_call` is
     /// always set to `true`.
-    pub async fn perform<CallDetails: Encode + Clone + Send + 'static>(
+    pub async fn perform<C: AnyConnection, CallDetails: Encode + Clone + Send + 'static>(
         &self,
-        connection: &Connection,
+        connection: &C,
         party: MultisigParty,
         sig_agg: Option<SignatureAggregation>,
         call: UncheckedExtrinsicV4<CallDetails>,
@@ -170,7 +170,7 @@ impl Action {
             return Err(MultisigError::InvalidAggregation.into());
         }
 
-        let connection = connection.clone().set_signer(caller.clone());
+        let connection = SignedConnection::from_any_connection(connection, caller.clone());
         let caller = account_from_keypair(caller);
         let caller_idx = party.get_member_index(caller.clone())?;
         let call_hash = compute_call_hash(&call);

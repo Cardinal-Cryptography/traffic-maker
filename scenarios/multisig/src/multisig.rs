@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use aleph_client::{
     substrate_api_client::{extrinsic::balances::BalanceTransferXt, GenericAddress},
-    Connection, KeyPair, MultisigParty,
+    AnyConnection, Connection, KeyPair, MultisigParty,
 };
 use anyhow::Result as AnyResult;
 use rand::{seq::index::sample, thread_rng, Rng};
@@ -60,7 +60,7 @@ pub struct Multisig {
 }
 
 impl Multisig {
-    pub fn new(connection: &Connection, config: MultisigConfig) -> Self {
+    pub fn new<C: AnyConnection>(connection: &C, config: MultisigConfig) -> Self {
         Multisig {
             ident: config.ident,
             interval: config.interval,
@@ -68,7 +68,7 @@ impl Multisig {
             threshold: config.threshold,
             strategy: config.strategy,
             cancel: config.cancel,
-            connection: connection.clone(),
+            connection: connection.as_connection(),
         }
     }
 
@@ -115,6 +115,7 @@ impl Multisig {
     /// context of scenario success.
     fn prepare_call(&self) -> Call {
         self.connection
+            .as_connection()
             .balance_transfer(GenericAddress::Address32(Default::default()), 0)
     }
 
@@ -135,12 +136,17 @@ impl Multisig {
         actions: Vec<Action>,
         call: Call,
     ) -> AnyResult<()> {
-        let connection = self.connection.clone().set_signer(members[0].clone());
-
         let party = Self::get_party(&members, threshold)?;
         self.info("Initializing signature aggregation");
         let mut sig_agg = actions[0]
-            .perform(&connection, party, None, call.clone(), &members[0], false)
+            .perform(
+                &self.connection,
+                party,
+                None,
+                call.clone(),
+                &members[0],
+                false,
+            )
             .await?;
 
         // Here `i` is one less then the actual member index.
@@ -156,7 +162,7 @@ impl Multisig {
 
             sig_agg = action
                 .perform(
-                    &connection,
+                    &self.connection,
                     Self::get_party(&members, threshold)?,
                     sig_agg,
                     call.clone(),

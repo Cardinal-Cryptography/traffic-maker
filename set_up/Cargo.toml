@@ -4,7 +4,7 @@ version = "0.2.0"
 edition = "2021"
 
 [dependencies]
-aleph_client = { git = "https://github.com/Cardinal-Cryptography/aleph-node.git", rev = "5ef598067548df82028855e652e660f9ca8c555b" }
+aleph_client = { git = "https://github.com/Cardinal-Cryptography/aleph-node.git", rev = "c8eb94cfb066485aa2d14f65110a26edc54dda9a" }
 
 clap = { version = "3.0.0", features = ["derive"] }
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive"] }
