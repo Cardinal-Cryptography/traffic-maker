@@ -25,12 +25,12 @@ docker pull 573243519133.dkr.ecr.us-east-1.amazonaws.com/traffic-maker:"$TAG"
 docker tag 573243519133.dkr.ecr.us-east-1.amazonaws.com/traffic-maker:"$TAG" $IMAGE_ID
 print "[+] Image pulled and tagged as <$IMAGE_ID>"
 
-if [ $(docker ps | grep "$CONTAINER_ID" | wc -l) -gt 0 ]; then
+if [ $(docker ps | grep -c "$CONTAINER_ID") -gt 0 ]; then
   print "[+] Stopping currently launched container..."
   docker stop $CONTAINER_ID
 fi
 
-if [ $(docker ps -a | grep "$CONTAINER_ID" | wc -l) -gt 0 ]; then
+if [ $(docker ps -a | grep -c "$CONTAINER_ID") -gt 0 ]; then
   print "[+] Removing previously launched container..."
   docker rm $CONTAINER_ID
 fi
