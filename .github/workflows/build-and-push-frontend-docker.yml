@@ -6,12 +6,12 @@ on:
       - 'monitoring/**'
       - '.github/workflows/build-and-push-frontend-docker.yml'
       - 'docker/frontend/**'
-  workflow_dispatch:
-    inputs:
-      deploy:
-        description: Whether to perform deployment step
-        required: false
-        type: boolean
+#  workflow_dispatch:
+#    inputs:
+#      deploy:
+#        description: Whether to perform deployment step
+#        required: false
+#        type: boolean
   push:
     branches: [ main ]
     paths:
