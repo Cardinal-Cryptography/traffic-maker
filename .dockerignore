@@ -2,3 +2,6 @@
 !docker
 
 !target/release/bin
+
+!monitoring
+!common/
