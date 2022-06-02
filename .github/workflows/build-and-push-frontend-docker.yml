@@ -23,7 +23,7 @@ concurrency:
 
 jobs:
   build-docker:
-    name: Build docker image
+    name: Build frontend docker image
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Source code

@@ -58,7 +58,7 @@ jobs:
           retention-days: 1
 
   build-docker:
-    name: Build docker image
+    name: Build backend docker image
     needs: [ build-backend ]
     runs-on: ubuntu-latest
     steps:
