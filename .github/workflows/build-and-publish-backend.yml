@@ -1,15 +1,15 @@
 name: Build backend artifacts
 
 on:
-  pull_request:
+#  pull_request:
   workflow_dispatch:
     inputs:
       deploy:
         description: Whether to perform deployment step
         required: false
         type: boolean
-  push:
-    branches: [ main ]
+#  push:
+#    branches: [ main ]
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
