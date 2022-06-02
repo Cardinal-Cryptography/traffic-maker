@@ -15,10 +15,11 @@ build-backup:
 	cargo build --release
 
 build-docker: build-backup
-	docker build --tag traffic-maker -f ./docker/Dockerfile .
+	docker build --tag traffic-maker -f ./docker/backend/Dockerfile .
 
 run-docker: build-docker
 	docker run \
 		--network host \
 		--mount type=bind,src=`pwd`/Timetable.toml,dst=/traffic-maker/Timetable.toml \
+		--name traffic-maker \
 		traffic-maker

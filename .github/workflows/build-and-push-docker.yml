@@ -73,7 +73,7 @@ jobs:
 
       - name: Build docker image
         run: |
-          docker build --tag traffic-maker -f ./docker/Dockerfile .
+          docker build --tag traffic-maker -f ./docker/backend/Dockerfile .
           docker save -o traffic-maker.tar traffic-maker
 
       - name: Save docker image as artifact
