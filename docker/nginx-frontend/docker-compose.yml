@@ -5,4 +5,4 @@ services:
     image: monitoring:latest
     container_name: traffic-maker-monitoring
     ports:
-      - 8080:80
+      - 8040:80

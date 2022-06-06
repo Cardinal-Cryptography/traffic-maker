@@ -20,3 +20,5 @@ Run it:
 ```
 docker-compose -f docker/nginx-frontend/docker-compose.yml up
 ```
+
+Visit `localhost:8040` where the content is being served.
