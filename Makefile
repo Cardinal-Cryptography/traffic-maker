@@ -14,7 +14,7 @@ build-docker: build
 
 run-docker: build-docker
 	docker run \
-		-p 8080:8080 \
+		--network host \
 		--mount type=bind,src=`pwd`/Timetable.toml,dst=/traffic-maker/Timetable.toml \
 		--name traffic-maker \
 		traffic-maker
