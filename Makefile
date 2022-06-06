@@ -22,7 +22,7 @@ run-docker: build-docker
 build-monitoring:
 	rustup target add wasm32-unknown-unknown
 	cargo install --locked trunk
-	cd monitoring; trunk build --release
+	cd monitoring; STATS_BASE_URL=http://127.0.0.1:8080 trunk build --release
 
 monitoring: build-monitoring
 	cd monitoring; trunk serve --open --release
@@ -33,6 +33,6 @@ build-monitoring-docker: build-monitoring
 monitoring-docker: build-monitoring-docker
 	docker run \
     		--name traffic-maker-monitoring \
-    		-e STATS_BASE_URL=http://127.0.0.1:8080 \
     		-p 8081:80 \
+    		-p 8080:8080 \
     		traffic-maker-monitoring
