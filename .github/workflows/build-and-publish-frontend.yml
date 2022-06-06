@@ -1,23 +1,36 @@
-name: Build artifacts
+name: Build frontend artifacts
 
 on:
   pull_request:
+    paths:
+      - 'monitoring/**'
+      - '.github/workflows/build-and-push-frontend-docker.yml'
+      - 'docker/frontend/**'
   workflow_dispatch:
     inputs:
       deploy:
         description: Whether to perform deployment step
         required: false
         type: boolean
+      api-address:
+        description: The address where backend stats are being exposed (`STATS_BASE_URL`)
+        required: false
+        type: string
+        default: http://127.0.0.1:8080
   push:
     branches: [ main ]
+    paths:
+      - 'monitoring/**'
+      - '.github/workflows/build-and-push-frontend-docker.yml'
+      - 'docker/frontend/**'
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
   cancel-in-progress: true
 
 jobs:
-  build-backend:
-    name: Build and upload backend
+  build-frontend:
+    name: Build and upload frontend static content
     runs-on: ubuntu-latest
     env:
       CARGO_INCREMENTAL: 0
@@ -40,47 +53,53 @@ jobs:
       - name: Restore cache
         uses: ./.github/actions/rust-cache
         with:
-          target_key: release
+          target_key: frontend
           cache_version: v1
 
-      - name: Build backend
-        run: cargo build --release
+      - name: Build frontend
+        env:
+          STATS_BASE_URL: ${{ github.event.inputs.api-address }}
+        run: |
+          cd monitoring/
+          wget -qO- https://github.com/thedodd/trunk/releases/download/v0.15.0/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-
+          ./trunk build --release
 
       - name: Cleanup cache
         uses: ./.github/actions/rust-cache-post
 
-      - name: Upload backend
+      - name: Upload static content
         uses: actions/upload-artifact@v2
         with:
-          name: backend
-          path: target/release/bin
+          name: frontend
+          path: monitoring/dist
           if-no-files-found: error
           retention-days: 1
 
+
   build-docker:
-    name: Build docker image
-    needs: [ build-backend ]
+    name: Build frontend docker image
+    needs: [ build-frontend ]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Source code
         uses: actions/checkout@v2
 
-      - name: Download backend
+      - name: Download static content
         uses: actions/download-artifact@v2
         with:
-          name: backend
-          path: target/release/
+          name: frontend
+          path: monitoring/dist/
 
       - name: Build docker image
         run: |
-          docker build --tag traffic-maker -f ./docker/Dockerfile .
-          docker save -o traffic-maker.tar traffic-maker
+          docker build --tag traffic-maker-monitoring -f ./docker/frontend/Dockerfile .
+          docker save -o traffic-maker-monitoring.tar traffic-maker-monitoring
 
       - name: Save docker image as artifact
         uses: actions/upload-artifact@v2
         with:
-          name: traffic-maker-docker
-          path: traffic-maker.tar
+          name: traffic-maker-monitoring-docker
+          path: traffic-maker-monitoring.tar
           if-no-files-found: error
           retention-days: 1
 
@@ -98,10 +117,10 @@ jobs:
       - name: Download docker image artifact
         uses: actions/download-artifact@v2
         with:
-          name: traffic-maker-docker
+          name: traffic-maker-monitoring-docker
 
       - name: Load node docker image
-        run: docker load -i traffic-maker.tar
+        run: docker load -i traffic-maker-monitoring.tar
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -119,9 +138,9 @@ jobs:
 
       - name: Push traffic-maker image to the private registry
         env:
-          LOCAL_IMAGE: traffic-maker
+          LOCAL_IMAGE: traffic-maker-monitoring
           IMAGE_TAG: $(git rev-parse --short HEAD)
-          TRAFFIC_MAKER_REGISTRY: 573243519133.dkr.ecr.us-east-1.amazonaws.com/traffic-maker
+          MONITORING_REGISTRY: 573243519133.dkr.ecr.us-east-1.amazonaws.com/traffic-maker-monitoring
         run: |
-          docker tag ${{ env.LOCAL_IMAGE }} ${{ env.TRAFFIC_MAKER_REGISTRY }}:${{ env.IMAGE_TAG }}
-          docker push ${{ env.TRAFFIC_MAKER_REGISTRY }}:${{ env.IMAGE_TAG }}
+          docker tag ${{ env.LOCAL_IMAGE }} ${{ env.MONITORING_REGISTRY }}:${{ env.IMAGE_TAG }}
+          docker push ${{ env.MONITORING_REGISTRY }}:${{ env.IMAGE_TAG }}

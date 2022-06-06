@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y \
 COPY target/release/bin /usr/local/bin/backend
 RUN chmod +x /usr/local/bin/backend
 
-COPY docker/docker_entrypoint.sh /traffic-maker/docker_entrypoint.sh
+COPY docker/backend/docker_entrypoint.sh /traffic-maker/docker_entrypoint.sh
 RUN chmod +x /traffic-maker/docker_entrypoint.sh
 
 EXPOSE 8080

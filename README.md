@@ -1,6 +1,3 @@
-[![rustfmt &amp; clippy](https://github.com/Cardinal-Cryptography/traffic-maker/actions/workflows/clippy-and-fmt.yml/badge.svg)](https://github.com/Cardinal-Cryptography/traffic-maker/actions/workflows/clippy-and-fmt.yml)
-[![artifacts](https://github.com/Cardinal-Cryptography/traffic-maker/actions/workflows/build-and-push-docker.yml/badge.svg)](https://github.com/Cardinal-Cryptography/traffic-maker/actions/workflows/build-and-push-docker.yml)
-
 # Traffic Maker
 
 The code in this repository aims at filling two objectives:
