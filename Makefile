@@ -1,4 +1,4 @@
-.PHONY: run build setup build-docker run-docker monitoring build-monitoring-docker monitoring-docker
+.PHONY: run build setup build-docker run-docker build-monitoring monitoring build-monitoring-docker monitoring-docker
 
 run:
 	cargo run --release
@@ -19,17 +19,20 @@ run-docker: build-docker
 		--name traffic-maker \
 		traffic-maker
 
-monitoring:
+build-monitoring:
 	rustup target add wasm32-unknown-unknown
 	cargo install --locked trunk
+	cd monitoring; trunk build --release
+
+monitoring: build-monitoring
 	cd monitoring; trunk serve --open --release
 
-build-monitoring-docker:
+build-monitoring-docker: build-monitoring
 	docker build --tag traffic-maker-monitoring -f ./docker/frontend/Dockerfile .
 
 monitoring-docker: build-monitoring-docker
 	docker run \
-    		--network host \
     		--name traffic-maker-monitoring \
     		-e STATS_BASE_URL=http://127.0.0.1:8080 \
+    		-p 8081:80 \
     		traffic-maker-monitoring

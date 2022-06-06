@@ -3,5 +3,4 @@
 
 !target/release/bin
 
-!monitoring
-!common/
+!monitoring/dist

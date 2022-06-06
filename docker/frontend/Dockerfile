@@ -1,19 +1,29 @@
-FROM rust:1.58
+FROM debian:stretch-slim
 
-RUN apt-get update && \
-    apt-get install -y libssl-dev ca-certificates curl wget && \
-    apt-get clean && \
-    rm -rf /tmp/* /var/{tmp,cache}/* /var/lib/{apt,dpkg}/
+RUN apt-get update -y \
+        && apt-get install --no-install-recommends -y \
+        -q wget nginx
 
-EXPOSE 8081
+RUN apt-get clean && \
+        rm -rf /var/lib/apt/lists/*
 
-RUN wget -qO- https://github.com/thedodd/trunk/releases/download/v0.15.0/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-
+# replace nginx config
+COPY docker/frontend/nginx.conf /etc/nginx/nginx.conf
 
-COPY monitoring/ ./monitoring
-COPY common/ ./common
+# replace default server
+COPY docker/frontend/default /etc/nginx/sites-available/default
 
-WORKDIR ./monitoring/
-RUN rustup target add wasm32-unknown-unknown && \
-    ../trunk build --release
+# site config
+COPY docker/frontend/traffic-maker.site /etc/nginx/sites-available/traffic-maker.site
 
-ENTRYPOINT ["../trunk", "serve", "--release"]
+# setup error page
+COPY docker/frontend/X0X.html /usr/share/nginx/html/X0X.html
+
+# setup site
+RUN ln -s -f /etc/nginx/sites-available/traffic-maker.site /etc/nginx/sites-enabled/traffic-maker.site
+
+# copy static content
+COPY monitoring/dist/ /monitoring
+
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
