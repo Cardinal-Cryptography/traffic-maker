@@ -2,8 +2,11 @@ FROM debian:stretch-slim
 MAINTAINER "Filip Bielejec" <filip.bielejec@cardinals.cc>
 
 RUN apt-get update -y \
-    && apt-get install --no-install-recommends -y \
-    -q wget nginx
+        && apt-get install --no-install-recommends -y \
+        -q wget nginx
+
+RUN apt-get clean && \
+        rm -rf /var/lib/apt/lists/*
 
 # replace nginx config
 COPY docker/nginx-frontend/nginx.conf /etc/nginx/nginx.conf
