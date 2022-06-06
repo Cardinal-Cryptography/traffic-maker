@@ -1,0 +1,8 @@
+version: "3.5"
+services:
+
+  ui:
+    image: monitoring:latest
+    container_name: traffic-maker-monitoring
+    ports:
+      - 8080:80
