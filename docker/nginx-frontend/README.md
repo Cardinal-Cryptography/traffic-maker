@@ -1,13 +1,13 @@
 ## Dockerized nginx config for traffic-maker monitoring frontend
 
-Build WASM artifacts:
+Build WASM & other static content artifacts:
 
 ```bash
 cd monitoring
 STATS_BASE_URL=http://127.0.0.1:8080 trunk build --release
 ```
 
-- where `STATS_BASE_URL` is where the backend server will be listening for API requests
+- where `STATS_BASE_URL` is where the backend server will be listening for API requests.
 
 Build docker image:
 
