@@ -80,7 +80,7 @@ jobs:
       - name: Download static content
         uses: actions/download-artifact@v2
         with:
-          name: frontent
+          name: frontend
           path: monitoring/dist/
 
       - name: Build docker image
