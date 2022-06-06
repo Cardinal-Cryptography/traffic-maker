@@ -14,7 +14,7 @@ server {
   location ~ /(images|js|css|fonts|resources)(.*)$ {
     expires 1h;
     add_header Cache-Control "public";
-    rewrite /(images|js|css|fonts)(.*) /$1$2 break;
+    rewrite /(images|js|css|fonts|resources)(.*) /$1$2 break;
     try_files $uri $uri/index.html /index.html;
   }
 
