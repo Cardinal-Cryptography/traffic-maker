@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 pub use scenario::{
-    Scenario, ScenarioDetails, ScenarioError, ScenarioLogging, ScenarioLogs, ScenarioStatus,
+    Scenario, ScenarioContainer, ScenarioDetails, ScenarioError, ScenarioInstance, ScenarioLogging,
+    ScenarioLogs, ScenarioStatus,
 };
 
 mod scenario;

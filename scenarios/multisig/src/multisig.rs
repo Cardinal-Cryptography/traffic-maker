@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use aleph_client::{
     substrate_api_client::{extrinsic::balances::BalanceTransferXt, GenericAddress},
     AnyConnection, Connection, KeyPair, MultisigParty,
@@ -9,8 +7,7 @@ use rand::{seq::index::sample, thread_rng, Rng};
 use serde::Deserialize;
 
 use chain_support::keypair_derived_from_seed;
-use common::{Ident, Scenario, ScenarioLogging};
-use scenarios_support::parse_interval;
+use common::{Scenario, ScenarioLogging};
 
 use crate::{Action, Cancel, PartySize, Strategy, Threshold};
 
@@ -31,12 +28,7 @@ type Call = BalanceTransferXt;
 
 /// Configuration for `Multisig` scenario.
 #[derive(Clone, Debug, Deserialize)]
-pub struct MultisigConfig {
-    /// Unique string identifier for the scenario.
-    ident: Ident,
-    /// Periodicity of launching.
-    #[serde(deserialize_with = "parse_interval")]
-    interval: Duration,
+pub struct Multisig {
     /// Multisig party will be derived from `party_size` and `threshold`. Each time scenario is
     /// launched, these parameters will potentially be different.
     party_size: PartySize,
@@ -47,31 +39,7 @@ pub struct MultisigConfig {
     cancel: bool,
 }
 
-/// Scenario performing multisignature aggregation.
-#[derive(Clone)]
-pub struct Multisig {
-    ident: Ident,
-    interval: Duration,
-    party_size: PartySize,
-    threshold: Threshold,
-    strategy: Strategy,
-    cancel: bool,
-    connection: Connection,
-}
-
 impl Multisig {
-    pub fn new<C: AnyConnection>(connection: &C, config: MultisigConfig) -> Self {
-        Multisig {
-            ident: config.ident,
-            interval: config.interval,
-            party_size: config.party_size,
-            threshold: config.threshold,
-            strategy: config.strategy,
-            cancel: config.cancel,
-            connection: connection.as_connection(),
-        }
-    }
-
     /// Randomly selects `party_size` accounts.
     fn select_members(&self, party_size: usize) -> Vec<KeyPair> {
         let mut rng = thread_rng();
@@ -113,8 +81,8 @@ impl Multisig {
     ///
     /// We use simple money transfer which will always fail, but this does not matter at all in
     /// context of scenario success.
-    fn prepare_call(&self) -> Call {
-        self.connection
+    fn prepare_call(connection: &Connection) -> Call {
+        connection
             .as_connection()
             .balance_transfer(GenericAddress::Address32(Default::default()), 0)
     }
@@ -130,30 +98,24 @@ impl Multisig {
     /// Executes `actions`. `i`th action will be performed by `members[i]` (unless this is `Cancel`
     /// which should be performed by `members[0]`).
     async fn perform_multisig(
-        &self,
+        connection: &Connection,
         members: Vec<KeyPair>,
         threshold: usize,
         actions: Vec<Action>,
         call: Call,
+        logger: &ScenarioLogging,
     ) -> AnyResult<()> {
         let party = Self::get_party(&members, threshold)?;
-        self.info("Initializing signature aggregation");
+        logger.info("Initializing signature aggregation");
         let mut sig_agg = actions[0]
-            .perform(
-                &self.connection,
-                party,
-                None,
-                call.clone(),
-                &members[0],
-                false,
-            )
+            .perform(connection, party, None, call.clone(), &members[0], false)
             .await?;
 
         // Here `i` is one less then the actual member index.
         for (i, action) in actions[1..].iter().enumerate() {
             let should_finalize = i + 2 == actions.len();
 
-            self.info(format!(
+            logger.info(format!(
                 "Performing `{:?}`. Should finalize: {}",
                 action, should_finalize
             ));
@@ -162,7 +124,7 @@ impl Multisig {
 
             sig_agg = action
                 .perform(
-                    &self.connection,
+                    connection,
                     Self::get_party(&members, threshold)?,
                     sig_agg,
                     call.clone(),
@@ -182,33 +144,24 @@ impl Multisig {
 
 #[async_trait::async_trait]
 impl Scenario for Multisig {
-    fn interval(&self) -> Duration {
-        self.interval
-    }
-
-    async fn play(&mut self) -> AnyResult<()> {
+    async fn play(&mut self, connection: &Connection, logger: &ScenarioLogging) -> AnyResult<()> {
         let party_size = self.party_size.clone().get(AVAILABLE_ACCOUNTS)?;
         let threshold = self.threshold.clone().get(party_size)?;
 
-        self.info(format!(
+        logger.info(format!(
             "Starting multisig scenario with party size: {} and threshold: {}",
             party_size, threshold
         ));
 
         let members = self.select_members(party_size);
         let actions = self.prepare_actions(threshold);
-        let call = self.prepare_call();
+        let call = Self::prepare_call(connection);
 
-        let result = self
-            .perform_multisig(members, threshold, actions, call)
-            .await;
-        self.handle(result)?;
+        let result =
+            Self::perform_multisig(connection, members, threshold, actions, call, logger).await;
+        logger.handle(result)?;
 
-        self.info("Scenario finished successfully");
+        logger.info("Scenario finished successfully");
         Ok(())
-    }
-
-    fn ident(&self) -> Ident {
-        self.ident.clone()
     }
 }

@@ -7,13 +7,13 @@ use futures::{
 use log::{error, LevelFilter};
 use tokio::task::JoinHandle;
 
-use common::{Ident, Scenario};
+use common::{Ident, ScenarioInstance};
 
 use crate::logger::{LogLine, Logger};
 
 /// Abstraction for registering events (hook for stats).
 pub trait EventListener: Send + Sync + Clone {
-    fn register_scenario<S: Scenario + ?Sized>(&mut self, scenario: &S);
+    fn register_scenario<S: ScenarioInstance + ?Sized>(&mut self, scenario: &S);
     fn report_success(&mut self, scenario_ident: Ident);
     fn report_launch(&mut self, scenario_ident: Ident);
     fn report_failure(&mut self, scenario_ident: Ident);
@@ -21,7 +21,7 @@ pub trait EventListener: Send + Sync + Clone {
 }
 
 impl<EL: EventListener> EventListener for Arc<Mutex<EL>> {
-    fn register_scenario<S: Scenario + ?Sized>(&mut self, scenario: &S) {
+    fn register_scenario<S: ScenarioInstance + ?Sized>(&mut self, scenario: &S) {
         self.lock().unwrap().register_scenario(scenario)
     }
 
@@ -45,7 +45,7 @@ impl<EL: EventListener> EventListener for Arc<Mutex<EL>> {
 /// Firstly schedules all the scenarios according to their declared intervals. Then, in a loop,
 /// waits for the next ready scenario and launches it.
 pub async fn run_schedule<EL: 'static + EventListener>(
-    scenarios: Vec<Box<dyn Scenario>>,
+    scenarios: Vec<Box<dyn ScenarioInstance>>,
     event_listener: EL,
 ) {
     let logger = setup_logging();
@@ -105,7 +105,7 @@ fn forward_logging<EL: 'static + EventListener>(
 }
 
 async fn schedule_scenario<EL: 'static + EventListener>(
-    mut scenario: Box<dyn Scenario>,
+    mut scenario: Box<dyn ScenarioInstance>,
     mut event_listener: EL,
 ) -> impl Send {
     event_listener.register_scenario(scenario.as_ref());

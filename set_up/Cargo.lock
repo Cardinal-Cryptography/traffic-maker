@@ -421,6 +421,7 @@ dependencies = [
 name = "common"
 version = "0.2.0"
 dependencies = [
+ "aleph_client",
  "anyhow",
  "async-trait",
  "log",

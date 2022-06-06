@@ -445,11 +445,13 @@ version = "0.1.0"
 dependencies = [
  "actix-cors",
  "actix-web",
+ "async-trait",
  "chain-support",
  "common",
  "log",
  "parse_duration",
  "scenarios-multisig",
+ "scenarios-support",
  "scenarios-transfer",
  "scenarios-vesting",
  "serde",
@@ -660,6 +662,7 @@ dependencies = [
 name = "common"
 version = "0.2.0"
 dependencies = [
+ "aleph_client",
  "anyhow",
  "async-trait",
  "log",

@@ -1,3 +1,4 @@
+use aleph_client::Connection;
 use anyhow::Result as AnyResult;
 use log::{debug, error, info, trace, warn};
 use serde::{Deserialize, Serialize};
@@ -27,14 +28,59 @@ impl Display for ScenarioError {
 /// Core trait that every bot should satisfy.
 #[async_trait::async_trait]
 pub trait Scenario: Send + Sync + 'static {
+    /// Runs the scenario and returns whether it succeeded.
+    async fn play(&mut self, connection: &Connection, logger: &ScenarioLogging) -> AnyResult<()>;
+}
+
+#[async_trait::async_trait]
+impl Scenario for Box<dyn Scenario> {
+    async fn play(&mut self, connection: &Connection, logger: &ScenarioLogging) -> AnyResult<()> {
+        self.as_mut().play(connection, logger).await
+    }
+}
+
+/// A wrapper around the actual scenario that manages cross-cutting concerns.
+#[async_trait::async_trait]
+pub trait ScenarioInstance: Send + Sync + 'static {
+    /// Identifier for this instance of the scenario.
+    fn ident(&self) -> Ident;
     /// How often should it be run.
     fn interval(&self) -> Duration;
-
     /// Runs the scenario and returns whether it succeeded.
     async fn play(&mut self) -> AnyResult<()>;
+}
 
-    /// Identifier for this particular scenario.
-    fn ident(&self) -> Ident;
+pub struct ScenarioContainer<S: Scenario> {
+    /// Identifier for this instance of the scenario.
+    pub ident: Ident,
+    /// How often should it be run.
+    pub interval: Duration,
+    /// The connection to use for the scenario.
+    pub connection: Connection,
+    /// The actual scenario to perform.
+    pub scenario: S,
+}
+
+#[async_trait::async_trait]
+impl<S: Scenario> ScenarioInstance for ScenarioContainer<S> {
+    fn ident(&self) -> Ident {
+        self.ident.clone()
+    }
+
+    fn interval(&self) -> Duration {
+        self.interval
+    }
+
+    async fn play(&mut self) -> AnyResult<()> {
+        self.scenario
+            .play(
+                &self.connection,
+                &ScenarioLogging {
+                    ident: self.ident.clone(),
+                },
+            )
+            .await
+    }
 }
 
 /// Current status of the scheduled scenario.
@@ -67,12 +113,12 @@ pub struct ScenarioDetails {
 }
 
 impl ScenarioDetails {
-    pub fn new<S: Scenario + ?Sized>(scenario: &S) -> Self {
+    pub fn new<S: ScenarioInstance + ?Sized>(instance: &S) -> Self {
         ScenarioDetails {
-            ident: scenario.ident(),
+            ident: instance.ident(),
             runs: 0,
             failures: 0,
-            interval: scenario.interval(),
+            interval: instance.interval(),
             last_status: ScenarioStatus::NotLaunchedYet,
         }
     }
@@ -97,14 +143,32 @@ impl ScenarioLogs {
     }
 }
 
-pub trait ScenarioLogging {
-    fn trace<M: Debug>(&self, message: M);
-    fn debug<M: Debug>(&self, message: M);
-    fn info<M: Debug>(&self, message: M);
-    fn warn<M: Debug>(&self, message: M);
-    fn error<M: Debug>(&self, message: M);
+pub struct ScenarioLogging {
+    ident: Ident,
+}
 
-    fn handle<R: Debug>(&self, result: AnyResult<R>) -> AnyResult<R> {
+impl ScenarioLogging {
+    pub fn trace<M: Debug>(&self, message: M) {
+        trace!(target: self.ident.0.as_str(), "{:?}", message)
+    }
+
+    pub fn debug<M: Debug>(&self, message: M) {
+        debug!(target: self.ident.0.as_str(), "{:?}", message)
+    }
+
+    pub fn info<M: Debug>(&self, message: M) {
+        info!(target: self.ident.0.as_str(), "{:?}", message)
+    }
+
+    pub fn warn<M: Debug>(&self, message: M) {
+        warn!(target: self.ident.0.as_str(), "{:?}", message)
+    }
+
+    pub fn error<M: Debug>(&self, message: M) {
+        error!(target: self.ident.0.as_str(), "{:?}", message)
+    }
+
+    pub fn handle<R: Debug>(&self, result: AnyResult<R>) -> AnyResult<R> {
         match &result {
             Err(e) => {
                 self.error(format!("Encountered error: {}", e));
@@ -114,27 +178,5 @@ pub trait ScenarioLogging {
             }
         };
         result
-    }
-}
-
-impl<S: Scenario> ScenarioLogging for S {
-    fn trace<M: Debug>(&self, message: M) {
-        trace!(target: self.ident().0.as_str(), "{:?}", message)
-    }
-
-    fn debug<M: Debug>(&self, message: M) {
-        debug!(target: self.ident().0.as_str(), "{:?}", message)
-    }
-
-    fn info<M: Debug>(&self, message: M) {
-        info!(target: self.ident().0.as_str(), "{:?}", message)
-    }
-
-    fn warn<M: Debug>(&self, message: M) {
-        warn!(target: self.ident().0.as_str(), "{:?}", message)
-    }
-
-    fn error<M: Debug>(&self, message: M) {
-        error!(target: self.ident().0.as_str(), "{:?}", message)
     }
 }

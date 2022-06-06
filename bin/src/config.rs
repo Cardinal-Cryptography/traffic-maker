@@ -1,17 +1,12 @@
 use serde::Deserialize;
+use std::time::Duration;
 
 use chain_support::{create_connection, AnyConnection, Connection};
-use common::Scenario;
-use scenarios_multisig::{Multisig, MultisigConfig};
-use scenarios_transfer::{
-    RandomTransfers, RandomTransfersConfig, RoundRobin, RoundRobinConfig, SimpleTransfer,
-    SimpleTransferConfig,
-};
-use scenarios_vesting::{
-    SchedulesMerging as VestingSchedulesMerging,
-    SchedulesMergingConfig as VestingSchedulesMergingConfig, Vest as VestingVest,
-    VestConfig as VestingVestConfig,
-};
+use common::{Ident, Scenario, ScenarioContainer, ScenarioInstance};
+use scenarios_multisig::Multisig;
+use scenarios_support::parse_interval;
+use scenarios_transfer::{RandomTransfers, RoundRobin, SimpleTransfer};
+use scenarios_vesting::{SchedulesMerging, Vest};
 
 /// This struct combines both the execution environment (including hosts and chain address), as well
 /// as the scenario configurations.
@@ -20,11 +15,11 @@ use scenarios_vesting::{
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
     environment: Environment,
-    scenarios: Vec<ScenarioConfig>,
+    scenarios: Vec<ScenarioInstanceConfig>,
 }
 
 impl Config {
-    pub fn construct_scenarios(&self) -> Vec<Box<dyn Scenario>> {
+    pub fn construct_scenarios(&self) -> Vec<Box<dyn ScenarioInstance>> {
         let connection = self.environment.get_new_connection();
         self.scenarios
             .iter()
@@ -56,35 +51,51 @@ impl Environment {
     }
 }
 
+#[derive(Debug, Clone, Deserialize)]
+struct ScenarioInstanceConfig {
+    ident: Ident,
+    #[serde(deserialize_with = "parse_interval")]
+    interval: Duration,
+    scenario: ScenarioConfig,
+}
+
 /// All implemented scenarios should be included here.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(tag = "kind")]
 enum ScenarioConfig {
-    SimpleTransfer(SimpleTransferConfig),
-    RoundRobin(RoundRobinConfig),
-    RandomTransfers(RandomTransfersConfig),
-    Multisig(MultisigConfig),
-    VestingSchedulesMerging(VestingSchedulesMergingConfig),
-    VestingVest(VestingVestConfig),
+    SimpleTransfer(SimpleTransfer),
+    RoundRobin(RoundRobin),
+    RandomTransfers(RandomTransfers),
+    Multisig(Multisig),
+    VestingSchedulesMerging,
+    VestingVest(Vest),
 }
 
 impl ScenarioConfig {
-    pub fn construct_scenario<C: AnyConnection>(&self, connection: &C) -> Box<dyn Scenario> {
-        match self {
-            ScenarioConfig::SimpleTransfer(config) => {
-                Box::new(SimpleTransfer::new(connection, config.clone()))
-            }
-            ScenarioConfig::RoundRobin(config) => {
-                Box::new(RoundRobin::new(connection, config.clone()))
-            }
-            ScenarioConfig::RandomTransfers(config) => {
-                Box::new(RandomTransfers::new(connection, config.clone()))
-            }
-            ScenarioConfig::Multisig(config) => Box::new(Multisig::new(connection, config.clone())),
-            ScenarioConfig::VestingSchedulesMerging(config) => {
-                Box::new(VestingSchedulesMerging::new(connection, config.clone()).unwrap())
-            }
-            ScenarioConfig::VestingVest(config) => Box::new(VestingVest::new(connection, config)),
+    fn to_scenario(&self, connection: &Connection) -> Box<dyn Scenario> {
+        use ScenarioConfig::*;
+
+        match self.clone() {
+            SimpleTransfer(s) => Box::new(s),
+            RoundRobin(s) => Box::new(s),
+            RandomTransfers(s) => Box::new(s),
+            Multisig(s) => Box::new(s),
+            VestingSchedulesMerging => Box::new(SchedulesMerging::new(connection).unwrap()),
+            VestingVest(s) => Box::new(s),
         }
+    }
+}
+
+impl ScenarioInstanceConfig {
+    pub fn construct_scenario<C: AnyConnection>(
+        &self,
+        connection: &C,
+    ) -> Box<dyn ScenarioInstance> {
+        Box::new(ScenarioContainer {
+            ident: self.ident.clone(),
+            interval: self.interval,
+            scenario: self.scenario.to_scenario(&connection.as_connection()),
+            connection: connection.as_connection(),
+        })
     }
 }

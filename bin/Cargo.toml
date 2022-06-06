@@ -8,11 +8,13 @@ chain-support = { path = "../chain-support" }
 scenarios-transfer = { path = "../scenarios/transfer" }
 scenarios-multisig = { path = "../scenarios/multisig" }
 scenarios-vesting = { path = "../scenarios/vesting" }
+scenarios-support = { path = "../scenarios/support" }
 traffic = { path = "../traffic" }
 common = { path = "../common" }
 
 actix-cors = { version = "0.6.1" }
 actix-web = { version = "4.0.0", features = ["openssl"] }
+async-trait = "0.1"
 log = "0.4"
 parse_duration = "2.1.1"
 serde = { version = "1.0", features = ["derive"] }

@@ -4,6 +4,7 @@ version = "0.2.0"
 edition = "2021"
 
 [dependencies]
+aleph_client = { git = "https://github.com/Cardinal-Cryptography/aleph-node.git", rev = "c8eb94cfb066485aa2d14f65110a26edc54dda9a" }
 anyhow = "1.0"
 async-trait = "0.1"
 log = "0.4"
