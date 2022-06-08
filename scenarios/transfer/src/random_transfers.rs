@@ -252,7 +252,7 @@ impl RandomTransfers {
 }
 
 #[async_trait::async_trait]
-impl Scenario for RandomTransfers {
+impl Scenario<Connection> for RandomTransfers {
     async fn play(&mut self, connection: &Connection, logger: &ScenarioLogging) -> AnyResult<()> {
         let pairs = self.designate_pairs();
         match self.granularity {

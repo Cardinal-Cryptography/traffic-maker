@@ -143,7 +143,7 @@ impl Multisig {
 }
 
 #[async_trait::async_trait]
-impl Scenario for Multisig {
+impl Scenario<Connection> for Multisig {
     async fn play(&mut self, connection: &Connection, logger: &ScenarioLogging) -> AnyResult<()> {
         let party_size = self.party_size.clone().get(AVAILABLE_ACCOUNTS)?;
         let threshold = self.threshold.clone().get(party_size)?;

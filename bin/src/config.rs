@@ -72,7 +72,7 @@ enum ScenarioConfig {
 }
 
 impl ScenarioConfig {
-    fn to_scenario(&self, connection: &Connection) -> Box<dyn Scenario> {
+    fn to_scenario(&self, connection: &Connection) -> Box<dyn Scenario<Connection>> {
         use ScenarioConfig::*;
 
         match self.clone() {

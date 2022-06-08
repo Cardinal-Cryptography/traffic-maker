@@ -139,7 +139,7 @@ impl Vest {
 }
 
 #[async_trait::async_trait]
-impl Scenario for Vest {
+impl Scenario<Connection> for Vest {
     async fn play(&mut self, connection: &Connection, logger: &ScenarioLogging) -> AnyResult<()> {
         logger.log_result(self.do_play(connection, logger).await)
     }

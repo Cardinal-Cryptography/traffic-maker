@@ -42,7 +42,7 @@ impl RoundRobin {
 }
 
 #[async_trait::async_trait]
-impl Scenario for RoundRobin {
+impl Scenario<Connection> for RoundRobin {
     async fn play(&mut self, connection: &Connection, logger: &ScenarioLogging) -> AnyResult<()> {
         logger.info("Starting scenario");
 

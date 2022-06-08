@@ -252,7 +252,7 @@ impl SchedulesMerging {
 }
 
 #[async_trait::async_trait]
-impl Scenario for SchedulesMerging {
+impl Scenario<Connection> for SchedulesMerging {
     async fn play(&mut self, connection: &Connection, logger: &ScenarioLogging) -> AnyResult<()> {
         logger.info("Starting scenario");
 

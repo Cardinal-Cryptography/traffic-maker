@@ -34,7 +34,7 @@ impl SimpleTransfer {
 }
 
 #[async_trait::async_trait]
-impl Scenario for SimpleTransfer {
+impl Scenario<Connection> for SimpleTransfer {
     async fn play(&mut self, connection: &Connection, logger: &ScenarioLogging) -> AnyResult<()> {
         logger.info("Ready to go");
 

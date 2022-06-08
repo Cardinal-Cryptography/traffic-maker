@@ -1,4 +1,3 @@
-use aleph_client::Connection;
 use anyhow::Result as AnyResult;
 use log::{debug, error, info, trace, warn};
 use serde::{Deserialize, Serialize};
@@ -27,14 +26,14 @@ impl Display for ScenarioError {
 
 /// Core trait that every bot should satisfy.
 #[async_trait::async_trait]
-pub trait Scenario: Send + Sync + 'static {
+pub trait Scenario<C>: Send + Sync + 'static {
     /// Runs the scenario and returns whether it succeeded.
-    async fn play(&mut self, connection: &Connection, logger: &ScenarioLogging) -> AnyResult<()>;
+    async fn play(&mut self, connection: &C, logger: &ScenarioLogging) -> AnyResult<()>;
 }
 
 #[async_trait::async_trait]
-impl Scenario for Box<dyn Scenario> {
-    async fn play(&mut self, connection: &Connection, logger: &ScenarioLogging) -> AnyResult<()> {
+impl<C: Send + Sync + 'static> Scenario<C> for Box<dyn Scenario<C>> {
+    async fn play(&mut self, connection: &C, logger: &ScenarioLogging) -> AnyResult<()> {
         self.as_mut().play(connection, logger).await
     }
 }
@@ -50,19 +49,19 @@ pub trait ScenarioInstance: Send + Sync + 'static {
     async fn play(&mut self) -> AnyResult<()>;
 }
 
-pub struct ScenarioContainer<S: Scenario> {
+pub struct ScenarioContainer<C, S: Scenario<C>> {
     /// Identifier for this instance of the scenario.
     pub ident: Ident,
     /// How often should it be run.
     pub interval: Duration,
     /// The connection to use for the scenario.
-    pub connection: Connection,
+    pub connection: C,
     /// The actual scenario to perform.
     pub scenario: S,
 }
 
 #[async_trait::async_trait]
-impl<S: Scenario> ScenarioInstance for ScenarioContainer<S> {
+impl<C: Send + Sync + 'static, S: Scenario<C>> ScenarioInstance for ScenarioContainer<C, S> {
     fn ident(&self) -> Ident {
         self.ident.clone()
     }
