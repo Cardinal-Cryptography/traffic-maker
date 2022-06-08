@@ -9,7 +9,13 @@ pub async fn fetch_scenarios(base_url: String) -> Result<Vec<ScenarioDetails>, S
 }
 
 async fn inner_fetch_scenarios(base_url: String) -> reqwest::Result<Vec<ScenarioDetails>> {
-    Ok(reqwest::get(format!("{}/details", base_url))
+    let client = reqwest::Client::new();
+    let request = client
+        .get(format!("{}/details", base_url))
+        .header("Access-Control-Allow-Origin", "*")
+        .build()?;
+    Ok(client
+        .execute(request)
         .await?
         .json::<HashMap<String, ScenarioDetails>>()
         .await?

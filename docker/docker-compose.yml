@@ -13,8 +13,6 @@ services:
         target: /Timetable.toml
     environment:
       - RUST_LOG=warn
-    ports:
-      - "8080:8080"
     extra_hosts:
      - host.docker.internal:host-gateway
 

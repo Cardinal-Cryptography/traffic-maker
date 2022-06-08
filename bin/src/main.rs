@@ -53,7 +53,8 @@ async fn main() -> Result<()> {
             .wrap(
                 Cors::default()
                     .allow_any_origin()
-                    .allowed_methods(vec!["GET"]),
+                    .allow_any_method()
+                    .allow_any_header(),
             )
             .app_data(web::Data::new(stats.clone()))
             .service(

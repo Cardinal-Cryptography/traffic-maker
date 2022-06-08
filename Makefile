@@ -16,7 +16,7 @@ setup:
 build-monitoring:
 	rustup target add wasm32-unknown-unknown
 	cargo install --locked trunk
-	cd monitoring; ${STATS_BASE_URL:-http://127.0.0.1:8080} trunk build --release
+	cd monitoring; trunk build --release
 
 monitoring: build-monitoring
 	cd monitoring; trunk serve --open --release
@@ -26,7 +26,7 @@ monitoring: build-monitoring
 ###############################################################################
 
 docker: build
-	@STATS_BASE_URL=backend:8080 make build-monitoring
+	cd monitoring; STATS_BASE_URL=http://backend:8080 make
 	docker-compose -f docker/docker-compose.yml up -d
 
 docker-stop:
