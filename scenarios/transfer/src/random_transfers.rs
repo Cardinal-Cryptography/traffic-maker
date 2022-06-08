@@ -91,15 +91,6 @@ struct TransferPair {
 }
 
 impl RandomTransfers {
-    pub fn new(config: RandomTransfers) -> Self {
-        RandomTransfers {
-            direction: config.direction,
-            granularity: config.granularity,
-            transfer_fraction: config.transfer_fraction,
-            transfers: config.transfers,
-        }
-    }
-
     /// Returns an iterator over all possible (sender, receiver) pairs
     /// corresponding to `self.direction`.
     fn generate_pairs(&self) -> impl Iterator<Item = (usize, usize)> {
