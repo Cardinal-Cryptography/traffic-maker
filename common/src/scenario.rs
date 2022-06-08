@@ -168,7 +168,7 @@ impl ScenarioLogging {
         error!(target: self.ident.0.as_str(), "{:?}", message)
     }
 
-    pub fn handle<R: Debug>(&self, result: AnyResult<R>) -> AnyResult<R> {
+    pub fn log_result<R: Debug>(&self, result: AnyResult<R>) -> AnyResult<R> {
         match &result {
             Err(e) => {
                 self.error(format!("Encountered error: {}", e));

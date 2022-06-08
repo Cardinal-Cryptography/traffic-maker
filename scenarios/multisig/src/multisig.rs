@@ -159,7 +159,7 @@ impl Scenario for Multisig {
 
         let result =
             Self::perform_multisig(connection, members, threshold, actions, call, logger).await;
-        logger.handle(result)?;
+        logger.log_result(result)?;
 
         logger.info("Scenario finished successfully");
         Ok(())

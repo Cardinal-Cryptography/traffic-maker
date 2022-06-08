@@ -259,11 +259,11 @@ impl Scenario for SchedulesMerging {
         let receiver = get_random_keypair();
         let receiver_account = account_from_keypair(&receiver);
 
-        let locked_before_merging = logger.handle(
+        let locked_before_merging = logger.log_result(
             self.reach_limit(connection, &receiver_account, logger)
                 .await,
         )?;
-        logger.handle(
+        logger.log_result(
             self.merge_schedules(connection, &receiver, locked_before_merging, logger)
                 .await,
         )?;

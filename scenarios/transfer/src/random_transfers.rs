@@ -188,7 +188,7 @@ impl RandomTransfers {
             let transfer_value = self.compute_transfer_value(connection, &sender).await?;
             let transfer_result =
                 try_transfer(connection, &sender, &receiver, transfer_value).await;
-            logger.handle(transfer_result)?;
+            logger.log_result(transfer_result)?;
 
             logger.debug(format!(
                 "Completed {}/{} transfers.",
@@ -254,7 +254,7 @@ impl RandomTransfers {
         )
         .await;
 
-        logger.handle(batch_result)?;
+        logger.log_result(batch_result)?;
 
         Ok(())
     }

@@ -37,7 +37,7 @@ impl RoundRobin {
         )
         .await;
 
-        logger.handle(transfer_result)
+        logger.log_result(transfer_result)
     }
 }
 

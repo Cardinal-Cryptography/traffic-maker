@@ -45,7 +45,7 @@ impl Scenario for SimpleTransfer {
             self.transfer_value(),
         )
         .await;
-        logger.handle(transfer_result)?;
+        logger.log_result(transfer_result)?;
 
         logger.info("Done");
         Ok(())
