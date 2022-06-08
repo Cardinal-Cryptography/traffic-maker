@@ -51,14 +51,6 @@ impl Environment {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
-struct ScenarioInstanceConfig {
-    ident: Ident,
-    #[serde(deserialize_with = "parse_interval")]
-    interval: Duration,
-    scenario: ScenarioConfig,
-}
-
 /// All implemented scenarios should be included here.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(tag = "kind")]
@@ -86,6 +78,15 @@ impl ScenarioConfig {
     }
 }
 
+#[derive(Debug, Clone, Deserialize)]
+struct ScenarioInstanceConfig {
+    ident: Ident,
+    #[serde(deserialize_with = "parse_interval")]
+    interval: Duration,
+    #[serde(rename = "scenario")]
+    scenario_config: ScenarioConfig,
+}
+
 impl ScenarioInstanceConfig {
     pub fn construct_scenario<C: AnyConnection>(
         &self,
@@ -94,7 +95,9 @@ impl ScenarioInstanceConfig {
         Box::new(ScenarioContainer {
             ident: self.ident.clone(),
             interval: self.interval,
-            scenario: self.scenario.to_scenario(&connection.as_connection()),
+            scenario: self
+                .scenario_config
+                .to_scenario(&connection.as_connection()),
             connection: connection.as_connection(),
         })
     }
