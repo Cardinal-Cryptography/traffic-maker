@@ -451,7 +451,6 @@ dependencies = [
  "log",
  "parse_duration",
  "scenarios-multisig",
- "scenarios-support",
  "scenarios-transfer",
  "scenarios-vesting",
  "serde",
@@ -2681,19 +2680,10 @@ dependencies = [
  "pallet-multisig",
  "parity-scale-codec",
  "rand 0.8.5",
- "scenarios-support",
  "serde",
  "sp-runtime",
  "thiserror",
  "tokio",
-]
-
-[[package]]
-name = "scenarios-support"
-version = "0.1.0"
-dependencies = [
- "parse_duration",
- "serde",
 ]
 
 [[package]]
@@ -2709,7 +2699,6 @@ dependencies = [
  "parity-scale-codec",
  "parse_duration",
  "rand 0.8.5",
- "scenarios-support",
  "serde",
  "tokio",
 ]
@@ -2726,7 +2715,6 @@ dependencies = [
  "pallet-vesting",
  "parity-scale-codec",
  "rand 0.8.5",
- "scenarios-support",
  "serde",
  "thiserror",
  "tokio",

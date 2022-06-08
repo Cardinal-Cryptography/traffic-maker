@@ -9,7 +9,6 @@ pallet-vesting = { git = "https://github.com/paritytech/substrate.git", branch =
 
 chain-support = { path = "../../chain-support" }
 common = { path = "../../common" }
-scenarios-support = { path = "../support" }
 
 anyhow = "1.0"
 async-trait = "0.1"

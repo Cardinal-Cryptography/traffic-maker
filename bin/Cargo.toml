@@ -8,7 +8,6 @@ chain-support = { path = "../chain-support" }
 scenarios-transfer = { path = "../scenarios/transfer" }
 scenarios-multisig = { path = "../scenarios/multisig" }
 scenarios-vesting = { path = "../scenarios/vesting" }
-scenarios-support = { path = "../scenarios/support" }
 traffic = { path = "../traffic" }
 common = { path = "../common" }
 
