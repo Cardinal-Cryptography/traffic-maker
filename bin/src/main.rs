@@ -51,10 +51,9 @@ async fn main() -> Result<()> {
     HttpServer::new(move || {
         App::new()
             .wrap(
-                Cors::permissive()
+                Cors::default()
                     .allow_any_origin()
-                    .allow_any_method()
-                    .allow_any_header(),
+                    .allowed_methods(vec!["GET"]),
             )
             .app_data(web::Data::new(stats.clone()))
             .service(

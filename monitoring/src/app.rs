@@ -29,7 +29,7 @@ pub struct App {
     scenarios: Option<Vec<ScenarioDetails>>,
     /// Fetched logs for a particular scenario.
     logs: Option<ScenarioLogs>,
-    x: String,
+
     /// Overview page view.
     ///
     /// When creating views, iced often operates on object references: e.g. to display a list
@@ -60,7 +60,6 @@ impl Application for App {
                 logs: None,
                 overview_page: None,
                 logs_page: None,
-                x: "".to_string(),
             },
             Command::perform(
                 fetch_scenarios(flags.stats_base_url),
@@ -90,10 +89,7 @@ impl Application for App {
                 )
             }
             Message::FetchedScenarios(result) => {
-                match result {
-                    Ok(ok) => self.scenarios = Some(ok),
-                    Err(e) => self.x = e,
-                }
+                self.scenarios = result.ok();
                 Command::none()
             }
             Message::FetchedLogs(result) => {
@@ -106,8 +102,7 @@ impl Application for App {
     fn view(&mut self) -> Element<Message> {
         match self.current_route {
             Route::Overview => {
-                self.overview_page =
-                    Some(OverviewPage::new(self.scenarios.clone(), self.x.clone()));
+                self.overview_page = Some(OverviewPage::new(self.scenarios.clone()));
                 self.overview_page.as_mut().unwrap().view()
             }
             Route::Logs(ref scenario) => {
