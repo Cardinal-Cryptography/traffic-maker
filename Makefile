@@ -1,4 +1,4 @@
-.PHONY: run build setup build-monitoring monitoring docker docker-stop
+.PHONY: run build setup build-monitoring monitoring docker docker-stop build-backend-docker build-frontend-docker
 
 ###############################################################################
 # Local launching #############################################################
@@ -30,3 +30,9 @@ docker: build build-monitoring
 
 docker-stop:
 	docker-compose -f docker/docker-compose.yml down -v
+
+build-backend-docker: build
+	docker build --tag traffic-maker -f docker/backend/Dockerfile .
+
+build-frontend-docker: build-monitoring
+	docker build --tag traffic-maker -f docker/frontend/Dockerfile .

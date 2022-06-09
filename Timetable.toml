@@ -11,6 +11,6 @@ scenarios = [
 ]
 
 [environment]
-#node = "127.0.0.1:9944"
-node = "host.docker.internal:9944"
+node = "127.0.0.1:9944"
+#node = "host.docker.internal:9944"
 expose_host = "0.0.0.0:8080"
