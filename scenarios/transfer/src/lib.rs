@@ -12,9 +12,9 @@ use tokio::time::sleep;
 
 use chain_support::{with_event_listening, TransferEvent};
 use common::ScenarioError;
-pub use random_transfers::{Direction, Granularity, RandomTransfers, RandomTransfersConfig};
-pub use round_robin::{RoundRobin, RoundRobinConfig};
-pub use simple_transfer::{SimpleTransfer, SimpleTransferConfig};
+pub use random_transfers::{Direction, Granularity, RandomTransfers};
+pub use round_robin::RoundRobin;
+pub use simple_transfer::SimpleTransfer;
 
 mod random_transfers;
 mod round_robin;

@@ -2,10 +2,6 @@ name: Build frontend artifacts
 
 on:
   pull_request:
-    paths:
-      - 'monitoring/**'
-      - '.github/workflows/build-and-push-frontend-docker.yml'
-      - 'docker/frontend/**'
   workflow_dispatch:
     inputs:
       deploy:
