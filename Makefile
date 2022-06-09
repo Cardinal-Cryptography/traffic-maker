@@ -25,8 +25,7 @@ monitoring: build-monitoring
 # Docker launching ############################################################
 ###############################################################################
 
-docker: build
-	cd monitoring; STATS_BASE_URL=http://backend:8080 make
+docker: build build-monitoring
 	docker-compose -f docker/docker-compose.yml up -d
 
 docker-stop:

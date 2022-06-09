@@ -51,7 +51,7 @@ async fn main() -> Result<()> {
     HttpServer::new(move || {
         App::new()
             .wrap(
-                Cors::default()
+                Cors::permissive()
                     .allow_any_origin()
                     .allow_any_method()
                     .allow_any_header(),
