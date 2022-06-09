@@ -2,7 +2,7 @@ use std::collections::{hash_map::Entry, HashMap};
 
 use log::warn;
 
-use common::{Ident, ScenarioDetails, ScenarioInstance, ScenarioLogs, ScenarioStatus};
+use common::{Ident, ScenarioDetails, ScenarioLogs, ScenarioStatus, ScheduledScenario};
 use traffic::EventListener;
 
 use crate::data_export::DataExporter;
@@ -67,7 +67,7 @@ impl DataExporter for Stats {
 }
 
 impl EventListener for Stats {
-    fn register_scenario<S: ScenarioInstance + ?Sized>(&mut self, scenario: &S) {
+    fn register_scenario<C: Send + Sync + 'static>(&mut self, scenario: &ScheduledScenario<C>) {
         let id = scenario.ident();
         let already_registered = self
             .details

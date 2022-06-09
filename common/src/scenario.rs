@@ -38,39 +38,41 @@ impl<C: Send + Sync + 'static> Scenario<C> for Box<dyn Scenario<C>> {
     }
 }
 
-/// A wrapper around the actual scenario that manages cross-cutting concerns.
-#[async_trait::async_trait]
-pub trait ScenarioInstance: Send + Sync + 'static {
+pub struct ScheduledScenario<C> {
     /// Identifier for this instance of the scenario.
-    fn ident(&self) -> Ident;
+    ident: Ident,
     /// How often should it be run.
-    fn interval(&self) -> Duration;
-    /// Runs the scenario and returns whether it succeeded.
-    async fn play(&mut self) -> AnyResult<()>;
-}
-
-pub struct ScenarioContainer<C, S: Scenario<C>> {
-    /// Identifier for this instance of the scenario.
-    pub ident: Ident,
-    /// How often should it be run.
-    pub interval: Duration,
+    interval: Duration,
     /// The connection to use for the scenario.
-    pub connection: C,
+    connection: C,
     /// The actual scenario to perform.
-    pub scenario: S,
+    scenario: Box<dyn Scenario<C>>,
 }
 
-#[async_trait::async_trait]
-impl<C: Send + Sync + 'static, S: Scenario<C>> ScenarioInstance for ScenarioContainer<C, S> {
-    fn ident(&self) -> Ident {
+impl<C: Send + Sync + 'static> ScheduledScenario<C> {
+    pub fn new(
+        ident: Ident,
+        interval: Duration,
+        connection: C,
+        scenario: impl Scenario<C>,
+    ) -> ScheduledScenario<C> {
+        ScheduledScenario {
+            ident,
+            interval,
+            connection,
+            scenario: Box::new(scenario),
+        }
+    }
+
+    pub fn ident(&self) -> Ident {
         self.ident.clone()
     }
 
-    fn interval(&self) -> Duration {
+    pub fn interval(&self) -> Duration {
         self.interval
     }
 
-    async fn play(&mut self) -> AnyResult<()> {
+    pub async fn play(&mut self) -> AnyResult<()> {
         self.scenario
             .play(
                 &self.connection,
@@ -112,12 +114,12 @@ pub struct ScenarioDetails {
 }
 
 impl ScenarioDetails {
-    pub fn new<S: ScenarioInstance + ?Sized>(instance: &S) -> Self {
+    pub fn new<C: Send + Sync + 'static>(scenario: &ScheduledScenario<C>) -> Self {
         ScenarioDetails {
-            ident: instance.ident(),
+            ident: scenario.ident(),
             runs: 0,
             failures: 0,
-            interval: instance.interval(),
+            interval: scenario.interval(),
             last_status: ScenarioStatus::NotLaunchedYet,
         }
     }

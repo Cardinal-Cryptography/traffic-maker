@@ -2,7 +2,7 @@ use serde::{Deserialize, Deserializer};
 use std::time::Duration;
 
 use chain_support::{create_connection, AnyConnection, Connection};
-use common::{Ident, Scenario, ScenarioContainer, ScenarioInstance};
+use common::{Ident, Scenario, ScheduledScenario};
 use parse_duration::parse;
 use scenarios_multisig::Multisig;
 use scenarios_transfer::{RandomTransfers, RoundRobin, SimpleTransfer};
@@ -19,7 +19,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn construct_scenarios(&self) -> Vec<Box<dyn ScenarioInstance>> {
+    pub fn construct_scenarios(&self) -> Vec<ScheduledScenario<Connection>> {
         let connection = self.environment.get_new_connection();
         self.scenarios
             .iter()
@@ -91,15 +91,14 @@ impl ScenarioInstanceConfig {
     pub fn construct_scenario<C: AnyConnection>(
         &self,
         connection: &C,
-    ) -> Box<dyn ScenarioInstance> {
-        Box::new(ScenarioContainer {
-            ident: self.ident.clone(),
-            interval: self.interval,
-            scenario: self
-                .scenario_config
+    ) -> ScheduledScenario<Connection> {
+        ScheduledScenario::new(
+            self.ident.clone(),
+            self.interval,
+            connection.as_connection(),
+            self.scenario_config
                 .to_scenario(&connection.as_connection()),
-            connection: connection.as_connection(),
-        })
+        )
     }
 }
 
