@@ -9,12 +9,10 @@ use aleph_client::{
 use anyhow::{ensure, Result as AnyResult};
 use codec::Decode;
 use rand::random;
-use serde::Deserialize;
 use thiserror::Error;
 
 use chain_support::{do_async, keypair_derived_from_seed, with_event_listening};
-use common::{Ident, Scenario, ScenarioLogging};
-use scenarios_support::parse_interval;
+use common::{Scenario, ScenarioLogging};
 
 use crate::events::VestingUpdated;
 
@@ -70,16 +68,6 @@ pub enum SchedulesMergingError {
     },
 }
 
-/// Configuration for `SchedulesMerging` scenario.
-#[derive(Clone, Debug, Deserialize)]
-pub struct SchedulesMergingConfig {
-    /// Unique string identifier for the scenario.
-    ident: Ident,
-    /// Periodicity of launching.
-    #[serde(deserialize_with = "parse_interval")]
-    interval: Duration,
-}
-
 /// Scenario that performs merging vesting schedules. This happens as follows:
 ///  1. We choose a random receiver account.
 ///  2. We perform at most `MaxVestingSchedules` vested transfers to receiver so that no other
@@ -87,16 +75,10 @@ pub struct SchedulesMergingConfig {
 ///  3. Receiver merges all current schedules, exposing itself for further transfers.
 #[derive(Clone)]
 pub struct SchedulesMerging {
-    /// Unique string identifier for the scenario.
-    ident: Ident,
-    /// Periodicity of launching.
-    interval: Duration,
     /// Corresponds to `MaxVestingSchedules` constant.
     schedules_limit: usize,
     /// Corresponds to `MinVestedTransfer` constant.
     transfer_value: Balance,
-    /// Base connection for node interaction.
-    connection: Connection,
 }
 
 impl SchedulesMerging {
@@ -115,20 +97,14 @@ impl SchedulesMerging {
     ///
     /// Fails if either `MaxVestingSchedules` or `MinVestedTransfer` cannot be read from metadata,
     /// or `MaxVestingSchedules` is less than 2.
-    pub fn new<C: AnyConnection>(
-        connection: &C,
-        config: SchedulesMergingConfig,
-    ) -> AnyResult<Self> {
+    pub fn new<C: AnyConnection>(connection: &C) -> AnyResult<Self> {
         let schedules_limit: u32 = Self::get_pallet_constant(connection, "MaxVestingSchedules");
         ensure!(schedules_limit >= 2, SchedulesMergingError::LimitTooLow);
         let transfer_value = Self::get_pallet_constant(connection, "MinVestedTransfer");
 
         Ok(Self {
-            ident: config.ident,
-            interval: config.interval,
             schedules_limit: schedules_limit as usize,
             transfer_value,
-            connection: connection.as_connection(),
         })
     }
 
@@ -139,9 +115,14 @@ impl SchedulesMerging {
     }
 
     /// Performs vested transfer from `ACCOUNT_SEED{sender_idx}` to `receiver`.
-    async fn transfer(&self, receiver: &AccountId, sender_idx: usize) -> AnyResult<()> {
+    async fn transfer(
+        &self,
+        connection: &Connection,
+        receiver: &AccountId,
+        sender_idx: usize,
+    ) -> AnyResult<()> {
         let sender = compute_keypair(sender_idx);
-        let connection = SignedConnection::from_any_connection(&self.connection, sender);
+        let connection = SignedConnection::from_any_connection(connection, sender);
         let schedule = self.get_common_schedule();
         do_async!(vested_transfer, connection, receiver, schedule)?
     }
@@ -150,8 +131,12 @@ impl SchedulesMerging {
     ///
     /// Returns `Err(_)` only if the read call didn't succeed. In case when the account has no
     /// active schedules or the storage couldn't be decoded, it returns `Ok((0, 0))`.
-    fn get_vesting_info(&self, receiver: &AccountId) -> AnyResult<(usize, Balance)> {
-        let schedules = get_schedules(&self.connection, receiver.clone())?;
+    fn get_vesting_info(
+        &self,
+        connection: &Connection,
+        receiver: &AccountId,
+    ) -> AnyResult<(usize, Balance)> {
+        let schedules = get_schedules(connection, receiver.clone())?;
         let num_of_schedules = schedules.len();
         let locked = schedules
             .iter()
@@ -161,13 +146,18 @@ impl SchedulesMerging {
 
     /// Performs as many vested transfers to `receiver` as it is needed to meet limit of
     /// `self.schedules_limit` active vesting schedules.
-    async fn reach_limit(&self, receiver: &AccountId) -> AnyResult<Balance> {
-        self.info(format!(
+    async fn reach_limit(
+        &self,
+        connection: &Connection,
+        receiver: &AccountId,
+        logger: &ScenarioLogging,
+    ) -> AnyResult<Balance> {
+        logger.info(format!(
             "Start making vested transfers to {:?} in order to reach vesting schedules limit",
             receiver,
         ));
 
-        let (num_of_schedules, locked) = self.get_vesting_info(receiver)?;
+        let (num_of_schedules, locked) = self.get_vesting_info(connection, receiver)?;
         ensure!(
             num_of_schedules < self.schedules_limit,
             SchedulesMergingError::LimitAlreadyReached(receiver.clone())
@@ -190,29 +180,26 @@ impl SchedulesMerging {
             let expected_event =
                 VestingUpdated::from_relevant_fields(receiver.clone(), expected_locked_after);
 
-            with_event_listening(
-                &self.connection,
-                expected_event,
-                Duration::from_secs(2),
-                async { self.transfer(receiver, i).await },
-            )
+            with_event_listening(connection, expected_event, Duration::from_secs(2), async {
+                self.transfer(connection, receiver, i).await
+            })
             .await
             .map(|_| ())?;
 
-            self.debug(format!(
+            logger.debug(format!(
                 "Reaching limit: {}/{}",
                 i + 1,
                 self.schedules_limit
             ));
         }
 
-        let (num_of_schedules, locked) = self.get_vesting_info(receiver)?;
+        let (num_of_schedules, locked) = self.get_vesting_info(connection, receiver)?;
         ensure!(
             num_of_schedules == self.schedules_limit,
             SchedulesMergingError::ReachingLimitFailure(receiver.clone())
         );
 
-        self.info(format!(
+        logger.info(format!(
             "Reached maximum number of vesting schedules for {:?}",
             receiver,
         ));
@@ -223,9 +210,15 @@ impl SchedulesMerging {
     ///
     /// `total_locked` is the sum of all locked balances across all active vesting schedules.
     /// It is passed here to save requesting the storage.
-    async fn merge_schedules(&self, receiver: &KeyPair, total_locked: Balance) -> AnyResult<()> {
+    async fn merge_schedules(
+        &self,
+        connection: &Connection,
+        receiver: &KeyPair,
+        total_locked: Balance,
+        logger: &ScenarioLogging,
+    ) -> AnyResult<()> {
         let receiver_account = account_from_keypair(receiver);
-        self.info(format!(
+        logger.info(format!(
             "Start merging schedules for {:?}",
             receiver_account.clone()
         ));
@@ -234,9 +227,9 @@ impl SchedulesMerging {
             VestingUpdated::from_relevant_fields(receiver_account.clone(), total_locked);
         let timeout = Duration::from_secs(2);
 
-        let connection = SignedConnection::from_any_connection(&self.connection, receiver.clone());
+        let connection = SignedConnection::from_any_connection(connection, receiver.clone());
         for i in 1..self.schedules_limit {
-            with_event_listening(&self.connection, expected_event.clone(), timeout, async {
+            with_event_listening(&connection, expected_event.clone(), timeout, async {
                 match do_async!(merge_schedules, connection, 0, 1) {
                     Ok(Ok(())) => Ok(()),
                     Ok(Err(e)) => Err(e),
@@ -246,34 +239,37 @@ impl SchedulesMerging {
             .await
             .map(|_| ())?;
 
-            self.debug(format!(
+            logger.debug(format!(
                 "Merged schedules: {}/{}",
                 i + 1,
                 self.schedules_limit
             ));
         }
 
-        self.info(format!("Merged all schedules for {:?}", receiver_account));
+        logger.info(format!("Merged all schedules for {:?}", receiver_account));
         Ok(())
     }
 }
 
 #[async_trait::async_trait]
-impl Scenario for SchedulesMerging {
-    fn interval(&self) -> Duration {
-        self.interval
-    }
-
-    async fn play(&mut self) -> AnyResult<()> {
-        self.info("Starting scenario");
+impl Scenario<Connection> for SchedulesMerging {
+    async fn play(&mut self, connection: &Connection, logger: &ScenarioLogging) -> AnyResult<()> {
+        logger.info("Starting scenario");
 
         let receiver = get_random_keypair();
         let receiver_account = account_from_keypair(&receiver);
 
-        let locked_before_merging = self.handle(self.reach_limit(&receiver_account).await)?;
-        self.handle(self.merge_schedules(&receiver, locked_before_merging).await)?;
+        let locked_before_merging = logger.log_result(
+            self.reach_limit(connection, &receiver_account, logger)
+                .await,
+        )?;
+        logger.log_result(
+            self.merge_schedules(connection, &receiver, locked_before_merging, logger)
+                .await,
+        )?;
 
-        let (num_of_schedules, locked_after_merging) = self.get_vesting_info(&receiver_account)?;
+        let (num_of_schedules, locked_after_merging) =
+            self.get_vesting_info(connection, &receiver_account)?;
         ensure!(
             num_of_schedules == 1,
             SchedulesMergingError::MergingFailureNumber(receiver_account.clone())
@@ -287,11 +283,7 @@ impl Scenario for SchedulesMerging {
             }
         );
 
-        self.info("Successfully finished scenario");
+        logger.info("Successfully finished scenario");
         Ok(())
-    }
-
-    fn ident(&self) -> Ident {
-        self.ident.clone()
     }
 }

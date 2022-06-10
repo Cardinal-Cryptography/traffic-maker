@@ -8,7 +8,6 @@ aleph_client = { git = "https://github.com/Cardinal-Cryptography/aleph-node.git"
 
 chain-support = { path = "../../chain-support" }
 common = { path = "../../common" }
-scenarios-support = { path = "../support" }
 
 anyhow = "1.0"
 async-trait = "0.1"

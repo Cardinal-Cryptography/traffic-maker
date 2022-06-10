@@ -63,5 +63,10 @@ jobs:
         with:
           command: test
 
+      # This is not quite what the other checks do, because monitoring compiles some code against the WASM target
+      - name: Compile monitoring
+        shell: bash
+        run: make build-monitoring
+
       - name: Cleanup cache
         uses: ./.github/actions/rust-cache-post

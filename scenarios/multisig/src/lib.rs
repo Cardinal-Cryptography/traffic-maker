@@ -15,7 +15,7 @@ use serde::Deserialize;
 use thiserror::Error;
 
 use chain_support::{do_async, with_event_listening};
-pub use multisig::{Multisig, MultisigConfig};
+pub use multisig::Multisig;
 use Action::*;
 use Strategy::*;
 

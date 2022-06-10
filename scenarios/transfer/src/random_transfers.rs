@@ -13,8 +13,7 @@ use substrate_api_client::{
 };
 
 use chain_support::{do_async, keypair_derived_from_seed, with_event_listening, Event};
-use common::{Ident, Scenario, ScenarioError, ScenarioLogging};
-use scenarios_support::parse_interval;
+use common::{Scenario, ScenarioError, ScenarioLogging};
 
 use crate::try_transfer;
 
@@ -51,14 +50,21 @@ pub enum Granularity {
     Batched,
 }
 
-/// Configuration for `RandomTransfer` scenario.
+/// Scenario making traffic through random transfers within the account pool.
+///
+/// Its specific behavior depends on `direction`:
+/// - `OneToMany`: one account is randomly chosen as a sender, other `transfers`
+///   accounts are chosen as receivers; then sender transfers `transfer_fraction` of
+///   their balances to every receiver
+/// - `ManyToOne`: one account is randomly chosen as a receiver, other `transfers`
+///   accounts are chosen as senders; then each sender sends `transfer_fraction` of
+///   their balances to the receiver
+/// - `ManyToMany`: `transfers` random pairs are chosen as (sender, receiver); then every
+///   sender sends `transfer_fraction` of their balances to their corresponding receiver
+///
+/// Depending on `granularity`, transfers are submitted sequentially or in a batch.
 #[derive(Clone, Debug, Deserialize)]
-pub struct RandomTransfersConfig {
-    /// Unique string identifier for the scenario.
-    ident: Ident,
-    /// Periodicity of launching.
-    #[serde(deserialize_with = "parse_interval")]
-    interval: Duration,
+pub struct RandomTransfers {
     /// What type of traffic should be made.
     direction: Direction,
     /// How to submit extrinsics.
@@ -75,30 +81,6 @@ pub struct RandomTransfersConfig {
     transfer_fraction: u16,
 }
 
-/// Scenario making traffic through random transfers within the account pool.
-///
-/// Its specific behavior depends on `direction`:
-/// - `OneToMany`: one account is randomly chosen as a sender, other `transfers`
-///   accounts are chosen as receivers; then sender transfers `transfer_fraction` of
-///   their balances to every receiver
-/// - `ManyToOne`: one account is randomly chosen as a receiver, other `transfers`
-///   accounts are chosen as senders; then each sender sends `transfer_fraction` of
-///   their balances to the receiver
-/// - `ManyToMany`: `transfers` random pairs are chosen as (sender, receiver); then every
-///   sender sends `transfer_fraction` of their balances to their corresponding receiver
-///
-/// Depending on `granularity`, transfers are submitted sequentially or in a batch.
-#[derive(Clone)]
-pub struct RandomTransfers {
-    ident: Ident,
-    interval: Duration,
-    direction: Direction,
-    granularity: Granularity,
-    transfer_fraction: u16,
-    transfers: usize,
-    connection: Connection,
-}
-
 /// Represents a single sender-receiver pair.
 #[derive(Clone)]
 struct TransferPair {
@@ -109,18 +91,6 @@ struct TransferPair {
 }
 
 impl RandomTransfers {
-    pub fn new<C: AnyConnection>(connection: &C, config: RandomTransfersConfig) -> Self {
-        RandomTransfers {
-            ident: config.ident,
-            interval: config.interval,
-            direction: config.direction,
-            granularity: config.granularity,
-            transfer_fraction: config.transfer_fraction,
-            transfers: config.transfers,
-            connection: connection.as_connection(),
-        }
-    }
-
     /// Returns an iterator over all possible (sender, receiver) pairs
     /// corresponding to `self.direction`.
     fn generate_pairs(&self) -> impl Iterator<Item = (usize, usize)> {
@@ -177,13 +147,22 @@ impl RandomTransfers {
     }
 
     /// Computes how much money should be transferred from `sender`.
-    async fn compute_transfer_value(&self, sender: &KeyPair) -> AnyResult<u128> {
+    async fn compute_transfer_value(
+        &self,
+        connection: &Connection,
+        sender: &KeyPair,
+    ) -> AnyResult<u128> {
         let sender_account = AccountId::from(sender.public());
-        let sender_balances = do_async!(get_free_balance, &self.connection, &sender_account)?;
+        let sender_balances = do_async!(get_free_balance, &connection, &sender_account)?;
         Ok(self.balances_fraction(sender_balances))
     }
 
-    async fn send_sequentially(&self, pairs: Vec<TransferPair>) -> AnyResult<()> {
+    async fn send_sequentially(
+        &self,
+        connection: &Connection,
+        pairs: Vec<TransferPair>,
+        logger: &ScenarioLogging,
+    ) -> AnyResult<()> {
         for (idx, transfer_pair) in pairs.into_iter().enumerate() {
             let TransferPair {
                 sender,
@@ -192,17 +171,17 @@ impl RandomTransfers {
                 receiver_id,
             } = transfer_pair;
 
-            self.debug(format!(
+            logger.debug(format!(
                 "Transferring money from #{} to #{}.",
                 sender_id, receiver_id
             ));
 
-            let transfer_value = self.compute_transfer_value(&sender).await?;
+            let transfer_value = self.compute_transfer_value(connection, &sender).await?;
             let transfer_result =
-                try_transfer(&self.connection, &sender, &receiver, transfer_value).await;
-            self.handle(transfer_result)?;
+                try_transfer(connection, &sender, &receiver, transfer_value).await;
+            logger.log_result(transfer_result)?;
 
-            self.debug(format!(
+            logger.debug(format!(
                 "Completed {}/{} transfers.",
                 idx + 1,
                 self.transfers
@@ -211,7 +190,12 @@ impl RandomTransfers {
         Ok(())
     }
 
-    async fn send_in_batch(&self, pairs: Vec<TransferPair>) -> AnyResult<()> {
+    async fn send_in_batch(
+        &self,
+        connection: &Connection,
+        pairs: Vec<TransferPair>,
+        logger: &ScenarioLogging,
+    ) -> AnyResult<()> {
         // `xts` is built in good old imperative way, because it requires async, fallible call
         // for computing transfer value, which is not so nice to be used within `map()`.
         let mut xts = Vec::new();
@@ -223,13 +207,13 @@ impl RandomTransfers {
                 receiver_id,
             } = transfer_pair;
 
-            self.debug(format!(
+            logger.debug(format!(
                 "Preparing transfer from #{} to #{}.",
                 sender_id, receiver_id
             ));
 
-            let transfer_value = self.compute_transfer_value(&sender).await?;
-            let metadata = SignedConnection::from_any_connection(&self.connection, sender)
+            let transfer_value = self.compute_transfer_value(connection, &sender).await?;
+            let metadata = SignedConnection::from_any_connection(connection, sender)
                 .as_connection()
                 .metadata;
             xts.push(compose_call!(
@@ -242,8 +226,7 @@ impl RandomTransfers {
         }
 
         // `self.connection` may not be signed, but somebody has to pay for submitting
-        let connection =
-            SignedConnection::from_any_connection(&self.connection, pairs[0].sender.clone());
+        let connection = SignedConnection::from_any_connection(connection, pairs[0].sender.clone());
         let xt = compose_extrinsic!(connection.as_connection(), "Utility", "batch", xts);
 
         let batch_result = with_event_listening(
@@ -262,32 +245,22 @@ impl RandomTransfers {
         )
         .await;
 
-        self.handle(batch_result)?;
+        logger.log_result(batch_result)?;
 
         Ok(())
     }
 }
 
 #[async_trait::async_trait]
-impl Scenario for RandomTransfers {
-    fn interval(&self) -> Duration {
-        self.interval
-    }
-
-    async fn play(&mut self) -> AnyResult<()> {
-        self.info("Starting scenario");
-
+impl Scenario<Connection> for RandomTransfers {
+    async fn play(&mut self, connection: &Connection, logger: &ScenarioLogging) -> AnyResult<()> {
         let pairs = self.designate_pairs();
         match self.granularity {
-            Granularity::OneByOne => self.send_sequentially(pairs).await,
-            Granularity::Batched => self.send_in_batch(pairs).await,
+            Granularity::OneByOne => self.send_sequentially(connection, pairs, logger).await,
+            Granularity::Batched => self.send_in_batch(connection, pairs, logger).await,
         }?;
 
-        self.info("Scenario finished successfully");
+        logger.info("Scenario finished successfully");
         Ok(())
-    }
-
-    fn ident(&self) -> Ident {
-        self.ident.clone()
     }
 }

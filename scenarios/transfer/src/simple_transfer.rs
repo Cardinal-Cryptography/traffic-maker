@@ -1,16 +1,11 @@
-use std::time::Duration;
-
-use aleph_client::{
-    account_from_keypair, substrate_api_client, AnyConnection, Connection, KeyPair,
-};
+use aleph_client::{account_from_keypair, substrate_api_client, Connection, KeyPair};
 use anyhow::Result as AnyResult;
 use rand::random;
 use serde::Deserialize;
 use substrate_api_client::AccountId;
 
 use chain_support::{keypair_derived_from_seed, real_amount};
-use common::{Ident, Scenario, ScenarioLogging};
-use scenarios_support::parse_interval;
+use common::{Scenario, ScenarioLogging};
 
 use crate::try_transfer;
 
@@ -20,62 +15,39 @@ const SENDER_SEED: &str = "//SimpleTransferSender";
 const RECEIVER_SEED: &str = "//SimpleTransferReceiver";
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct SimpleTransferConfig {
-    ident: Ident,
-    #[serde(deserialize_with = "parse_interval")]
-    interval: Duration,
+pub struct SimpleTransfer {
     transfer_value: u64,
 }
 
-#[derive(Clone)]
-pub struct SimpleTransfer {
-    ident: Ident,
-    interval: Duration,
-    sender: KeyPair,
-    receiver: AccountId,
-    connection: Connection,
-    transfer_value: u128,
-}
-
 impl SimpleTransfer {
-    pub fn new<C: AnyConnection>(connection: &C, config: SimpleTransferConfig) -> Self {
-        let sender = keypair_derived_from_seed(SENDER_SEED);
-        let receiver = account_from_keypair(&keypair_derived_from_seed(RECEIVER_SEED));
+    fn sender() -> KeyPair {
+        keypair_derived_from_seed(SENDER_SEED)
+    }
 
-        SimpleTransfer {
-            ident: config.ident,
-            interval: config.interval,
-            sender,
-            receiver,
-            connection: connection.as_connection(),
-            transfer_value: real_amount(&config.transfer_value) + random::<u32>() as u128,
-        }
+    fn receiver() -> AccountId {
+        account_from_keypair(&keypair_derived_from_seed(RECEIVER_SEED))
+    }
+
+    fn transfer_value(&self) -> u128 {
+        real_amount(&self.transfer_value) + random::<u32>() as u128
     }
 }
 
 #[async_trait::async_trait]
-impl Scenario for SimpleTransfer {
-    fn interval(&self) -> Duration {
-        self.interval
-    }
-
-    async fn play(&mut self) -> AnyResult<()> {
-        self.info("Ready to go");
+impl Scenario<Connection> for SimpleTransfer {
+    async fn play(&mut self, connection: &Connection, logger: &ScenarioLogging) -> AnyResult<()> {
+        logger.info("Ready to go");
 
         let transfer_result = try_transfer(
-            &self.connection,
-            &self.sender,
-            &self.receiver,
-            self.transfer_value,
+            connection,
+            &Self::sender(),
+            &Self::receiver(),
+            self.transfer_value(),
         )
         .await;
-        self.handle(transfer_result)?;
+        logger.log_result(transfer_result)?;
 
-        self.info("Done");
+        logger.info("Done");
         Ok(())
-    }
-
-    fn ident(&self) -> Ident {
-        self.ident.clone()
     }
 }
