@@ -20,7 +20,7 @@ const RANDOM_TRANSFER_SEED: &str = "//RandomTransfer";
 
 /// We expect that there are as many endowed accounts (of seed phrases: `RANDOM_TRANSFER_SEED{i}`,
 /// where `i` is from 0 to this value (exclusively)).
-const AVAILABLE_ACCOUNTS: usize = 100;
+const AVAILABLE_ACCOUNTS: usize = 200;
 
 /// Returns keypair of the common account with index `idx`.
 fn compute_keypair(idx: usize) -> KeyPair {
