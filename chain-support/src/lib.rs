@@ -1,7 +1,7 @@
 // Needed for `do_async!`.
 #![feature(fn_traits)]
 
-use std::fmt::Display;
+use std::{env, fmt::Display};
 
 pub use aleph_client::{
     create_connection, keypair_from_string, send_xt, try_send_xt, AnyConnection, Connection,
@@ -21,7 +21,7 @@ mod macros;
 /// The base seed is empty by default, but can be overridden with env `SECRET_PHRASE_SEED`.
 /// Assumes that `seed` is already prefixed with a derivation delimiter (either `/` or `//`).
 pub fn keypair_derived_from_seed<S: AsRef<str> + Display>(seed: S) -> KeyPair {
-    let base_seed = option_env!("SECRET_PHRASE_SEED").unwrap_or("");
+    let base_seed = env::var("SECRET_PHRASE_SEED").unwrap_or_default();
     let full_seed = format!("{}{}", base_seed, seed);
     keypair_from_string(&*full_seed)
 }
