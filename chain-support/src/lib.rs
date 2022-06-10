@@ -1,19 +1,20 @@
 // Needed for `do_async!`.
 #![feature(fn_traits)]
 
-use std::{fmt::Display, thread::sleep, time::Duration};
+use std::{env, fmt::Display, thread::sleep, time::Duration};
 
 pub use aleph_client::{send_xt, Connection, KeyPair};
 use codec::Encode;
-pub use event_listening::{
-    with_event_listening, with_event_matching, Event, EventKind, ListeningError,
-    SingleEventListener, Transfer as TransferEvent,
-};
 use log::{info, warn};
 use sp_core::H256;
 pub use substrate_api_client;
 use substrate_api_client::{
     error::Error, rpc::WsRpcClient, AccountId, ApiResult, Pair, UncheckedExtrinsicV4, XtStatus,
+};
+
+pub use event_listening::{
+    with_event_listening, with_event_matching, Event, EventKind, ListeningError,
+    SingleEventListener, Transfer as TransferEvent,
 };
 
 mod event_listening;
@@ -68,7 +69,7 @@ pub fn try_send_xt<T: Encode + sp_core::Encode>(
 /// The base seed is empty by default, but can be overridden with env `SECRET_PHRASE_SEED`.
 /// Assumes that `seed` is already prefixed with a derivation delimiter (either `/` or `//`).
 pub fn keypair_derived_from_seed<S: AsRef<str> + Display>(seed: S) -> KeyPair {
-    let base_seed = option_env!("SECRET_PHRASE_SEED").unwrap_or("");
+    let base_seed = env::var("SECRET_PHRASE_SEED").unwrap_or_default();
     let full_seed = format!("{}{}", base_seed, seed);
     keypair_from_string(&*full_seed)
 }
