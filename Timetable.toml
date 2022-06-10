@@ -1,15 +1,7 @@
 scenarios = [
-    { ident = "SimpleTransfer (7s)", interval = "7 seconds", scenario = { kind = "SimpleTransfer", transfer_value = 10 } },
-    { ident = "RoundRobin (10s)", interval = "10 seconds", scenario = { kind = "RoundRobin", passes = 3, robin_value = 1 } },
-    { ident = "ManyToMany (10s)", interval = "10 seconds", scenario = { kind = "RandomTransfers", direction = "ManyToMany", granularity = "OneByOne", transfers = 5, transfer_fraction = 1 } },
-    { ident = "OneToMany (10s)", interval = "10 seconds", scenario = { kind = "RandomTransfers", direction = "OneToMany", granularity = "Batched", transfers = 7, transfer_fraction = 3 } },
-    { ident = "Multisig (optimal)", interval = "12 seconds", scenario = { kind = "Multisig", party_size = { "Precise" = 4 }, threshold = { "Precise" = 3 }, strategy = "Optimal", cancel = false } },
-    { ident = "Multisig (cancel)", interval = "15 seconds", scenario = { kind = "Multisig", party_size = "Large", threshold = { "Precise" = 3 }, strategy = "Optimal", cancel = true } },
-    { ident = "VestingSchedulesMerging", interval = "60 seconds", scenario = { kind = "VestingSchedulesMerging" } },
-    { ident = "VestingVest", interval = "10 seconds", scenario = { kind = "VestingVest", vest_kind = "Vest" } },
-    { ident = "VestingVestOther", interval = "10 seconds", scenario = { kind = "VestingVest", vest_kind = "VestOther" } },
+    { ident = "ManyToMany (10s)", interval = "10 seconds", scenario = { kind = "RandomTransfers", direction = "ManyToMany", granularity = "OneByOne", transfers = 20 } },
 ]
 
 [environment]
-node = "127.0.0.1:9944"
+node = "ws://127.0.0.1:9944"
 expose_host = "127.0.0.1:8080"

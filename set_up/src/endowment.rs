@@ -1,14 +1,13 @@
-use aleph_client::{
-    balances_batch_transfer, keypair_from_string, send_xt, substrate_api_client, AnyConnection,
-    RootConnection, SignedConnection,
-};
+use aleph_client::Connection;
 use codec::Compact;
 use serde::Deserialize;
 use substrate_api_client::{
-    compose_call, compose_extrinsic, AccountId, GenericAddress, Pair, XtStatus::Finalized,
+    compose_call, compose_extrinsic, AccountId, GenericAddress, Pair, XtStatus, XtStatus::Finalized,
 };
 
-use chain_support::{keypair_derived_from_seed, real_amount};
+use chain_support::{
+    create_connection, keypair_derived_from_seed, keypair_from_string, real_amount, try_send_xt,
+};
 
 use crate::CliConfig;
 
@@ -26,8 +25,8 @@ pub struct Endowment {
     pub accounts: Vec<Account>,
 }
 
-fn batch_set_endowment(connection: &RootConnection, accounts: Vec<AccountId>, amount: u128) {
-    let metadata = connection.as_connection().metadata;
+fn batch_set_endowment(connection: &Connection, accounts: Vec<AccountId>, amount: u128) {
+    let metadata = connection.metadata.clone();
     let xts = accounts
         .iter()
         .map(|account| {
@@ -42,8 +41,10 @@ fn batch_set_endowment(connection: &RootConnection, accounts: Vec<AccountId>, am
             compose_call!(metadata, "Sudo", "sudo", endowment_call)
         })
         .collect::<Vec<_>>();
-    let xt = compose_extrinsic!(connection.as_connection(), "Utility", "batch", xts);
-    send_xt(connection, xt, Some("Set endowment"), Finalized);
+    let xt = compose_extrinsic!(connection, "Utility", "batch", xts);
+    try_send_xt(connection, xt, Some("Set endowment"), Finalized)
+        .unwrap()
+        .unwrap();
 }
 
 fn flatten_accounts(accounts: &[Account]) -> Vec<AccountId> {
@@ -64,19 +65,43 @@ fn flatten_accounts(accounts: &[Account]) -> Vec<AccountId> {
         .collect()
 }
 
+fn batch_transfer(connection: &Connection, account_keys: Vec<AccountId>, endowment: u128) {
+    let batch_endow = account_keys
+        .into_iter()
+        .map(|account_id| {
+            compose_call!(
+                connection.metadata,
+                "Balances",
+                "transfer",
+                GenericAddress::Id(account_id),
+                Compact(endowment)
+            )
+        })
+        .collect::<Vec<_>>();
+
+    let xt = compose_extrinsic!(connection, "Utility", "batch", batch_endow);
+    try_send_xt(
+        connection,
+        xt,
+        Some("batch of endow balances"),
+        XtStatus::InBlock,
+    )
+    .unwrap();
+}
+
 pub fn perform_endowments(cli_config: &CliConfig, endowments: &[Endowment]) {
     let endowments = endowments
         .iter()
         .map(|Endowment { amount, accounts }| (real_amount(amount), flatten_accounts(accounts)));
     let performer = keypair_from_string(&*cli_config.phrase);
 
+    let connection = create_connection(&cli_config.node).set_signer(performer);
+
     if cli_config.transfer {
-        let connection = SignedConnection::new(&cli_config.node, performer);
         for (amount, accounts) in endowments {
-            balances_batch_transfer(&connection, accounts, amount);
+            batch_transfer(&connection, accounts, amount);
         }
     } else {
-        let connection = RootConnection::new(&cli_config.node, performer);
         for (amount, accounts) in endowments {
             batch_set_endowment(&connection, accounts, amount);
         }

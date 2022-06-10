@@ -1,10 +1,10 @@
-use aleph_client::{account_from_keypair, substrate_api_client, Connection, KeyPair};
+use aleph_client::{Connection, KeyPair};
 use anyhow::Result as AnyResult;
 use rand::random;
 use serde::Deserialize;
 use substrate_api_client::AccountId;
 
-use chain_support::{keypair_derived_from_seed, real_amount};
+use chain_support::{account_from_keypair, keypair_derived_from_seed, real_amount};
 use common::{Scenario, ScenarioLogging};
 
 use crate::try_transfer;

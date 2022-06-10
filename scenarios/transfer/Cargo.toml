@@ -4,14 +4,15 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-aleph_client = { git = "https://github.com/Cardinal-Cryptography/aleph-node.git", rev = "c8eb94cfb066485aa2d14f65110a26edc54dda9a" }
+aleph_client = { git = "https://github.com/Cardinal-Cryptography/aleph-node.git", branch = "release-5" }
+substrate-api-client = { git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git", tag = "polkadot-v0.9.13.b2bfc0c3" }
 
 chain-support = { path = "../../chain-support" }
 common = { path = "../../common" }
 
 anyhow = "1.0"
 async-trait = "0.1"
-codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false,  features = ["derive"]}
+codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false,  features = ["derive"]}
 log = "0.4"
 parse_duration = "2.1.1"
 serde = { version = "1.0", features = ["derive"] }

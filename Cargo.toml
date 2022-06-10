@@ -6,8 +6,6 @@ members = [
     "chain-support",
     "common",
     "scenarios/transfer",
-    "scenarios/multisig",
-    "scenarios/vesting",
 ]
 
 exclude = [

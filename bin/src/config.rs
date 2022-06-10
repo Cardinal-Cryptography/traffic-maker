@@ -1,12 +1,10 @@
 use serde::{Deserialize, Deserializer};
 use std::time::Duration;
 
-use chain_support::{create_connection, AnyConnection, Connection};
+use chain_support::{create_connection, Connection};
 use common::{Ident, Scenario, ScheduledScenario};
 use parse_duration::parse;
-use scenarios_multisig::Multisig;
-use scenarios_transfer::{RandomTransfers, RoundRobin, SimpleTransfer};
-use scenarios_vesting::{SchedulesMerging, Vest};
+use scenarios_transfer::{RandomTransfers, SimpleTransfer};
 
 /// This struct combines both the execution environment (including hosts and chain address), as well
 /// as the scenario configurations.
@@ -56,24 +54,16 @@ impl Environment {
 #[serde(tag = "kind")]
 enum ScenarioConfig {
     SimpleTransfer(SimpleTransfer),
-    RoundRobin(RoundRobin),
     RandomTransfers(RandomTransfers),
-    Multisig(Multisig),
-    VestingSchedulesMerging,
-    VestingVest(Vest),
 }
 
 impl ScenarioConfig {
-    fn to_scenario(&self, connection: &Connection) -> Box<dyn Scenario<Connection>> {
+    fn to_scenario(&self) -> Box<dyn Scenario<Connection>> {
         use ScenarioConfig::*;
 
         match self.clone() {
             SimpleTransfer(s) => Box::new(s),
-            RoundRobin(s) => Box::new(s),
             RandomTransfers(s) => Box::new(s),
-            Multisig(s) => Box::new(s),
-            VestingSchedulesMerging => Box::new(SchedulesMerging::new(connection).unwrap()),
-            VestingVest(s) => Box::new(s),
         }
     }
 }
@@ -88,16 +78,12 @@ struct ScenarioInstanceConfig {
 }
 
 impl ScenarioInstanceConfig {
-    pub fn construct_scenario<C: AnyConnection>(
-        &self,
-        connection: &C,
-    ) -> ScheduledScenario<Connection> {
+    pub fn construct_scenario(&self, connection: &Connection) -> ScheduledScenario<Connection> {
         ScheduledScenario::new(
             self.ident.clone(),
             self.interval,
-            connection.as_connection(),
-            self.scenario_config
-                .to_scenario(&connection.as_connection()),
+            connection.clone(),
+            self.scenario_config.to_scenario(),
         )
     }
 }

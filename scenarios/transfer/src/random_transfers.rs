@@ -1,9 +1,6 @@
 use std::{collections::HashMap, time::Duration};
 
-use aleph_client::{
-    get_free_balance, substrate_api_client, try_send_xt, AnyConnection, Connection, KeyPair,
-    SignedConnection,
-};
+use aleph_client::{Connection, KeyPair};
 use anyhow::Result as AnyResult;
 use codec::{Compact, Decode};
 use rand::{prelude::IteratorRandom, thread_rng, Rng};
@@ -12,7 +9,7 @@ use substrate_api_client::{
     compose_call, compose_extrinsic, AccountId, GenericAddress, Pair, XtStatus,
 };
 
-use chain_support::{do_async, keypair_derived_from_seed, with_event_listening, Event};
+use chain_support::{keypair_derived_from_seed, try_send_xt, with_event_listening, Event};
 use common::{Scenario, ScenarioError, ScenarioLogging};
 
 use crate::try_transfer;
@@ -74,11 +71,6 @@ pub struct RandomTransfers {
     /// E.g. in `OneToMany`, `transfers` will determine how many receivers
     /// are there.
     transfers: usize,
-    /// To avoid exhausting one's balances, senders in these scenarios
-    /// transfer a constant fraction of their balances. `transfer_fraction`
-    /// describes this part in thousandths (passing e.g. 5 will result in
-    /// sending 0.5% of available funds).
-    transfer_fraction: u16,
 }
 
 /// Represents a single sender-receiver pair.
@@ -139,24 +131,6 @@ impl RandomTransfers {
             .collect()
     }
 
-    /// Computes estimated fraction of `balances` (`self.transfer_fraction`‰).
-    fn balances_fraction(&self, balances: u128) -> u128 {
-        balances
-            .saturating_div(1000)
-            .saturating_mul(self.transfer_fraction as u128)
-    }
-
-    /// Computes how much money should be transferred from `sender`.
-    async fn compute_transfer_value(
-        &self,
-        connection: &Connection,
-        sender: &KeyPair,
-    ) -> AnyResult<u128> {
-        let sender_account = AccountId::from(sender.public());
-        let sender_balances = do_async!(get_free_balance, &connection, &sender_account)?;
-        Ok(self.balances_fraction(sender_balances))
-    }
-
     async fn send_sequentially(
         &self,
         connection: &Connection,
@@ -176,9 +150,7 @@ impl RandomTransfers {
                 sender_id, receiver_id
             ));
 
-            let transfer_value = self.compute_transfer_value(connection, &sender).await?;
-            let transfer_result =
-                try_transfer(connection, &sender, &receiver, transfer_value).await;
+            let transfer_result = try_transfer(connection, &sender, &receiver, 1).await;
             logger.log_result(transfer_result)?;
 
             logger.debug(format!(
@@ -212,22 +184,19 @@ impl RandomTransfers {
                 sender_id, receiver_id
             ));
 
-            let transfer_value = self.compute_transfer_value(connection, &sender).await?;
-            let metadata = SignedConnection::from_any_connection(connection, sender)
-                .as_connection()
-                .metadata;
+            let metadata = connection.clone().set_signer(sender).metadata;
             xts.push(compose_call!(
                 metadata,
                 "Balances",
                 "transfer",
                 GenericAddress::Id(receiver),
-                Compact(transfer_value)
+                Compact(1u128)
             ));
         }
 
         // `self.connection` may not be signed, but somebody has to pay for submitting
-        let connection = SignedConnection::from_any_connection(connection, pairs[0].sender.clone());
-        let xt = compose_extrinsic!(connection.as_connection(), "Utility", "batch", xts);
+        let connection = connection.clone().set_signer(pairs[0].sender.clone());
+        let xt = compose_extrinsic!(connection, "Utility", "batch", xts);
 
         let batch_result = with_event_listening(
             &connection,

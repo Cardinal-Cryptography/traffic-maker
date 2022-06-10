@@ -1,20 +1,67 @@
 // Needed for `do_async!`.
 #![feature(fn_traits)]
 
-use std::fmt::Display;
+use std::{fmt::Display, thread::sleep, time::Duration};
 
-pub use aleph_client::{
-    create_connection, keypair_from_string, send_xt, try_send_xt, AnyConnection, Connection,
-    KeyPair, RootConnection, SignedConnection,
-};
-
+pub use aleph_client::{send_xt, Connection, KeyPair};
+use codec::Encode;
 pub use event_listening::{
     with_event_listening, with_event_matching, Event, EventKind, ListeningError,
     SingleEventListener, Transfer as TransferEvent,
 };
+use log::{info, warn};
+use sp_core::H256;
+pub use substrate_api_client;
+use substrate_api_client::{
+    error::Error, rpc::WsRpcClient, AccountId, ApiResult, Pair, UncheckedExtrinsicV4, XtStatus,
+};
 
 mod event_listening;
 mod macros;
+
+pub fn keypair_from_string(seed: &str) -> KeyPair {
+    KeyPair::from_string(seed, None).expect("Can't create pair from seed value")
+}
+
+pub fn account_from_keypair(keypair: &KeyPair) -> AccountId {
+    AccountId::from(keypair.public())
+}
+
+pub fn create_connection(address: &str) -> Connection {
+    let client = WsRpcClient::new(address);
+    match Connection::new(client) {
+        Ok(api) => api,
+        Err(why) => {
+            warn!(
+                "[+] Can't create_connection because {:?}, will try again in 1s",
+                why
+            );
+            sleep(Duration::from_millis(1000));
+            create_connection(address)
+        }
+    }
+}
+
+pub fn try_send_xt<T: Encode + sp_core::Encode>(
+    connection: &Connection,
+    xt: UncheckedExtrinsicV4<T>,
+    xt_name: Option<&'static str>,
+    xt_status: XtStatus,
+) -> ApiResult<Option<H256>> {
+    let hash = connection
+        .send_extrinsic(xt.hex_encode(), xt_status)?
+        .ok_or_else(|| Error::Other(String::from("Could not get tx/block hash").into()))?;
+
+    match xt_status {
+        XtStatus::Finalized | XtStatus::InBlock => {
+            info!(target: "aleph-client",
+                "Transaction `{}` was included in block with hash {}.",
+                xt_name.unwrap_or_default(), hash);
+            Ok(Some(hash))
+        }
+        _ => Ok(None),
+    }
+}
 
 /// Creates a new derived `KeyPair` from provided `seed` as a derivation path.
 ///

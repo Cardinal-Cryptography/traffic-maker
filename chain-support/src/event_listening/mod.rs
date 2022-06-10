@@ -1,6 +1,5 @@
 use std::fmt::Debug;
 
-use aleph_client::substrate_api_client;
 use codec::Decode;
 use substrate_api_client::AccountId;
 use thiserror::Error;

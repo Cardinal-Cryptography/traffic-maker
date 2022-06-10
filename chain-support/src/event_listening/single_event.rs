@@ -1,7 +1,7 @@
 use std::{fmt::Debug, future::Future, time::Duration};
 
 use ac_node_api::events::{EventsDecoder, Raw};
-use aleph_client::AnyConnection;
+use aleph_client::Connection;
 use anyhow::Result as AnyResult;
 use hex::FromHex;
 use tokio::{
@@ -36,10 +36,9 @@ pub struct SingleEventListener<E: Event> {
 ///
 /// The only blocking call in this module. It is implemented as an outside function to enable
 /// calling it with `do_async` macro.
-fn subscribe_for_events<C: AnyConnection>(connection: &C) -> AnyResult<EventsOut> {
+fn subscribe_for_events(connection: &Connection) -> AnyResult<EventsOut> {
     let (events_in, events_out) = std::sync::mpsc::channel();
     connection
-        .as_connection()
         .subscribe_events(events_in)
         .map_err(|_| ListeningError::CannotSubscribe)?;
     Ok(events_out)
@@ -117,15 +116,15 @@ impl<E: Event> SingleEventListener<E> {
     ///
     /// Can fail (returns `ListeningError::CannotSubscribe`) only if subscribing to a node was
     /// unsuccessful.
-    pub async fn new<C: 'static + AnyConnection, M: Fn(&E) -> bool + Send + 'static>(
-        connection: &C,
+    pub async fn new<M: Fn(&E) -> bool + Send + 'static>(
+        connection: &Connection,
         matcher: M,
     ) -> AnyResult<Self> {
         let (event_tx, event_rx) = channel::<E>();
         let (cancel_tx, cancel_rx) = channel();
 
         let events_out = do_async!(subscribe_for_events, &connection)??;
-        let decoder = EventsDecoder::new(connection.as_connection().metadata);
+        let decoder = EventsDecoder::new(connection.metadata.clone());
         let listening_handle = tokio::spawn(Self::listen_for_event(
             matcher, event_tx, cancel_rx, events_out, decoder,
         ));
@@ -171,13 +170,8 @@ impl<E: Event> SingleEventListener<E> {
 
 /// Like [with_event_matching] but looks for an event matching a specific struct instead of using a
 /// closure to perform the match.
-pub async fn with_event_listening<
-    C: 'static + AnyConnection,
-    E: Event,
-    R: Debug,
-    F: Future<Output = AnyResult<R>>,
->(
-    connection: &C,
+pub async fn with_event_listening<E: Event, R: Debug, F: Future<Output = AnyResult<R>>>(
+    connection: &Connection,
     expected_event: E,
     event_timeout: Duration,
     action: F,
@@ -201,13 +195,12 @@ pub async fn with_event_listening<
 ///        returns either `(result, received_event)` if listening succeeded or `Err(_)` otherwise.
 ///     - `Err(e)`: cancels listening and returns `Err(e)`.
 pub async fn with_event_matching<
-    C: 'static + AnyConnection,
     E: Event,
     R: Debug,
     F: Future<Output = AnyResult<R>>,
     M: Fn(&E) -> bool + Send + 'static,
 >(
-    connection: &C,
+    connection: &Connection,
     event_matcher: M,
     event_timeout: Duration,
     action: F,
