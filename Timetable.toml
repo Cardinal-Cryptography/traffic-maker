@@ -1,5 +1,5 @@
 scenarios = [
-    { ident = "ManyToMany (10s)", interval = "10 seconds", scenario = { kind = "RandomTransfers", direction = "ManyToMany", granularity = "OneByOne", transfers = 20 } },
+    { ident = "ManyToMany", interval = "1 hour", scenario = { kind = "RandomTransfers", direction = "ManyToMany", granularity = "OneByOne", transfers = 20 } },
 ]
 
 [environment]
