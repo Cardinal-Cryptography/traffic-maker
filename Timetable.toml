@@ -3,5 +3,5 @@ scenarios = [
 ]
 
 [environment]
-node = "ws://127.0.0.1:9944"
+node = "wss://ws.test.azero.dev"
 expose_host = "127.0.0.1:8080"

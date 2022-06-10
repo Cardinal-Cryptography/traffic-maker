@@ -2,18 +2,7 @@
 # our token has 12 decimals.
 
 [[endowments]]
-amount = 30_000
+amount = 500
 accounts = [
-    { name = "//SimpleTransferSender" },
-    { name = "//RoundRobin", copies = 20 },
-    { name = "//Multisig", copies = 50 }
-]
-
-[[endowments]]
-amount = 1_000
-accounts = [
-    { name = "//RandomTransfer", copies = 100 },
-    { name = "//VestingSchedulesMerging", copies = 50 },
-    { name = "//Vest/Source/Vest" },
-    { name = "//Vest/Source/VestOther" },
+    { name = "//RandomTransfer", copies = 200 },
 ]
