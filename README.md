@@ -38,6 +38,8 @@ $ make docker
 This will launch `docker-compose` accoring to [`docker/docker-compose.yml`](docker/docker-compose.yml).
 If your chain is running on `localhost`, you will have to exchange line `node = "127.0.0.1:9944"` with `node = "host.docker.internal:9944"` in [`Timetable.toml`](Timetable.toml).
 
+**Note:** To enable backend to communicate with local chain from docker you will need to run node with `--unsafe-rpc-external` and `--unsafe-ws-external` flags.
+
 In addition, monitoring service will be served at `localhost:8040`.
 
 ### Adjusting configuration
