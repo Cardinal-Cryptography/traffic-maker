@@ -32,7 +32,7 @@ docker-stop:
 	docker-compose -f docker/docker-compose.yml down -v
 
 build-backend-docker: build
-	docker build --tag traffic-maker -f docker/backend/Dockerfile .
+	docker build --tag traffic-maker:latest -f docker/backend/Dockerfile .
 
 build-frontend-docker: build-monitoring
-	docker build --tag traffic-maker -f docker/frontend/Dockerfile .
+	docker build --tag traffic-maker-monitoring:latest -f docker/frontend/Dockerfile .
