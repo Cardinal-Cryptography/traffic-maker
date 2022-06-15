@@ -40,7 +40,7 @@ If your chain is running on `localhost`, you will have to exchange line `node = 
 
 **Note:** To enable backend to communicate with local chain from docker you will need to run node with `--unsafe-rpc-external` and `--unsafe-ws-external` flags.
 
-In addition, monitoring service will be served at `localhost:8040`.
+In addition, monitoring service will be served at `localhost:8080`.
 
 ### Adjusting configuration
 

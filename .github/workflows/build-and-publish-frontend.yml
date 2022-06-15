@@ -12,7 +12,7 @@ on:
         description: The address where backend stats are being exposed (`STATS_BASE_URL`)
         required: false
         type: string
-        default: http://127.0.0.1:8080
+        default: http://localhost:8080
   push:
     branches: [ main ]
     paths:
