@@ -1,11 +1,9 @@
-FROM debian:stretch-slim
+FROM ubuntu:impish-20220128
 
-RUN apt-get update -y \
-        && apt-get install --no-install-recommends -y \
-        -q wget nginx
-
-RUN apt-get clean && \
-        rm -rf /var/lib/apt/lists/*
+RUN apt-get update -y && \
+    apt-get install --no-install-recommends -y -q wget nginx libssl-dev ca-certificates curl && \
+    apt-get clean && \
+    rm -rf /tmp/* /var/{tmp,cache}/* /var/lib/{apt,dpkg}/
 
 # replace nginx config
 COPY docker/frontend/nginx.conf /etc/nginx/nginx.conf

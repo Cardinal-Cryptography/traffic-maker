@@ -2,7 +2,7 @@
 # The address to serve on.
 addr = "127.0.0.1"
 # The port to serve on.
-port = 8081
+port = 8040
 # Open a browser tab once the initial build is complete.
 open = false
 # Disable auto-reload of the web app.
