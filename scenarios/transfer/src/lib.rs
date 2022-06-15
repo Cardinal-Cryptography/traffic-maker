@@ -12,7 +12,7 @@ use tokio::time::sleep;
 
 use chain_support::{with_event_listening, TransferEvent};
 use common::ScenarioError;
-pub use random_transfers::{Direction, Granularity, RandomTransfers};
+pub use random_transfers::{Direction, TransferMode, RandomTransfers};
 pub use round_robin::RoundRobin;
 pub use simple_transfer::SimpleTransfer;
 

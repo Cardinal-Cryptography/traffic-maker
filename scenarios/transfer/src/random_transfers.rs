@@ -44,9 +44,10 @@ pub enum Direction {
 /// Describes whether transfers should be submitted as independent extrinsics
 /// or in a batch.
 #[derive(Clone, Debug, Deserialize)]
-pub enum Granularity {
-    OneByOne,
+pub enum TransferMode {
+    Sequential,
     Batched,
+    WithDelay(u64),
 }
 
 /// Scenario making traffic through random transfers within the account pool.
@@ -67,7 +68,7 @@ pub struct RandomTransfers {
     /// What type of traffic should be made.
     direction: Direction,
     /// How to submit extrinsics.
-    granularity: Granularity,
+    transfer_mode: TransferMode,
     /// How many transfers should be performed during a single run.
     /// This translates to different settings, depending on the scenario.
     /// E.g. in `OneToMany`, `transfers` will determine how many receivers
@@ -236,9 +237,10 @@ impl RandomTransfers {
 impl Scenario<Connection> for RandomTransfers {
     async fn play(&mut self, connection: &Connection, logger: &ScenarioLogging) -> AnyResult<()> {
         let pairs = self.designate_pairs();
-        match self.granularity {
-            Granularity::OneByOne => self.send_sequentially(connection, pairs, logger).await,
-            Granularity::Batched => self.send_in_batch(connection, pairs, logger).await,
+        match self.transfer_mode {
+            TransferMode::Sequential => self.send_sequentially(connection, pairs, logger).await,
+            TransferMode::Batched => self.send_in_batch(connection, pairs, logger).await,
+            TransferMode::WithDelay(delay) => {}
         }?;
 
         logger.info("Scenario finished successfully");
