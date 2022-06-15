@@ -15,8 +15,6 @@ services:
       - RUST_LOG=warn
     extra_hosts:
      - host.docker.internal:host-gateway
-    ports:
-      - "8080:8080"
 
   frontend:
     image: traffic-maker-monitoring
