@@ -10,6 +10,7 @@ use serde::Deserialize;
 use substrate_api_client::{
     compose_call, compose_extrinsic, AccountId, GenericAddress, Pair, XtStatus,
 };
+use tokio::time::sleep;
 
 use chain_support::{keypair_derived_from_seed, real_amount, with_event_listening, Event};
 use common::{Scenario, ScenarioError, ScenarioLogging};
@@ -29,6 +30,8 @@ fn compute_keypair(idx: usize) -> KeyPair {
     keypair_derived_from_seed(format!("{}{}", RANDOM_TRANSFER_SEED, idx))
 }
 
+pub type DelayInMillisecs = u64;
+
 #[derive(Debug, Clone, Event, Decode)]
 #[pallet = "Utility"]
 struct BatchCompleted;
@@ -47,7 +50,7 @@ pub enum Direction {
 pub enum TransferMode {
     Sequential,
     Batched,
-    WithDelay(u64),
+    WithDelay(DelayInMillisecs),
 }
 
 /// Scenario making traffic through random transfers within the account pool.
@@ -142,35 +145,7 @@ impl RandomTransfers {
         pairs: Vec<TransferPair>,
         logger: &ScenarioLogging,
     ) -> AnyResult<()> {
-        for (idx, transfer_pair) in pairs.into_iter().enumerate() {
-            let TransferPair {
-                sender,
-                sender_id,
-                receiver,
-                receiver_id,
-            } = transfer_pair;
-
-            logger.debug(format!(
-                "Transferring money from #{} to #{}.",
-                sender_id, receiver_id
-            ));
-
-            let transfer_result = try_transfer(
-                connection,
-                &sender,
-                &receiver,
-                real_amount(&self.transfer_value),
-            )
-            .await;
-            logger.log_result(transfer_result)?;
-
-            logger.debug(format!(
-                "Completed {}/{} transfers.",
-                idx + 1,
-                self.transfers
-            ));
-        }
-        Ok(())
+        self.send_with_delay(0, connection, pairs, logger).await
     }
 
     async fn send_in_batch(
@@ -231,6 +206,50 @@ impl RandomTransfers {
 
         Ok(())
     }
+
+    async fn send_with_delay(
+        &self,
+        delay: DelayInMillisecs,
+        connection: &Connection,
+        pairs: Vec<TransferPair>,
+        logger: &ScenarioLogging,
+    ) -> AnyResult<()> {
+        for (idx, transfer_pair) in pairs.into_iter().enumerate() {
+            let TransferPair {
+                sender,
+                sender_id,
+                receiver,
+                receiver_id,
+            } = transfer_pair;
+
+            logger.debug(format!(
+                "Transferring money from #{} to #{}.",
+                sender_id, receiver_id
+            ));
+
+            let transfer_result = try_transfer(
+                connection,
+                &sender,
+                &receiver,
+                real_amount(&self.transfer_value),
+            )
+            .await;
+            logger.log_result(transfer_result)?;
+
+            logger.debug(format!(
+                "Completed {}/{} transfers.",
+                idx + 1,
+                self.transfers
+            ));
+
+            if delay > 0 {
+                logger.debug(format!("Waiting {}ms until next transfer", delay));
+                sleep(Duration::from_millis(delay)).await;
+            }
+        }
+
+        Ok(())
+    }
 }
 
 #[async_trait::async_trait]
@@ -240,7 +259,9 @@ impl Scenario<Connection> for RandomTransfers {
         match self.transfer_mode {
             TransferMode::Sequential => self.send_sequentially(connection, pairs, logger).await,
             TransferMode::Batched => self.send_in_batch(connection, pairs, logger).await,
-            TransferMode::WithDelay(delay) => {}
+            TransferMode::WithDelay(delay) => {
+                self.send_with_delay(delay, connection, pairs, logger).await
+            }
         }?;
 
         logger.info("Scenario finished successfully");
