@@ -35,7 +35,7 @@ Alternatively (however not recommended), you can avoid using `trunk` and instead
 This is described in details here: https://github.com/iced-rs/iced_web.
 Most probably installing `trunk` will take you less time.
 
-By default, it will be served at `127.0.0.1:8081`.
+By default, it will be served at `127.0.0.1:8040`.
 If you need to change this, consult [`Trunk.toml`](Trunk.toml).
 
 ## Launching in production

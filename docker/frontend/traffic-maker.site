@@ -11,6 +11,10 @@ server {
     try_files $uri $uri/index.html /index.html;
   }
 
+  location = /details {
+    proxy_pass http://backend:8080;
+  }
+
   location ~ /(images|js|css|fonts|resources)(.*)$ {
     expires 1h;
     add_header Cache-Control "public";

@@ -33,10 +33,14 @@ If you prefer running bots in a docker container, you can call:
 
 ```shell
 $ make setup
-$ make run-docker
+$ make docker
 ```
+This will launch `docker-compose` accoring to [`docker/docker-compose.yml`](docker/docker-compose.yml).
+If your chain is running on `localhost`, you will have to exchange line `node = "127.0.0.1:9944"` with `node = "host.docker.internal:9944"` in [`Timetable.toml`](Timetable.toml).
 
-Obviously, the requirement of an accessible running chain is still in force.
+**Note:** To enable backend to communicate with local chain from docker you will need to run node with `--unsafe-rpc-external` and `--unsafe-ws-external` flags.
+
+In addition, monitoring service will be served at `localhost:8080`.
 
 ### Adjusting configuration
 
@@ -45,7 +49,7 @@ Obviously, the requirement of an accessible running chain is still in force.
 The main file is [`Timetable.toml`](Timetable.toml). There you can specify:
 
   - `node` (by default `127.0.0.1:9944`): it is the web socket address to which bots will connect
-  - `expose_host` (by default `127.0.0.1:8080`): address where statistics are published
+  - `expose_host` (by default `0.0.0.0:8080`): address where statistics are published
   - which bots to launch and their parameters
 
 Statistics are exposed at two endpoints under the `expose_host` address.
@@ -79,7 +83,7 @@ $ make monitoring
 ```
 
 This will start a [`trunk`](https://trunkrs.dev/) server with the GUI and open a new browser tab to take you there.
-By default, it will be launched at `127.0.0.1:8081`.
+By default, it will be launched at `127.0.0.1:8040`.
 To change its configuration, check [`monitoring/Trunk.toml`](monitoring/Trunk.toml).
 For more details consult [`monitoring/README.md`](monitoring/README.md).
 
@@ -102,7 +106,10 @@ additionally starts a web server exposing statistics
 
 Just run:
 ```shell
-$ make build-docker
+# for backend image (it will be tagged `traffic-maker`)
+$ make build-backend-docker
+# or for frontend image (it will be tagged `traffic-maker-monitoring`)
+$ make build-frontend-docker
 ```
 
 ### Adding new scenarios

@@ -1,16 +1,13 @@
 FROM ubuntu:impish-20220128
 
-RUN apt-get update && apt-get install -y \
-    libssl-dev ca-certificates \
-    && rm -rf /tmp/* /var/{tmp,cache}/* /var/lib/{apt,dpkg}/
+RUN apt-get update -y && \
+    apt-get install -y -q libssl-dev ca-certificates curl && \
+    apt-get clean && \
+    rm -rf /tmp/* /var/{tmp,cache}/* /var/lib/{apt,dpkg}/
 
 COPY target/release/bin /usr/local/bin/backend
 RUN chmod +x /usr/local/bin/backend
 
-COPY docker/backend/docker_entrypoint.sh /traffic-maker/docker_entrypoint.sh
-RUN chmod +x /traffic-maker/docker_entrypoint.sh
-
 EXPOSE 8080
 
-WORKDIR traffic-maker
-ENTRYPOINT ["./docker_entrypoint.sh"]
+ENTRYPOINT ["backend"]
