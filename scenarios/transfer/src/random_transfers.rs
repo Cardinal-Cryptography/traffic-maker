@@ -30,7 +30,26 @@ fn compute_keypair(idx: usize) -> KeyPair {
     keypair_derived_from_seed(format!("{}{}", RANDOM_TRANSFER_SEED, idx))
 }
 
-pub type DelayInMillisecs = u64;
+#[derive(Copy, Clone, Debug, Deserialize)]
+pub struct DelayInMillisecs(u64);
+#[derive(Copy, Clone, Debug, Deserialize)]
+pub struct DelayInSeconds(u64);
+#[derive(Copy, Clone, Debug, Deserialize)]
+pub struct SpanDurationInSeconds(u64);
+
+/// returns vec of length `delay_count` with random delays that sum up to `target`.
+fn get_random_delays(target: SpanDurationInSeconds, delay_count: usize) -> Vec<DelayInSeconds> {
+    let mut delays: Vec<DelayInSeconds> = (0..delay_count).map(|_| DelayInSeconds(0)).collect();
+
+    let mut rng = thread_rng();
+    for _ in 0..target.0 {
+        let idx = rng.gen::<usize>() % delay_count;
+
+        delays[idx].0 += 1;
+    }
+
+    delays
+}
 
 #[derive(Debug, Clone, Event, Decode)]
 #[pallet = "Utility"]
@@ -51,6 +70,7 @@ pub enum TransferMode {
     Sequential,
     Batched,
     WithDelay(DelayInMillisecs),
+    Span(SpanDurationInSeconds),
 }
 
 /// Scenario making traffic through random transfers within the account pool.
@@ -139,13 +159,41 @@ impl RandomTransfers {
             .collect()
     }
 
+    async fn send_transfer(
+        &self,
+        connection: &Connection,
+        transfer_pair: TransferPair,
+        logger: &ScenarioLogging,
+    ) -> AnyResult<()> {
+        let TransferPair {
+            sender,
+            sender_id,
+            receiver,
+            receiver_id,
+        } = transfer_pair;
+
+        logger.debug(format!(
+            "Transferring money from #{} to #{}.",
+            sender_id, receiver_id
+        ));
+
+        try_transfer(
+            connection,
+            &sender,
+            &receiver,
+            real_amount(&self.transfer_value),
+        )
+        .await
+    }
+
     async fn send_sequentially(
         &self,
         connection: &Connection,
         pairs: Vec<TransferPair>,
         logger: &ScenarioLogging,
     ) -> AnyResult<()> {
-        self.send_with_delay(0, connection, pairs, logger).await
+        self.send_with_delay(DelayInMillisecs(0), connection, pairs, logger)
+            .await
     }
 
     async fn send_in_batch(
@@ -215,25 +263,7 @@ impl RandomTransfers {
         logger: &ScenarioLogging,
     ) -> AnyResult<()> {
         for (idx, transfer_pair) in pairs.into_iter().enumerate() {
-            let TransferPair {
-                sender,
-                sender_id,
-                receiver,
-                receiver_id,
-            } = transfer_pair;
-
-            logger.debug(format!(
-                "Transferring money from #{} to #{}.",
-                sender_id, receiver_id
-            ));
-
-            let transfer_result = try_transfer(
-                connection,
-                &sender,
-                &receiver,
-                real_amount(&self.transfer_value),
-            )
-            .await;
+            let transfer_result = self.send_transfer(connection, transfer_pair, logger).await;
             logger.log_result(transfer_result)?;
 
             logger.debug(format!(
@@ -242,9 +272,46 @@ impl RandomTransfers {
                 self.transfers
             ));
 
-            if delay > 0 {
-                logger.debug(format!("Waiting {}ms until next transfer", delay));
-                sleep(Duration::from_millis(delay)).await;
+            if delay.0 > 0 {
+                logger.debug(format!("Waiting {}ms until next transfer", delay.0));
+                sleep(Duration::from_millis(delay.0)).await;
+            }
+        }
+
+        Ok(())
+    }
+
+    async fn send_within_span(
+        &self,
+        span: SpanDurationInSeconds,
+        connection: &Connection,
+        pairs: Vec<TransferPair>,
+        logger: &ScenarioLogging,
+    ) -> AnyResult<()> {
+        const SECONDS_PER_TRANSACTION: u64 = 1;
+        let time_needed_to_send_all = SECONDS_PER_TRANSACTION * pairs.len() as u64;
+
+        if span.0 < time_needed_to_send_all {
+            return Err(ScenarioError::BadConfig.into());
+        }
+
+        let idle_time = span.0 - time_needed_to_send_all;
+
+        let sleeps = get_random_delays(SpanDurationInSeconds(idle_time), pairs.len());
+
+        for (idx, (transfer_pair, delay)) in pairs.into_iter().zip(sleeps).enumerate() {
+            let transfer_result = self.send_transfer(connection, transfer_pair, logger).await;
+            logger.log_result(transfer_result)?;
+
+            logger.debug(format!(
+                "Completed {}/{} transfers.",
+                idx + 1,
+                self.transfers
+            ));
+
+            if delay.0 > 0 {
+                logger.debug(format!("Waiting {}s until next transfer", delay.0));
+                sleep(Duration::from_secs(delay.0)).await;
             }
         }
 
@@ -261,6 +328,9 @@ impl Scenario<Connection> for RandomTransfers {
             TransferMode::Batched => self.send_in_batch(connection, pairs, logger).await,
             TransferMode::WithDelay(delay) => {
                 self.send_with_delay(delay, connection, pairs, logger).await
+            }
+            TransferMode::Span(span) => {
+                self.send_within_span(span, connection, pairs, logger).await
             }
         }?;
 

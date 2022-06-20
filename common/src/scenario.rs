@@ -13,6 +13,7 @@ use crate::Ident;
 pub enum ScenarioError {
     ExecutionFailure,
     CannotSendExtrinsic,
+    BadConfig,
 }
 
 impl Display for ScenarioError {
@@ -20,6 +21,7 @@ impl Display for ScenarioError {
         match self {
             ScenarioError::ExecutionFailure => write!(f, "Failure while executing scenario"),
             ScenarioError::CannotSendExtrinsic => write!(f, "Could not send extrinsic"),
+            ScenarioError::BadConfig => write!(f, "Bad config values"),
         }
     }
 }

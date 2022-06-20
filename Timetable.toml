@@ -1,13 +1,15 @@
 scenarios = [
-    { ident = "SimpleTransfer (7s)", interval = "7 seconds", scenario = { kind = "SimpleTransfer", transfer_value = 10 } },
-    { ident = "RoundRobin (10s)", interval = "10 seconds", scenario = { kind = "RoundRobin", passes = 3, robin_value = 1 } },
-    { ident = "ManyToMany (10s)", interval = "10 seconds", scenario = { kind = "RandomTransfers", direction = "ManyToMany", transfer_mode = "OneByOne", transfers = 5, transfer_value = 1 } },
-    { ident = "OneToMany (10s)", interval = "10 seconds", scenario = { kind = "RandomTransfers", direction = "OneToMany", transfer_mode = "Batched", transfers = 7, transfer_value = 3 } },
-    { ident = "Multisig (optimal)", interval = "12 seconds", scenario = { kind = "Multisig", party_size = { "Precise" = 4 }, threshold = { "Precise" = 3 }, strategy = "Optimal", cancel = false } },
-    { ident = "Multisig (cancel)", interval = "15 seconds", scenario = { kind = "Multisig", party_size = "Large", threshold = { "Precise" = 3 }, strategy = "Optimal", cancel = true } },
-    { ident = "VestingSchedulesMerging", interval = "60 seconds", scenario = { kind = "VestingSchedulesMerging" } },
-    { ident = "VestingVest", interval = "10 seconds", scenario = { kind = "VestingVest", vest_kind = "Vest" } },
-    { ident = "VestingVestOther", interval = "10 seconds", scenario = { kind = "VestingVest", vest_kind = "VestOther" } },
+#    { ident = "SimpleTransfer (7s)", interval = "7 seconds", scenario = { kind = "SimpleTransfer", transfer_value = 10 } },
+#    { ident = "RoundRobin (10s)", interval = "10 seconds", scenario = { kind = "RoundRobin", passes = 3, robin_value = 1 } },
+#    { ident = "ManyToMany (10s)", interval = "10 seconds", scenario = { kind = "RandomTransfers", direction = "ManyToMany", transfer_mode = "Sequential", transfers = 5, transfer_value = 1 } },
+#    { ident = "OneToMany (10s)", interval = "10 seconds", scenario = { kind = "RandomTransfers", direction = "OneToMany", transfer_mode = "Batched", transfers = 7, transfer_value = 3 } },
+#    { ident = "WithDelay 1500ms", interval = "10 seconds", scenario = { kind = "RandomTransfers", direction = "OneToMany", transfer_mode = { "WithDelay" = 1500 }, transfers = 7, transfer_value = 3 } },
+    { ident = "Span 30s", interval = "55 seconds", scenario = { kind = "RandomTransfers", direction = "OneToMany", transfer_mode = { "Span" = 30 }, transfers = 12, transfer_value = 3 } },
+#    { ident = "Multisig (optimal)", interval = "12 seconds", scenario = { kind = "Multisig", party_size = { "Precise" = 4 }, threshold = { "Precise" = 3 }, strategy = "Optimal", cancel = false } },
+#    { ident = "Multisig (cancel)", interval = "15 seconds", scenario = { kind = "Multisig", party_size = "Large", threshold = { "Precise" = 3 }, strategy = "Optimal", cancel = true } },
+#    { ident = "VestingSchedulesMerging", interval = "60 seconds", scenario = { kind = "VestingSchedulesMerging" } },
+#    { ident = "VestingVest", interval = "10 seconds", scenario = { kind = "VestingVest", vest_kind = "Vest" } },
+#    { ident = "VestingVestOther", interval = "10 seconds", scenario = { kind = "VestingVest", vest_kind = "VestOther" } },
 ]
 
 [environment]
