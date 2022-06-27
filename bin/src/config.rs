@@ -1,9 +1,8 @@
-use serde::{Deserialize, Deserializer};
+use serde::Deserialize;
 use std::time::Duration;
 
 use chain_support::{create_connection, AnyConnection, Connection};
-use common::{Ident, Scenario, ScheduledScenario};
-use parse_duration::parse;
+use common::{parse_interval, Ident, Scenario, ScheduledScenario};
 use scenarios_multisig::Multisig;
 use scenarios_transfer::{RandomTransfers, RoundRobin, SimpleTransfer};
 use scenarios_vesting::{SchedulesMerging, Vest};
@@ -100,13 +99,4 @@ impl ScenarioInstanceConfig {
                 .to_scenario(&connection.as_connection()),
         )
     }
-}
-
-/// Utility parser method for `Duration` struct.
-fn parse_interval<'de, D>(deserializer: D) -> Result<Duration, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let s: &str = Deserialize::deserialize(deserializer)?;
-    parse(s).map_err(serde::de::Error::custom)
 }

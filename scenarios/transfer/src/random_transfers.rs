@@ -13,7 +13,7 @@ use substrate_api_client::{
 use tokio::time::sleep;
 
 use chain_support::{keypair_derived_from_seed, real_amount, with_event_listening, Event};
-use common::{Scenario, ScenarioError, ScenarioLogging};
+use common::{parse_interval, Scenario, ScenarioError, ScenarioLogging};
 
 use crate::try_transfer;
 
@@ -30,25 +30,18 @@ fn compute_keypair(idx: usize) -> KeyPair {
     keypair_derived_from_seed(format!("{}{}", RANDOM_TRANSFER_SEED, idx))
 }
 
-#[derive(Copy, Clone, Debug, Deserialize)]
-pub struct DelayInMillisecs(u64);
-#[derive(Copy, Clone, Debug, Deserialize)]
-pub struct DelayInSeconds(u64);
-#[derive(Copy, Clone, Debug, Deserialize)]
-pub struct SpanDurationInSeconds(u64);
-
 /// returns vec of length `delay_count` with random delays that sum up to `target`.
-fn get_random_delays(target: SpanDurationInSeconds, delay_count: usize) -> Vec<DelayInSeconds> {
-    let mut delays: Vec<DelayInSeconds> = (0..delay_count).map(|_| DelayInSeconds(0)).collect();
-
+fn get_random_delays(target: u128, delay_count: usize) -> Vec<u128> {
     let mut rng = thread_rng();
-    for _ in 0..target.0 {
-        let idx = rng.gen::<usize>() % delay_count;
 
-        delays[idx].0 += 1;
-    }
+    let mut indices = (0..target).choose_multiple(&mut rng, delay_count - 1);
+    indices.sort();
+    indices.push(target);
+    indices.insert(0, 0);
 
-    delays
+    (0..delay_count as usize)
+        .map(|i| indices[i + 1] - indices[i])
+        .collect()
 }
 
 #[derive(Debug, Clone, Event, Decode)]
@@ -69,8 +62,10 @@ pub enum Direction {
 pub enum TransferMode {
     Sequential,
     Batched,
-    WithDelay(DelayInMillisecs),
-    Span(SpanDurationInSeconds),
+    #[serde(deserialize_with = "parse_interval")]
+    WithDelay(Duration),
+    #[serde(deserialize_with = "parse_interval")]
+    Span(Duration),
 }
 
 /// Scenario making traffic through random transfers within the account pool.
@@ -192,7 +187,7 @@ impl RandomTransfers {
         pairs: Vec<TransferPair>,
         logger: &ScenarioLogging,
     ) -> AnyResult<()> {
-        self.send_with_delay(DelayInMillisecs(0), connection, pairs, logger)
+        self.send_with_delay(Duration::from_millis(0), connection, pairs, logger)
             .await
     }
 
@@ -257,49 +252,46 @@ impl RandomTransfers {
 
     async fn send_with_delay(
         &self,
-        delay: DelayInMillisecs,
+        delay: Duration,
         connection: &Connection,
         pairs: Vec<TransferPair>,
         logger: &ScenarioLogging,
     ) -> AnyResult<()> {
-        for (idx, transfer_pair) in pairs.into_iter().enumerate() {
-            let transfer_result = self.send_transfer(connection, transfer_pair, logger).await;
-            logger.log_result(transfer_result)?;
-
-            logger.debug(format!(
-                "Completed {}/{} transfers.",
-                idx + 1,
-                self.transfers
-            ));
-
-            if delay.0 > 0 {
-                logger.debug(format!("Waiting {}ms until next transfer", delay.0));
-                sleep(Duration::from_millis(delay.0)).await;
-            }
-        }
-
-        Ok(())
+        self.send_transfers(pairs.into_iter().map(|p| (p, delay)), logger, connection)
+            .await
     }
 
     async fn send_within_span(
         &self,
-        span: SpanDurationInSeconds,
+        span: Duration,
         connection: &Connection,
         pairs: Vec<TransferPair>,
         logger: &ScenarioLogging,
     ) -> AnyResult<()> {
-        const SECONDS_PER_TRANSACTION: u64 = 1;
-        let time_needed_to_send_all = SECONDS_PER_TRANSACTION * pairs.len() as u64;
+        const MILLIS_PER_TRANSACTION: u128 = 1_000;
+        let time_needed_to_send_all = MILLIS_PER_TRANSACTION * pairs.len() as u128;
 
-        if span.0 < time_needed_to_send_all {
+        if span.as_millis() < time_needed_to_send_all {
             return Err(ScenarioError::BadConfig.into());
         }
 
-        let idle_time = span.0 - time_needed_to_send_all;
+        let idle_time = span.as_millis() - time_needed_to_send_all;
 
-        let sleeps = get_random_delays(SpanDurationInSeconds(idle_time), pairs.len());
+        let sleeps = get_random_delays(idle_time, pairs.len())
+            .into_iter()
+            .map(|d| Duration::from_millis(d as u64));
 
-        for (idx, (transfer_pair, delay)) in pairs.into_iter().zip(sleeps).enumerate() {
+        self.send_transfers(pairs.into_iter().zip(sleeps), logger, connection)
+            .await
+    }
+
+    async fn send_transfers<I: IntoIterator<Item = (TransferPair, Duration)>>(
+        &self,
+        pairs: I,
+        logger: &ScenarioLogging,
+        connection: &Connection,
+    ) -> AnyResult<()> {
+        for (idx, (transfer_pair, delay)) in pairs.into_iter().enumerate() {
             let transfer_result = self.send_transfer(connection, transfer_pair, logger).await;
             logger.log_result(transfer_result)?;
 
@@ -308,11 +300,11 @@ impl RandomTransfers {
                 idx + 1,
                 self.transfers
             ));
-
-            if delay.0 > 0 {
-                logger.debug(format!("Waiting {}s until next transfer", delay.0));
-                sleep(Duration::from_secs(delay.0)).await;
-            }
+            logger.debug(format!(
+                "Waiting {}ms until next transfer",
+                delay.as_millis()
+            ));
+            sleep(delay).await;
         }
 
         Ok(())
@@ -336,5 +328,18 @@ impl Scenario<Connection> for RandomTransfers {
 
         logger.info("Scenario finished successfully");
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::random_transfers::get_random_delays;
+
+    #[test]
+    fn gen_random_vector_that_sum_up_to_target() {
+        let random = get_random_delays(100, 10);
+
+        assert_eq!(10, random.len());
+        assert_eq!(100, random.into_iter().sum::<u128>());
     }
 }

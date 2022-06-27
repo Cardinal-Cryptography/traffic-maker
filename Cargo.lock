@@ -449,7 +449,6 @@ dependencies = [
  "chain-support",
  "common",
  "log",
- "parse_duration",
  "scenarios-multisig",
  "scenarios-transfer",
  "scenarios-vesting",
@@ -664,6 +663,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "log",
+ "parse_duration",
  "serde",
  "thiserror",
 ]
