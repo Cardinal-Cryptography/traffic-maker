@@ -34,7 +34,11 @@ fn compute_keypair(idx: usize) -> KeyPair {
 fn get_random_delays(target: u128, delay_count: usize) -> Vec<u128> {
     let mut rng = thread_rng();
 
-    let mut indices = (0..target).choose_multiple(&mut rng, delay_count - 1);
+    let mut indices = vec![];
+    for _ in 0..delay_count - 1 {
+        let x = rng.gen_range(0..target);
+        indices.push(x);
+    }
     indices.sort_unstable();
     indices.push(target);
     indices.insert(0, 0);
