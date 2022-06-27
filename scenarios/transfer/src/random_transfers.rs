@@ -35,7 +35,7 @@ fn get_random_delays(target: u128, delay_count: usize) -> Vec<u128> {
     let mut rng = thread_rng();
 
     let mut indices = (0..target).choose_multiple(&mut rng, delay_count - 1);
-    indices.sort();
+    indices.sort_unstable();
     indices.push(target);
     indices.insert(0, 0);
 
