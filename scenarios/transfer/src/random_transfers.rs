@@ -5,14 +5,15 @@ use aleph_client::{
 };
 use anyhow::Result as AnyResult;
 use codec::{Compact, Decode};
-use rand::{prelude::IteratorRandom, thread_rng, Rng};
+use rand::{distributions::{Distribution, Uniform}, prelude::IteratorRandom, thread_rng, Rng};
 use serde::Deserialize;
 use substrate_api_client::{
     compose_call, compose_extrinsic, AccountId, GenericAddress, Pair, XtStatus,
 };
+use tokio::time::sleep;
 
 use chain_support::{keypair_derived_from_seed, real_amount, with_event_listening, Event};
-use common::{Scenario, ScenarioError, ScenarioLogging};
+use common::{parse_interval, Scenario, ScenarioError, ScenarioLogging};
 
 use crate::try_transfer;
 
@@ -27,6 +28,26 @@ const AVAILABLE_ACCOUNTS: usize = 100;
 /// Returns keypair of the common account with index `idx`.
 fn compute_keypair(idx: usize) -> KeyPair {
     keypair_derived_from_seed(format!("{}{}", RANDOM_TRANSFER_SEED, idx))
+}
+
+/// returns vec of length `delay_count` with random delays that sum up to `target`.
+fn get_random_delays(target: u128, delay_count: usize) -> Vec<u128> {
+    let mut rng = thread_rng();
+
+    let between = Uniform::from(0..target);
+
+    let mut indices = vec![];
+    for _ in 0..delay_count - 1 {
+        let x = between.sample(&mut rng);
+        indices.push(x);
+    }
+    indices.sort_unstable();
+    indices.push(target);
+    indices.insert(0, 0);
+
+    (0..delay_count as usize)
+        .map(|i| indices[i + 1] - indices[i])
+        .collect()
 }
 
 #[derive(Debug, Clone, Event, Decode)]
@@ -44,9 +65,13 @@ pub enum Direction {
 /// Describes whether transfers should be submitted as independent extrinsics
 /// or in a batch.
 #[derive(Clone, Debug, Deserialize)]
-pub enum Granularity {
-    OneByOne,
+pub enum TransferMode {
+    Sequential,
     Batched,
+    #[serde(deserialize_with = "parse_interval")]
+    WithDelay(Duration),
+    #[serde(deserialize_with = "parse_interval")]
+    Span(Duration),
 }
 
 /// Scenario making traffic through random transfers within the account pool.
@@ -67,7 +92,7 @@ pub struct RandomTransfers {
     /// What type of traffic should be made.
     direction: Direction,
     /// How to submit extrinsics.
-    granularity: Granularity,
+    transfer_mode: TransferMode,
     /// How many transfers should be performed during a single run.
     /// This translates to different settings, depending on the scenario.
     /// E.g. in `OneToMany`, `transfers` will determine how many receivers
@@ -135,41 +160,41 @@ impl RandomTransfers {
             .collect()
     }
 
+    async fn send_transfer(
+        &self,
+        connection: &Connection,
+        transfer_pair: TransferPair,
+        logger: &ScenarioLogging,
+    ) -> AnyResult<()> {
+        let TransferPair {
+            sender,
+            sender_id,
+            receiver,
+            receiver_id,
+        } = transfer_pair;
+
+        logger.debug(format!(
+            "Transferring money from #{} to #{}.",
+            sender_id, receiver_id
+        ));
+
+        try_transfer(
+            connection,
+            &sender,
+            &receiver,
+            real_amount(&self.transfer_value),
+        )
+        .await
+    }
+
     async fn send_sequentially(
         &self,
         connection: &Connection,
         pairs: Vec<TransferPair>,
         logger: &ScenarioLogging,
     ) -> AnyResult<()> {
-        for (idx, transfer_pair) in pairs.into_iter().enumerate() {
-            let TransferPair {
-                sender,
-                sender_id,
-                receiver,
-                receiver_id,
-            } = transfer_pair;
-
-            logger.debug(format!(
-                "Transferring money from #{} to #{}.",
-                sender_id, receiver_id
-            ));
-
-            let transfer_result = try_transfer(
-                connection,
-                &sender,
-                &receiver,
-                real_amount(&self.transfer_value),
-            )
-            .await;
-            logger.log_result(transfer_result)?;
-
-            logger.debug(format!(
-                "Completed {}/{} transfers.",
-                idx + 1,
-                self.transfers
-            ));
-        }
-        Ok(())
+        self.send_with_delay(Duration::from_millis(0), connection, pairs, logger)
+            .await
     }
 
     async fn send_in_batch(
@@ -230,18 +255,97 @@ impl RandomTransfers {
 
         Ok(())
     }
+
+    async fn send_with_delay(
+        &self,
+        delay: Duration,
+        connection: &Connection,
+        pairs: Vec<TransferPair>,
+        logger: &ScenarioLogging,
+    ) -> AnyResult<()> {
+        self.send_transfers(pairs.into_iter().map(|p| (p, delay)), logger, connection)
+            .await
+    }
+
+    async fn send_within_span(
+        &self,
+        span: Duration,
+        connection: &Connection,
+        pairs: Vec<TransferPair>,
+        logger: &ScenarioLogging,
+    ) -> AnyResult<()> {
+        const MILLIS_PER_TRANSACTION: u128 = 1_000;
+        let time_needed_to_send_all = MILLIS_PER_TRANSACTION * pairs.len() as u128;
+
+        if span.as_millis() < time_needed_to_send_all {
+            return Err(ScenarioError::BadConfig.into());
+        }
+
+        let idle_time = span.as_millis() - time_needed_to_send_all;
+
+        let sleeps = get_random_delays(idle_time, pairs.len())
+            .into_iter()
+            .map(|d| Duration::from_millis(d as u64));
+
+        self.send_transfers(pairs.into_iter().zip(sleeps), logger, connection)
+            .await
+    }
+
+    async fn send_transfers<I: IntoIterator<Item = (TransferPair, Duration)>>(
+        &self,
+        pairs: I,
+        logger: &ScenarioLogging,
+        connection: &Connection,
+    ) -> AnyResult<()> {
+        for (idx, (transfer_pair, delay)) in pairs.into_iter().enumerate() {
+            let transfer_result = self.send_transfer(connection, transfer_pair, logger).await;
+            logger.log_result(transfer_result)?;
+
+            logger.debug(format!(
+                "Completed {}/{} transfers.",
+                idx + 1,
+                self.transfers
+            ));
+            logger.debug(format!(
+                "Waiting {}ms until next transfer",
+                delay.as_millis()
+            ));
+            sleep(delay).await;
+        }
+
+        Ok(())
+    }
 }
 
 #[async_trait::async_trait]
 impl Scenario<Connection> for RandomTransfers {
     async fn play(&mut self, connection: &Connection, logger: &ScenarioLogging) -> AnyResult<()> {
         let pairs = self.designate_pairs();
-        match self.granularity {
-            Granularity::OneByOne => self.send_sequentially(connection, pairs, logger).await,
-            Granularity::Batched => self.send_in_batch(connection, pairs, logger).await,
+        match self.transfer_mode {
+            TransferMode::Sequential => self.send_sequentially(connection, pairs, logger).await,
+            TransferMode::Batched => self.send_in_batch(connection, pairs, logger).await,
+            TransferMode::WithDelay(delay) => {
+                self.send_with_delay(delay, connection, pairs, logger).await
+            }
+            TransferMode::Span(span) => {
+                self.send_within_span(span, connection, pairs, logger).await
+            }
         }?;
 
         logger.info("Scenario finished successfully");
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::random_transfers::get_random_delays;
+
+    #[test]
+    fn gen_random_vector_that_sum_up_to_target() {
+        let random = get_random_delays(100, 10);
+
+        assert_eq!(10, random.len());
+        assert_eq!(100, random.into_iter().sum::<u128>());
     }
 }
