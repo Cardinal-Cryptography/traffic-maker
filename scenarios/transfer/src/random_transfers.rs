@@ -5,7 +5,7 @@ use aleph_client::{
 };
 use anyhow::Result as AnyResult;
 use codec::{Compact, Decode};
-use rand::{prelude::IteratorRandom, thread_rng, Rng};
+use rand::{distributions::{Distribution, Uniform}, prelude::IteratorRandom, thread_rng, Rng};
 use serde::Deserialize;
 use substrate_api_client::{
     compose_call, compose_extrinsic, AccountId, GenericAddress, Pair, XtStatus,
@@ -34,9 +34,11 @@ fn compute_keypair(idx: usize) -> KeyPair {
 fn get_random_delays(target: u128, delay_count: usize) -> Vec<u128> {
     let mut rng = thread_rng();
 
+    let between = Uniform::from(0..target);
+
     let mut indices = vec![];
     for _ in 0..delay_count - 1 {
-        let x = rng.gen_range(0..target);
+        let x = between.sample(&mut rng);
         indices.push(x);
     }
     indices.sort_unstable();
