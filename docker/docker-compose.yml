@@ -14,7 +14,7 @@ services:
     environment:
       - RUST_LOG=warn
     extra_hosts:
-     - host.docker.internal:host-gateway
+      - host.docker.internal:host-gateway
 
   frontend:
     image: traffic-maker-monitoring
