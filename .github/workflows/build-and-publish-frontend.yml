@@ -13,6 +13,16 @@ on:
         required: false
         type: string
         default: http://localhost:8080
+      api-address-devnet:
+        description: Same as api-address - but for devnet
+        required: false
+        type: string
+        default: https://traffic-maker.dev.azero.dev
+      api-address-testnet:
+        description: Same as api-address - but for testnet
+        required: false
+        type: string
+        default: https://traffic-maker.test.azero.dev
   push:
     branches: [ main ]
     paths:
@@ -59,6 +69,22 @@ jobs:
           cd monitoring/
           wget -qO- https://github.com/thedodd/trunk/releases/download/v0.15.0/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-
           ./trunk build --release
+
+      - name: Build frontend for Devnet
+        env:
+          STATS_BASE_URL: ${{ github.event.inputs.api-address-devnet }}
+        run: |
+          cd monitoring/
+          wget -qO- https://github.com/thedodd/trunk/releases/download/v0.15.0/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-
+          ./trunk build --release -d dist-devnet
+      
+      - name: Build frontend for Testnet
+        env:
+          STATS_BASE_URL: ${{ github.event.inputs.api-address-testnet }}
+        run: |
+          cd monitoring/
+          wget -qO- https://github.com/thedodd/trunk/releases/download/v0.15.0/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-
+          ./trunk build --release -d dist-testnet
 
       - name: Cleanup cache
         uses: ./.github/actions/rust-cache-post

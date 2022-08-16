@@ -8,3 +8,5 @@ Cargo.lock
 **/*.rs.bk
 
 monitoring/dist
+monitoring/dist-devnet
+monitoring/dist-testnet

@@ -17,6 +17,8 @@ build-monitoring:
 	rustup target add wasm32-unknown-unknown
 	cargo install --locked trunk
 	cd monitoring; trunk build --release
+	cd monitoring; STATS_BASE_URL="https://traffic-maker.dev.azero.dev" trunk build --release -d dist-devnet
+	cd monitoring; STATS_BASE_URL="https://traffic-maker.test.azero.dev" trunk build --release -d dist-testnet
 
 monitoring: build-monitoring
 	cd monitoring; trunk serve --open --release
