@@ -42,6 +42,22 @@ jobs:
       CARGO_INCREMENTAL: 0
       RUST_BACKTRACE: full
       RUSTC_WRAPPER: sccache
+    strategy:
+      matrix:
+        monitoring_env: ["default", "devnet", "testnet"]
+        include:
+          - api_address: ${{ github.event.inputs.api-address }}
+            path: monitoring/dist
+            content: frontend
+            monitoring_env: default
+          - api_address: ${{ github.event.inputs.api-address-devnet }}
+            path: monitoring/dist-devnet
+            content: frontend-devnet
+            monitoring_env: devnet
+          - api_address: ${{ github.event.inputs.api-address-testnet }}
+            path: monitoring/dist-testnet
+            content: frontend-testnet
+            monitoring_env: testnet
     steps:
       - name: Checkout Source code
         uses: actions/checkout@v2
@@ -64,27 +80,11 @@ jobs:
 
       - name: Build frontend
         env:
-          STATS_BASE_URL: ${{ github.event.inputs.api-address }}
+          STATS_BASE_URL: ${{ matrix.api_address }}
         run: |
           cd monitoring/
           wget -qO- https://github.com/thedodd/trunk/releases/download/v0.15.0/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-
           ./trunk build --release
-
-      - name: Build frontend for Devnet
-        env:
-          STATS_BASE_URL: ${{ github.event.inputs.api-address-devnet }}
-        run: |
-          cd monitoring/
-          wget -qO- https://github.com/thedodd/trunk/releases/download/v0.15.0/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-
-          ./trunk build --release -d dist-devnet
-      
-      - name: Build frontend for Testnet
-        env:
-          STATS_BASE_URL: ${{ github.event.inputs.api-address-testnet }}
-        run: |
-          cd monitoring/
-          wget -qO- https://github.com/thedodd/trunk/releases/download/v0.15.0/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-
-          ./trunk build --release -d dist-testnet
 
       - name: Cleanup cache
         uses: ./.github/actions/rust-cache-post
@@ -92,32 +92,28 @@ jobs:
       - name: Upload static content
         uses: actions/upload-artifact@v2
         with:
-          name: frontend
-          path: monitoring/dist
+          name: ${{ matrix.content }}
+          path: ${{ matrix.path }}
           if-no-files-found: error
           retention-days: 1
-      
-      - name: Upload static content (devnet)
-        uses: actions/upload-artifact@v2
-        with:
-          name: frontend-devnet
-          path: monitoring/dist-devnet
-          if-no-files-found: error
-          retention-days: 1
-
-      - name: Upload static content (testnet)
-        uses: actions/upload-artifact@v2
-        with:
-          name: frontend-testnet
-          path: monitoring/dist-testnet
-          if-no-files-found: error
-          retention-days: 1
-
 
   build-docker:
     name: Build frontend docker image
     needs: [ build-frontend ]
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        monitoring_env: ["default", "devnet", "testnet"]
+        include:
+          - path: monitoring/dist
+            content: frontend
+            monitoring_env: default
+          - path: monitoring/dist-devnet
+            content: frontend-devnet
+            monitoring_env: devnet
+          - path: monitoring/dist-testnet
+            content: frontend-testnet
+            monitoring_env: testnet
     steps:
       - name: Checkout Source code
         uses: actions/checkout@v2
@@ -125,20 +121,8 @@ jobs:
       - name: Download static content
         uses: actions/download-artifact@v2
         with:
-          name: frontend
-          path: monitoring/dist/
-
-      - name: Download static content (devnet)
-        uses: actions/download-artifact@v2
-        with:
-          name: frontend-devnet
-          path: monitoring/dist-devnet/
-
-      - name: Download static content (testnet)
-        uses: actions/download-artifact@v2
-        with:
-          name: frontend-testnet
-          path: monitoring/dist-testnet/
+          name: ${{ matrix.content }}
+          path: ${{ matrix.path }}
 
       - name: Build docker image
         run: |
