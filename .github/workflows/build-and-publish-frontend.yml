@@ -101,19 +101,6 @@ jobs:
     name: Build frontend docker image
     needs: [ build-frontend ]
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        monitoring_env: ["default", "devnet", "testnet"]
-        include:
-          - path: dist
-            content: frontend
-            monitoring_env: default
-          - path: dist-devnet
-            content: frontend-devnet
-            monitoring_env: devnet
-          - path: dist-testnet
-            content: frontend-testnet
-            monitoring_env: testnet
     steps:
       - name: Checkout Source code
         uses: actions/checkout@v2
@@ -121,8 +108,20 @@ jobs:
       - name: Download static content
         uses: actions/download-artifact@v2
         with:
-          name: ${{ matrix.content }}
-          path: monitoring/${{ matrix.path }}
+          name: frontend
+          path: monitoring/dist
+
+      - name: Download static content (devnet)
+        uses: actions/download-artifact@v2
+        with:
+          name: frontend-devnet
+          path: monitoring/dist-devnet
+
+      - name: Download static content (testnet)
+        uses: actions/download-artifact@v2
+        with:
+          name: frontend-testnet
+          path: monitoring/dist-testnet
 
       - name: Build docker image
         run: |
