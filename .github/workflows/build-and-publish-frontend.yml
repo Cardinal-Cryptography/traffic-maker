@@ -13,6 +13,16 @@ on:
         required: false
         type: string
         default: http://localhost:8080
+      api-address-devnet:
+        description: Same as api-address - but for devnet
+        required: false
+        type: string
+        default: https://traffic-maker.dev.azero.dev
+      api-address-testnet:
+        description: Same as api-address - but for testnet
+        required: false
+        type: string
+        default: https://traffic-maker.test.azero.dev
   push:
     branches: [ main ]
     paths:
@@ -32,6 +42,22 @@ jobs:
       CARGO_INCREMENTAL: 0
       RUST_BACKTRACE: full
       RUSTC_WRAPPER: sccache
+    strategy:
+      matrix:
+        monitoring_env: ["default", "devnet", "testnet"]
+        include:
+          - api_address: ${{ github.event.inputs.api-address }}
+            path: dist
+            content: frontend
+            monitoring_env: default
+          - api_address: ${{ github.event.inputs.api-address-devnet }}
+            path: dist-devnet
+            content: frontend-devnet
+            monitoring_env: devnet
+          - api_address: ${{ github.event.inputs.api-address-testnet }}
+            path: dist-testnet
+            content: frontend-testnet
+            monitoring_env: testnet
     steps:
       - name: Checkout Source code
         uses: actions/checkout@v2
@@ -54,11 +80,11 @@ jobs:
 
       - name: Build frontend
         env:
-          STATS_BASE_URL: ${{ github.event.inputs.api-address }}
+          STATS_BASE_URL: ${{ matrix.api_address }}
         run: |
           cd monitoring/
           wget -qO- https://github.com/thedodd/trunk/releases/download/v0.15.0/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-
-          ./trunk build --release
+          ./trunk build --release -d ${{ matrix.path }}
 
       - name: Cleanup cache
         uses: ./.github/actions/rust-cache-post
@@ -66,11 +92,10 @@ jobs:
       - name: Upload static content
         uses: actions/upload-artifact@v2
         with:
-          name: frontend
-          path: monitoring/dist
+          name: ${{ matrix.content }}
+          path: monitoring/${{ matrix.path }}
           if-no-files-found: error
           retention-days: 1
-
 
   build-docker:
     name: Build frontend docker image
@@ -84,7 +109,19 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: frontend
-          path: monitoring/dist/
+          path: monitoring/dist
+
+      - name: Download static content (devnet)
+        uses: actions/download-artifact@v2
+        with:
+          name: frontend-devnet
+          path: monitoring/dist-devnet
+
+      - name: Download static content (testnet)
+        uses: actions/download-artifact@v2
+        with:
+          name: frontend-testnet
+          path: monitoring/dist-testnet
 
       - name: Build docker image
         run: |

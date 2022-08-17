@@ -3,4 +3,7 @@
 
 !target/release/bin
 
+!monitoring/dist-devnet
+!monitoring/dist-testnet
 !monitoring/dist
+

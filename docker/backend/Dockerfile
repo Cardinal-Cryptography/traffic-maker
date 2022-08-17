@@ -1,4 +1,4 @@
-FROM ubuntu:impish-20220128
+FROM ubuntu:jammy-20220531
 
 RUN apt-get update -y && \
     apt-get install -y -q libssl-dev ca-certificates curl && \
@@ -10,4 +10,4 @@ RUN chmod +x /usr/local/bin/backend
 
 EXPOSE 8080
 
-ENTRYPOINT ["backend"]
+ENTRYPOINT ["/usr/local/bin/backend"]

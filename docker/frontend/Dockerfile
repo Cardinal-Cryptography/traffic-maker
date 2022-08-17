@@ -1,27 +1,13 @@
-FROM ubuntu:impish-20220128
+FROM nginx:1.23
 
-RUN apt-get update -y && \
-    apt-get install --no-install-recommends -y -q wget nginx libssl-dev ca-certificates curl && \
-    apt-get clean && \
-    rm -rf /tmp/* /var/{tmp,cache}/* /var/lib/{apt,dpkg}/
+ENV BACKEND_HTTP_HOSTPORT "backend:8080"
+ENV MONITORING_ENV "default"
 
-# replace nginx config
 COPY docker/frontend/nginx.conf /etc/nginx/nginx.conf
-
-# replace default server
-COPY docker/frontend/default /etc/nginx/sites-available/default
-
-# site config
-COPY docker/frontend/traffic-maker.site /etc/nginx/sites-available/traffic-maker.site
-
-# setup error page
+COPY docker/frontend/traffic-maker.conf.template /etc/nginx/templates/traffic-make.conf.template
 COPY docker/frontend/X0X.html /usr/share/nginx/html/X0X.html
 
-# setup site
-RUN ln -s -f /etc/nginx/sites-available/traffic-maker.site /etc/nginx/sites-enabled/traffic-maker.site
+COPY monitoring/dist/ /monitoring-default
+COPY monitoring/dist-testnet/ /monitoring-testnet
+COPY monitoring/dist-devnet/ /monitoring-devnet
 
-# copy static content
-COPY monitoring/dist/ /monitoring
-
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
