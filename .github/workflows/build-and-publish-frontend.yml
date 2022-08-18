@@ -37,7 +37,7 @@ concurrency:
 jobs:
   build-frontend:
     name: Build and upload frontend static content
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     env:
       CARGO_INCREMENTAL: 0
       RUST_BACKTRACE: full
@@ -100,7 +100,7 @@ jobs:
   build-docker:
     name: Build frontend docker image
     needs: [ build-frontend ]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout Source code
         uses: actions/checkout@v2
@@ -139,7 +139,7 @@ jobs:
   push-docker:
     name: Push Docker image to ECR
     needs: [ build-docker ]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     if: >
       github.event_name == 'workflow_dispatch' && github.event.inputs.deploy ||
       github.event_name == 'push'

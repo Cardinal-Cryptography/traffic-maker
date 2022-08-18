@@ -1,4 +1,4 @@
-FROM ubuntu:jammy-20220531
+FROM ubuntu:22.04
 
 RUN apt-get update -y && \
     apt-get install -y -q libssl-dev ca-certificates curl && \
