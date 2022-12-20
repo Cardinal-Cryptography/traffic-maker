@@ -4,17 +4,8 @@
 use std::{env, fmt::Display};
 
 pub use aleph_client::{
-    create_connection, keypair_from_string, send_xt, try_send_xt, AnyConnection, Connection,
-    KeyPair, RootConnection, SignedConnection,
+    keypair_from_string, Connection, KeyPair, RootConnection, SignedConnection,
 };
-
-pub use event_listening::{
-    with_event_listening, with_event_matching, Event, EventKind, ListeningError,
-    SingleEventListener, Transfer as TransferEvent,
-};
-
-mod event_listening;
-mod macros;
 
 /// Creates a new derived `KeyPair` from provided `seed` as a derivation path.
 ///
