@@ -1,14 +1,15 @@
 use aleph_client::{
-    balances_batch_transfer, keypair_from_string, send_xt, substrate_api_client, AnyConnection,
-    RootConnection, SignedConnection,
+    account_from_keypair,
+    aleph_runtime::RuntimeCall::{Balances, Sudo},
+    keypair_from_string,
+    pallet_balances::pallet::Call::set_balance,
+    pallet_sudo::pallet::Call::sudo_unchecked_weight,
+    pallets::{balances::BalanceUserBatchExtApi, utility::UtilityApi},
+    sp_weights::weight_v2::Weight,
+    AccountId, RootConnection, SignedConnection, TxStatus,
 };
-use codec::Compact;
-use serde::Deserialize;
-use substrate_api_client::{
-    compose_call, compose_extrinsic, AccountId, GenericAddress, Pair, XtStatus::Finalized,
-};
-
 use chain_support::{keypair_derived_from_seed, real_amount};
+use serde::Deserialize;
 
 use crate::CliConfig;
 
@@ -26,24 +27,29 @@ pub struct Endowment {
     pub accounts: Vec<Account>,
 }
 
-fn batch_set_endowment(connection: &RootConnection, accounts: Vec<AccountId>, amount: u128) {
-    let metadata = connection.as_connection().metadata;
-    let xts = accounts
+async fn batch_set_endowment(connection: &RootConnection, accounts: Vec<AccountId>, amount: u128) {
+    let subcalls = accounts
         .iter()
         .map(|account| {
-            let endowment_call = compose_call!(
-                metadata,
-                "Balances",
-                "set_balance",
-                GenericAddress::Id(account.clone()),
-                Compact(amount), // free balance
-                Compact(0u128)   // reserved balance
-            );
-            compose_call!(metadata, "Sudo", "sudo", endowment_call)
+            Sudo(sudo_unchecked_weight {
+                call: Box::new(Balances(set_balance {
+                    who: account.clone().into(),
+                    new_free: amount,
+                    new_reserved: 0,
+                })),
+                weight: Weight {
+                    ref_time: 0,
+                    proof_size: 0,
+                },
+            })
         })
-        .collect::<Vec<_>>();
-    let xt = compose_extrinsic!(connection.as_connection(), "Utility", "batch", xts);
-    send_xt(connection, xt, Some("Set endowment"), Finalized);
+        .collect();
+
+    connection
+        .as_signed()
+        .batch_call(subcalls, TxStatus::Finalized)
+        .await
+        .expect("Failed to endow accounts");
 }
 
 fn flatten_accounts(accounts: &[Account]) -> Vec<AccountId> {
@@ -59,26 +65,30 @@ fn flatten_accounts(accounts: &[Account]) -> Vec<AccountId> {
             }
         })
         .map(keypair_derived_from_seed)
-        .map(|kp| kp.public())
-        .map(AccountId::from)
+        .map(|kp| account_from_keypair(kp.signer()))
         .collect()
 }
 
-pub fn perform_endowments(cli_config: &CliConfig, endowments: &[Endowment]) {
+pub async fn perform_endowments(cli_config: &CliConfig, endowments: &[Endowment]) {
     let endowments = endowments
         .iter()
         .map(|Endowment { amount, accounts }| (real_amount(amount), flatten_accounts(accounts)));
-    let performer = keypair_from_string(&*cli_config.phrase);
+    let performer = keypair_from_string(&cli_config.phrase);
 
     if cli_config.transfer {
-        let connection = SignedConnection::new(&cli_config.node, performer);
+        let connection = SignedConnection::new(cli_config.node.clone(), performer).await;
         for (amount, accounts) in endowments {
-            balances_batch_transfer(&connection, accounts, amount);
+            connection
+                .batch_transfer(&accounts, amount, TxStatus::Finalized)
+                .await
+                .expect("Failed to endow accounts");
         }
     } else {
-        let connection = RootConnection::new(&cli_config.node, performer);
+        let connection = RootConnection::new(cli_config.node.clone(), performer)
+            .await
+            .expect("Failed to create root connection. Check your phrase.");
         for (amount, accounts) in endowments {
-            batch_set_endowment(&connection, accounts, amount);
+            batch_set_endowment(&connection, accounts, amount).await;
         }
     }
 }
