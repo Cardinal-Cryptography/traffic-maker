@@ -1,22 +1,22 @@
-use crate::events::VestingUpdated;
+use std::time::Duration;
+
 use aleph_client::{
-    account_from_keypair, substrate_api_client::AccountId, vest, vest_other, vested_transfer,
-    Connection, KeyPair, SignedConnection, VestingSchedule,
+    account_from_keypair, api, api::vesting::events::VestingUpdated,
+    pallet_vesting::vesting_info::VestingInfo, pallets::vesting::VestingUserApi,
+    utility::BlocksApi, AccountId, Connection, KeyPair, SignedConnection, TxStatus,
 };
-use anyhow::Result as AnyResult;
-use chain_support::{do_async, keypair_derived_from_seed, with_event_matching};
+use anyhow::{anyhow, ensure, Result as AnyResult};
+use chain_support::{keypair_derived_from_seed, Balance};
 use common::{Scenario, ScenarioLogging};
 use rand::random;
 use serde::Deserialize;
-use std::time::Duration;
-use thiserror::Error;
-use tokio::{task::spawn_blocking, time::sleep};
+use tokio::time::sleep;
 
-const SOURCE_VEST_SEED: &str = "//Vest/Source/Vest";
-const SOURCE_VEST_OTHER_SEED: &str = "//Vest/Source/VestOther";
-const RECIPIENT_SEED: &str = "//Vest/Recipient";
-const INITIAL_VESTED: u128 = 1_000_000_000;
-const PER_BLOCK: u128 = 1_000_000;
+const SOURCE_VEST_SEED: &str = "//Vest//Source//Vest";
+const SOURCE_VEST_OTHER_SEED: &str = "//Vest//Source//VestOther";
+const RECIPIENT_SEED: &str = "//Vest//Recipient";
+const INITIAL_VESTED: Balance = 1_000_000_000;
+const PER_BLOCK: Balance = 1_000_000;
 const WAIT_BLOCKS: u64 = 20;
 const WAIT_PERIOD: Duration = Duration::from_secs(WAIT_BLOCKS);
 
@@ -24,12 +24,6 @@ const WAIT_PERIOD: Duration = Duration::from_secs(WAIT_BLOCKS);
 pub enum VestKind {
     Vest,
     VestOther,
-}
-
-#[derive(Debug, Error)]
-pub enum VestError {
-    #[error("🦺❌ The height of the current block could not be retrieved from storage.")]
-    NoCurrentBlock,
 }
 
 fn random_recipient() -> KeyPair {
@@ -55,59 +49,68 @@ impl Vest {
         }
     }
 
-    async fn current_block(connection: &Connection) -> AnyResult<u32> {
-        let connection = connection.clone();
-        let result =
-            spawn_blocking(move || connection.get_storage_value::<u32>("System", "Number", None))
-                .await??
-                .ok_or(VestError::NoCurrentBlock)?;
-        Ok(result)
-    }
-
-    async fn vest_action(&self, connection: &Connection, target: &KeyPair) -> AnyResult<()> {
-        match self.vest_kind {
-            VestKind::Vest => Self::vest(connection, target).await,
-            VestKind::VestOther => {
-                Self::vest_other(connection, self.source(), &account_from_keypair(target)).await
-            }
-        }
-    }
-
-    async fn vest_other(
+    async fn vest_action(
+        &self,
         connection: &Connection,
-        signer: KeyPair,
-        target: &AccountId,
-    ) -> AnyResult<()> {
-        let connection = SignedConnection::from_any_connection(connection, signer);
-        do_async!(vest_other, connection, target)?
-    }
+        target: &KeyPair,
+    ) -> AnyResult<VestingUpdated> {
+        let submission = match self.vest_kind {
+            VestKind::Vest => {
+                connection
+                    .client
+                    .tx()
+                    .sign_and_submit_then_watch_default(&api::tx().vesting().vest(), target)
+                    .await
+            }
+            VestKind::VestOther => {
+                connection
+                    .client
+                    .tx()
+                    .sign_and_submit_then_watch_default(
+                        &api::tx()
+                            .vesting()
+                            .vest_other(target.account_id().clone().into()),
+                        &self.source(),
+                    )
+                    .await
+            }
+        };
 
-    async fn vest(connection: &Connection, account: &KeyPair) -> AnyResult<()> {
-        let connection = SignedConnection::from_any_connection(connection, account.clone());
-        do_async!(vest, connection)?
+        Ok(submission?
+            .wait_for_finalized()
+            .await?
+            .fetch_events()
+            .await?
+            .find_first::<VestingUpdated>()?
+            .unwrap())
     }
 
     async fn vested_transfer(
         &self,
         connection: &Connection,
         receiver: &AccountId,
-        schedule: VestingSchedule,
+        schedule: VestingInfo<Balance, u32>,
     ) -> AnyResult<()> {
-        let connection = SignedConnection::from_any_connection(connection, self.source());
-        do_async!(vested_transfer, connection, receiver, schedule)?
+        SignedConnection::from_connection(connection.clone(), self.source())
+            .vested_transfer(receiver.clone(), schedule, TxStatus::Finalized)
+            .await
+            .map(|_| ())
     }
 
     async fn do_play(&self, connection: &Connection, logger: &ScenarioLogging) -> AnyResult<()> {
-        let current_block = Self::current_block(connection).await?;
+        let current_block = connection.get_best_block().await;
         let recipient = random_recipient();
-        let recipient_copy = recipient.clone();
 
         logger.info("Setting up with vested_transfer");
 
         self.vested_transfer(
             connection,
-            &account_from_keypair(&recipient),
-            VestingSchedule::new(INITIAL_VESTED, PER_BLOCK, current_block + 10),
+            &account_from_keypair(recipient.signer()),
+            VestingInfo {
+                locked: INITIAL_VESTED,
+                per_block: PER_BLOCK,
+                starting_block: current_block + 10,
+            },
         )
         .await?;
 
@@ -117,20 +120,14 @@ impl Vest {
 
         logger.info(format!("Calling {:?}", self.vest_kind));
 
-        // There should be enough funds for the fee from what's already vested
-        with_event_matching(
-            connection,
-            move |event: &VestingUpdated| {
-                let unlocked = INITIAL_VESTED - event.unvested;
-
-                event.account == account_from_keypair(&recipient_copy)
-                    && unlocked > PER_BLOCK * (WAIT_BLOCKS as u128) / 2
-                    && unlocked < PER_BLOCK * (WAIT_BLOCKS as u128) * 5
-            },
-            Duration::from_secs(2),
-            self.vest_action(connection, &recipient),
-        )
-        .await?;
+        let VestingUpdated { account, unvested } = self.vest_action(connection, &recipient).await?;
+        let unlocked = INITIAL_VESTED - unvested;
+        ensure!(
+            account == account_from_keypair(recipient.signer())
+                && unlocked > PER_BLOCK * (WAIT_BLOCKS as Balance) / 2
+                && unlocked < PER_BLOCK * (WAIT_BLOCKS as Balance) * 5,
+            anyhow!("Incorrect event has been intercepted")
+        );
 
         logger.info("Success");
 

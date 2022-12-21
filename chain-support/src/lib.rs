@@ -1,11 +1,10 @@
-// Needed for `do_async!`.
-#![feature(fn_traits)]
-
 use std::{env, fmt::Display};
 
 pub use aleph_client::{
     keypair_from_string, Connection, KeyPair, RootConnection, SignedConnection,
 };
+
+pub type Balance = u128;
 
 /// Creates a new derived `KeyPair` from provided `seed` as a derivation path.
 ///
