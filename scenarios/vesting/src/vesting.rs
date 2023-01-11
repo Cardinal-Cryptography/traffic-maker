@@ -57,14 +57,14 @@ impl Vest {
         let submission = match self.vest_kind {
             VestKind::Vest => {
                 connection
-                    .client
+                    .as_client()
                     .tx()
                     .sign_and_submit_then_watch_default(&api::tx().vesting().vest(), target)
                     .await
             }
             VestKind::VestOther => {
                 connection
-                    .client
+                    .as_client()
                     .tx()
                     .sign_and_submit_then_watch_default(
                         &api::tx()
@@ -98,7 +98,10 @@ impl Vest {
     }
 
     async fn do_play(&self, connection: &Connection, logger: &ScenarioLogging) -> AnyResult<()> {
-        let current_block = connection.get_best_block().await;
+        let current_block = connection
+            .get_best_block()
+            .await?
+            .ok_or(anyhow!("Failed to obtain best block info"))?;
         let recipient = random_recipient();
 
         logger.info("Setting up with vested_transfer");

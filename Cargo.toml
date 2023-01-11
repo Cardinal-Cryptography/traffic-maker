@@ -1,12 +1,12 @@
 [workspace]
 
 members = [
-    "bin",
-    "traffic",
+#    "bin",
+#    "traffic",
     "chain-support",
     "common",
-    "scenarios/transfer",
-    "scenarios/multisig",
+#    "scenarios/transfer",
+#    "scenarios/multisig",
     "scenarios/vesting",
 ]
 

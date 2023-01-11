@@ -14,7 +14,7 @@ use serde::Deserialize;
 use crate::CliConfig;
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct Account {
+pub struct AccountSeries {
     pub name: String,
     pub copies: Option<usize>,
 }
@@ -24,7 +24,7 @@ pub struct Endowment {
     /// As `toml` does not support deserializing `u128`, so we need to operate
     /// on amounts scaled by `DECIMALS`.
     pub amount: u64,
-    pub accounts: Vec<Account>,
+    pub accounts: Vec<AccountSeries>,
 }
 
 async fn batch_set_endowment(connection: &RootConnection, accounts: Vec<AccountId>, amount: u128) {
@@ -46,13 +46,12 @@ async fn batch_set_endowment(connection: &RootConnection, accounts: Vec<AccountI
         .collect();
 
     connection
-        .as_signed()
         .batch_call(subcalls, TxStatus::Finalized)
         .await
         .expect("Failed to endow accounts");
 }
 
-fn flatten_accounts(accounts: &[Account]) -> Vec<AccountId> {
+fn flatten_accounts(accounts: &[AccountSeries]) -> Vec<AccountId> {
     accounts
         .iter()
         .flat_map(|a| {
@@ -76,7 +75,7 @@ pub async fn perform_endowments(cli_config: &CliConfig, endowments: &[Endowment]
     let performer = keypair_from_string(&cli_config.phrase);
 
     if cli_config.transfer {
-        let connection = SignedConnection::new(cli_config.node.clone(), performer).await;
+        let connection = SignedConnection::new(&cli_config.node, performer).await;
         for (amount, accounts) in endowments {
             connection
                 .batch_transfer(&accounts, amount, TxStatus::Finalized)
@@ -84,7 +83,7 @@ pub async fn perform_endowments(cli_config: &CliConfig, endowments: &[Endowment]
                 .expect("Failed to endow accounts");
         }
     } else {
-        let connection = RootConnection::new(cli_config.node.clone(), performer)
+        let connection = RootConnection::new(&cli_config.node, performer)
             .await
             .expect("Failed to create root connection. Check your phrase.");
         for (amount, accounts) in endowments {

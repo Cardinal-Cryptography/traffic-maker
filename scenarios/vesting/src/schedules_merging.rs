@@ -82,7 +82,7 @@ impl SchedulesMerging {
     /// Fails if `MaxVestingSchedules` is less than 2.
     pub fn new(connection: &Connection) -> AnyResult<Self> {
         let schedules_limit: u32 = connection
-            .client
+            .as_client()
             .constants()
             .at(&constants().vesting().max_vesting_schedules())
             .unwrap();
@@ -90,7 +90,7 @@ impl SchedulesMerging {
         ensure!(schedules_limit >= 2, SchedulesMergingError::LimitTooLow);
 
         let transfer_value: Balance = connection
-            .client
+            .as_client()
             .constants()
             .at(&constants().vesting().min_vested_transfer())
             .unwrap();

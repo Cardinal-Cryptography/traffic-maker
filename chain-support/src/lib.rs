@@ -1,8 +1,6 @@
 use std::{env, fmt::Display};
 
-pub use aleph_client::{
-    keypair_from_string, Connection, KeyPair, RootConnection, SignedConnection,
-};
+use aleph_client::{keypair_from_string, KeyPair};
 
 pub type Balance = u128;
 
