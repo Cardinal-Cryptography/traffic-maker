@@ -2532,6 +2532,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "scenarios-multisig"
+version = "0.1.0"
+dependencies = [
+ "aleph_client",
+ "anyhow",
+ "async-trait",
+ "chain-support",
+ "common",
+ "parity-scale-codec",
+ "rand 0.8.5",
+ "serde",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
 name = "scenarios-vesting"
 version = "0.1.0"
 dependencies = [

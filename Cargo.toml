@@ -6,7 +6,7 @@ members = [
     "chain-support",
     "common",
 #    "scenarios/transfer",
-#    "scenarios/multisig",
+    "scenarios/multisig",
     "scenarios/vesting",
 ]
 

@@ -4,9 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-aleph_client = { git = "https://github.com/Cardinal-Cryptography/aleph-node.git", rev = "c8eb94cfb066485aa2d14f65110a26edc54dda9a" }
-pallet-multisig = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19", default-features = false }
-sp-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19", default-features = false }
+aleph_client = { git = "https://github.com/Cardinal-Cryptography/aleph-node.git", branch = "traffic-maker" }
 
 chain-support = { path = "../../chain-support" }
 common = { path = "../../common" }

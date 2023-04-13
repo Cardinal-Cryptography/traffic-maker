@@ -1,13 +1,13 @@
 use aleph_client::{
-    substrate_api_client::{extrinsic::balances::BalanceTransferXt, GenericAddress},
-    AnyConnection, Connection, KeyPair, MultisigParty,
+    account_from_keypair, pallet_balances,
+    pallets::multisig::{Call, MultisigParty, MultisigThreshold},
+    AccountId, Connection, KeyPair,
 };
 use anyhow::Result as AnyResult;
-use rand::{seq::index::sample, thread_rng, Rng};
-use serde::Deserialize;
-
 use chain_support::keypair_derived_from_seed;
 use common::{Scenario, ScenarioLogging};
+use rand::{seq::index::sample, thread_rng, Rng};
+use serde::Deserialize;
 
 use crate::{Action, Cancel, PartySize, Strategy, Threshold};
 
@@ -23,8 +23,6 @@ const AVAILABLE_ACCOUNTS: usize = 50;
 fn compute_keypair(idx: usize) -> KeyPair {
     keypair_derived_from_seed(format!("{}{}", MULTISIG_SEED, idx))
 }
-
-type Call = BalanceTransferXt;
 
 /// Configuration for `Multisig` scenario.
 #[derive(Clone, Debug, Deserialize)]
@@ -78,21 +76,19 @@ impl Multisig {
     }
 
     /// Dummy extrinsic to be executed after reaching threshold.
-    ///
-    /// We use simple money transfer which will always fail, but this does not matter at all in
-    /// context of scenario success.
-    fn prepare_call(connection: &Connection) -> Call {
-        connection
-            .as_connection()
-            .balance_transfer(GenericAddress::Address32(Default::default()), 0)
+    fn prepare_call() -> Call {
+        Call::Balances(pallet_balances::pallet::Call::transfer {
+            dest: AccountId::new(Default::default()).into(),
+            value: 0,
+        })
     }
 
-    /// Due to the problems described in `crate::Action::perform` we have to create party for each
-    /// call.
-    ///
-    /// Fortunately it is not so expensive.
+    /// Creates `MultisigParty` from `members` and `threshold`.
     fn get_party(members: &[KeyPair], threshold: usize) -> AnyResult<MultisigParty> {
-        MultisigParty::new(members.to_vec(), threshold as u16)
+        MultisigParty::new(
+            members.iter().map(|kp| kp.account_id()).collect(),
+            threshold as MultisigThreshold,
+        )
     }
 
     /// Executes `actions`. `i`th action will be performed by `members[i]` (unless this is `Cancel`
@@ -107,6 +103,7 @@ impl Multisig {
     ) -> AnyResult<()> {
         let party = Self::get_party(&members, threshold)?;
         logger.info("Initializing signature aggregation");
+
         let mut sig_agg = actions[0]
             .perform(connection, party, None, call.clone(), &members[0], false)
             .await?;
@@ -155,7 +152,7 @@ impl Scenario<Connection> for Multisig {
 
         let members = self.select_members(party_size);
         let actions = self.prepare_actions(threshold);
-        let call = Self::prepare_call(connection);
+        let call = Self::prepare_call();
 
         let result =
             Self::perform_multisig(connection, members, threshold, actions, call, logger).await;

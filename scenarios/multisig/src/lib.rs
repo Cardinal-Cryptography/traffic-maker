@@ -4,33 +4,24 @@
 use std::{fmt::Debug, time::Duration};
 
 use aleph_client::{
-    account_from_keypair, compute_call_hash,
-    substrate_api_client::{AccountId, UncheckedExtrinsicV4},
-    AnyConnection, KeyPair, MultisigParty, SignatureAggregation, SignedConnection,
+    account_from_keypair,
+    pallets::multisig::{
+        compute_call_hash, Call, Context, ContextAfterUse, MultisigContextualApi, MultisigParty,
+        Ongoing, DEFAULT_MAX_WEIGHT,
+    },
+    KeyPair, SignedConnection, TxStatus,
+    TxStatus::Finalized,
 };
 use anyhow::Result as AnyResult;
 use codec::Encode;
+pub use multisig::Multisig;
 use rand::{random, thread_rng, Rng};
 use serde::Deserialize;
 use thiserror::Error;
-
-use chain_support::{do_async, with_event_listening};
-pub use multisig::Multisig;
 use Action::*;
 use Strategy::*;
 
-use crate::events::{
-    MultisigApproval as MultisigApprovalEvent, MultisigCancelled as MultisigCancelledEvent,
-    MultisigExecuted as MultisigExecutedEvent, NewMultisig as NewMultisigEvent,
-};
-
-mod events;
 mod multisig;
-
-/// How long are we willing to wait for a particular event.
-const EVENT_TIMEOUT: Duration = Duration::from_millis(3000);
-
-type CallHash = [u8; 32];
 
 /// Gathers all possible errors from this module.
 #[derive(Debug, Error)]
@@ -39,10 +30,12 @@ pub enum MultisigError {
     ThresholdTooHigh,
     #[error("👪❌ Threshold should be at least 2.")]
     ThresholdTooLow,
-    #[error("👪❌ Aggregation is no longer valid.")]
-    InvalidAggregation,
     #[error("👪❌ Party size should be less than {0}.")]
     SizeTooHigh(usize),
+    #[error("👪❌ Action requires valid context parameter.")]
+    MissingContext,
+    #[error("👪❌ Signature aggregation has been closed or finalized unexpectedly.")]
+    UnexpectedAggregationClosing,
 }
 
 /// Way to express desired multisig party size. The final value is obtainable through consuming
@@ -116,17 +109,6 @@ enum Action {
     Cancel,
 }
 
-/// Auxiliary function flattening result of result.
-///
-/// Highly useful for results being returned from within `do_async!`.
-fn flatten<T, E: Into<anyhow::Error>>(result: Result<AnyResult<T>, E>) -> AnyResult<T> {
-    match result {
-        Ok(Ok(r)) => Ok(r),
-        Ok(Err(e)) => Err(e),
-        Err(e) => Err(e.into()),
-    }
-}
-
 impl Action {
     /// Checks whether the action carries a whole call (not just its hash).
     pub fn requires_call(&self) -> bool {
@@ -143,173 +125,72 @@ impl Action {
         matches!(self, InitiateWithCall | InitiateWithHash)
     }
 
-    /// Effectively performs the semantics behind `Action`. Calls corresponding methods of `party`.
+    /// Performs the semantics behind `Action`. Calls corresponding methods of
+    /// `MultisigContextualApi`.
     ///
-    /// Unfortunately, `party` has to be passed by value here, as `MultisigParty` does not implement
-    /// `Clone` trait, and passing a reference would require `'static` lifetime from the calling
-    /// code.
-    ///
-    /// `sig_agg` should be `None` iff `self.is_initial()`.
+    /// `context` should be `None` iff `self.is_initial()`.
     ///
     /// `should_finalize` is a flag indicating whether this approval should result in executing
     /// `call`.
-    ///
-    /// Note: if the action is `InitiateWithCall` or `ApproveWithCall`, `call` will be stored
-    /// (unless this is the final approval). In other words, the pallet call flag `store_call` is
-    /// always set to `true`.
-    pub async fn perform<C: AnyConnection, CallDetails: Encode + Clone + Send + 'static>(
+    pub async fn perform(
         &self,
-        connection: &C,
-        party: MultisigParty,
-        sig_agg: Option<SignatureAggregation>,
-        call: UncheckedExtrinsicV4<CallDetails>,
-        caller: &KeyPair,
+        connection: &SignedConnection,
+        party: &MultisigParty,
+        call: Call,
         should_finalize: bool,
-    ) -> AnyResult<Option<SignatureAggregation>> {
-        if !self.is_initial() && sig_agg.is_none() {
-            return Err(MultisigError::InvalidAggregation.into());
+        context: Option<Context<Ongoing>>,
+    ) -> AnyResult<ContextAfterUse> {
+        if !self.is_initial() && context.is_none() {
+            return Err(MultisigError::MissingContext.into());
         }
-
-        let connection = SignedConnection::from_any_connection(connection, caller.clone());
-        let caller = account_from_keypair(caller);
-        let caller_idx = party.get_member_index(caller.clone())?;
         let call_hash = compute_call_hash(&call);
 
-        // The schema is common for all the cases. Firstly, we build an `event` we expect to confirm
-        // the action. Then we call corresponding method from `MultisigParty` wrapped with
-        // `with_event_listening`. This part is done asynchronously and non-blocking due to
-        // `do_async!`.
-        //
-        // When succeeded, we return new `SignatureAggregation` (in case of `Cancel`, this will be
-        // unchanged `sig_agg`).
-        //
-        // As for similar code: since `event` object is different, we cannot easily (without some
-        // ugly boxing) extract common schema.
         match self {
             InitiateWithHash => {
-                let event =
-                    NewMultisigEvent::from_relevant_fields(caller, party.get_account(), call_hash);
-                with_event_listening(&connection, event, EVENT_TIMEOUT, async {
-                    flatten(do_async!(
-                        MultisigParty::initiate_aggregation_with_hash,
-                        party,
-                        &connection,
-                        call_hash,
-                        caller_idx
-                    ))
-                })
-                .await
-                .map(|(sig_agg, _event)| Some(sig_agg))
+                let (_, context) =
+                    connection.initiate(party, &DEFAULT_MAX_WEIGHT, call_hash, Finalized)?;
+                Ok(ContextAfterUse::Ongoing(context))
             }
             InitiateWithCall => {
-                let event =
-                    NewMultisigEvent::from_relevant_fields(caller, party.get_account(), call_hash);
-                with_event_listening(&connection, event, EVENT_TIMEOUT, async {
-                    flatten(do_async!(
-                        MultisigParty::initiate_aggregation_with_call,
-                        party,
-                        &connection,
-                        call,
-                        { true },
-                        caller_idx
-                    ))
-                })
-                .await
-                .map(|(sig_agg, _event)| Some(sig_agg))
+                let (_, context) =
+                    connection.initiate_with_call(party, &DEFAULT_MAX_WEIGHT, call, Finalized)?;
+                Ok(ContextAfterUse::Ongoing(context))
             }
-            ApproveWithHash if should_finalize => {
-                let event = MultisigExecutedEvent::from_relevant_fields(
-                    caller,
-                    party.get_account(),
-                    call_hash,
-                );
-                with_event_listening(&connection, event, EVENT_TIMEOUT, async {
-                    flatten(do_async!(
-                        MultisigParty::approve,
-                        party,
-                        &connection,
-                        caller_idx,
-                        sig_agg.unwrap()
-                    ))
-                })
-                .await
-                .map(|(sig_agg, _event)| Some(sig_agg))
-            }
-            ApproveWithCall if should_finalize => {
-                let event = MultisigExecutedEvent::from_relevant_fields(
-                    caller,
-                    party.get_account(),
-                    call_hash,
-                );
-                with_event_listening(&connection, event, EVENT_TIMEOUT, async {
-                    flatten(do_async!(
-                        MultisigParty::approve_with_call,
-                        party,
-                        &connection,
-                        caller_idx,
-                        sig_agg.unwrap(),
-                        call,
-                        { true }
-                    ))
-                })
-                .await
-                .map(|(sig_agg, _event)| Some(sig_agg))
-            }
+            // ApproveWithHash if should_finalize => {
+            //     let (_, context) = connection.approve(context.unwrap(), Finalized)?;
+            //     match context {
+            //         ContextAfterUse::Ongoing(_) => Err(MultisigError::)
+            //     }
+            // }
+            // ApproveWithCall if should_finalize => {
+            //     let event = MultisigExecutedEvent::from_relevant_fields(
+            //         caller,
+            //         party.get_account(),
+            //         call_hash,
+            //     );
+            // }
             ApproveWithHash => {
-                let event = MultisigApprovalEvent::from_relevant_fields(
-                    caller,
-                    party.get_account(),
-                    call_hash,
-                );
-                with_event_listening(&connection, event, EVENT_TIMEOUT, async {
-                    flatten(do_async!(
-                        MultisigParty::approve,
-                        party,
-                        &connection,
-                        caller_idx,
-                        sig_agg.unwrap()
-                    ))
-                })
-                .await
-                .map(|(sig_agg, _event)| Some(sig_agg))
+                let (_, context) = connection.approve(context.unwrap(), Finalized)?;
+                match context {
+                    ContextAfterUse::Ongoing(_) => Ok(context),
+                    ContextAfterUse::Closed(_) => {
+                        Err(MultisigError::UnexpectedAggregationClosing.into())
+                    }
+                }
             }
             ApproveWithCall => {
-                let event = MultisigApprovalEvent::from_relevant_fields(
-                    caller,
-                    party.get_account(),
-                    call_hash,
-                );
-                with_event_listening(&connection, event, EVENT_TIMEOUT, async {
-                    flatten(do_async!(
-                        MultisigParty::approve_with_call,
-                        party,
-                        &connection,
-                        caller_idx,
-                        sig_agg.unwrap(),
-                        call,
-                        { true }
-                    ))
-                })
-                .await
-                .map(|(sig_agg, _event)| Some(sig_agg))
+                let (_, context) =
+                    connection.approve_with_call(context.unwrap(), Some(call), Finalized)?;
+                match context {
+                    ContextAfterUse::Ongoing(_) => Ok(context),
+                    ContextAfterUse::Closed(_) => {
+                        Err(MultisigError::UnexpectedAggregationClosing.into())
+                    }
+                }
             }
             Cancel => {
-                let event = MultisigCancelledEvent::from_relevant_fields(
-                    caller,
-                    party.get_account(),
-                    call_hash,
-                );
-                with_event_listening(&connection, event, EVENT_TIMEOUT, async {
-                    flatten(do_async!(
-                        MultisigParty::cancel,
-                        party,
-                        &connection,
-                        caller_idx,
-                        sig_agg.unwrap()
-                    ))
-                })
-                .await
-                .map(|_| None)
+                let (_, context) = connection.cancel(context.unwrap(), Finalized)?;
+                Ok(ContextAfterUse::Closed(context))
             }
         }
     }
