@@ -1,0 +1,18 @@
+name: Example workflow using SOOS
+# Events required to engage workflow (add/edit this list as needed)
+on: push
+jobs:
+  synchronous-analysis-with-blocking-result:
+    name: SOOS SCA Scan
+    runs-on: ubuntu-latest
+    steps:
+
+    - uses: actions/checkout@v2
+
+    - name: Run SOOS - Scan for vulnerabilities
+      uses: soos-io/soos-sca-github-action@v1.2.3
+      with:
+        project_name: "test-project"
+        client_id: ${{ secrets.TMP_SOOS_CLIENT_ID }}
+        api_key: ${{ secrets.TMP_SOOS_API_KEY }}
+
